@@ -16,11 +16,89 @@ function YouTubeEmbed({ videoID }: { videoID: string }) {
 export const NEW_PROJECTS: NewProjectInfo[] = [
   {
     legacy: false,
+    id: 'cdit-planning',
+    repository: 'https://github.com/jaron-cui/nwm-planning',
+    title: 'Planning with World Models',
+    date: '2025-12-02',
+    status: 'COMPLETED',
+    technologies: ['Python', 'PyTorch', 'Conditional Diffusion Transformer', 'Variational Autoencoder'],
+    page: fullpage => {
+      return (
+        <div>
+          <h4>Description</h4>
+          TODO
+        </div>
+      );
+    }
+  }, {
+    legacy: false,
+    id: 'neural-evolution-v1',
+    repository: 'https://github.com/jaron-cui/neural-evolution',
+    title: 'Evolution of Biorealistic Neural Development',
+    date: '2025-04-16',
+    status: 'COMPLETED',
+    technologies: ['Python', 'PyTorch', 'MLP'],
+    page: fullpage => {
+      return (
+        <div>
+          <h4>Description</h4>
+          TODO
+        </div>
+      );
+    }
+  }, {
+    legacy: false,
+    id: 'rums-composition',
+    title: 'Robot Utility Models Policy Composition',
+    date: '2025-05-02',
+    status: 'COMPLETED',
+    technologies: ['Python', 'Vector-Quantized Behavior Transformer', 'Robotics', 'Stretch'],
+    page: fullpage => {
+      return (
+        <div>
+          <h4>Description</h4>
+          TODO
+        </div>
+      );
+    }
+  }, {
+    legacy: false,
+    id: 'programmatic-midi',
+    repository: 'https://github.com/jaron-cui/midi-generator',
+    title: 'Programmatic MIDI Generator',
+    date: '2024-10-03',
+    status: 'COMPLETED',
+    technologies: ['Python', 'MIDI', 'PyTorch', 'Transformer', 'REMI'],
+    page: fullpage => {
+      return (
+        <div>
+          <h4>Description</h4>
+          TODO
+        </div>
+      );
+    }
+  }, {
+    legacy: false,
+    id: 'clockwork-robotic-arm',
+    title: 'Clockwork Robotic Arm',
+    date: '2025-02-16',
+    status: 'ON_HOLD',
+    technologies: ['CAD', 'Fusion360', 'Robotics'],
+    page: fullpage => {
+      return (
+        <div>
+          <h4>Description</h4>
+          TODO
+        </div>
+      );
+    }
+  }, {
+    legacy: false,
     id: 'chess',
     repository: 'https://github.com/jaron-cui/jaron-cui.github.io/tree/master/src/page/extraneous/chess',
     title: 'Chess',
     date: '2024-02-10',
-    status: 'ACTIVE',
+    status: 'ON_HOLD',
     technologies: ['TypeScript', 'PixiJS'],
     page: fullpage => {
       return (
@@ -66,6 +144,7 @@ export const NEW_PROJECTS: NewProjectInfo[] = [
     date: '2024-01-04',
     status: 'ACTIVE',
     technologies: ['TypeScript', 'PixiJS', 'WebGL'],
+    features: ['Physics', 'Graphics'],
     page: fullscreen => {
       return (
         <div>
