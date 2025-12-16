@@ -349,8 +349,103 @@ export const NEW_PROJECTS: NewProjectInfo[] = [
     page: fullpage => {
       return (
         <div>
+          <h4>Samples</h4>
+          <p>
+            A couple of interesting outputs from the algorithm:
+          </p>
+          <h6>Bright groove:</h6>
+          <audio controls src='project/programmatic-midi/bright_hectic.mp3'>Audio not supported by browser</audio>
+          <h6>Down in the caves (my favorite):</h6>
+          <audio controls src='project/programmatic-midi/down_in_the_caves.mp3'>Audio not supported by browser</audio>
+          <h6>Chicken coop chase:</h6>
+          <audio controls src='project/programmatic-midi/chicken_coop_chase.mp3'>Audio not supported by browser</audio>
+          <h6>The passing eons:</h6>
+          <audio controls src='project/programmatic-midi/calm_inquisitive.mp3'>Audio not supported by browser</audio>
+
           <h4>Description</h4>
-          TODO
+          <p>
+            Music, as any art, comes from the heart.
+          </p>
+          <p>
+            But my calling as a computer scientist in 2024 compels me to automate away
+            human artisans with cold, unfeeling machines. My ultimate objective is to exacerbate wealth inequality
+            as large employment sectors of middle-income workers are replaced by a smaller class of higher-paid engineers.
+          </p>
+          <p>
+            Anyway, I thought it would be interesting to try my hand at generating piano music completely programmatically.
+            Music is composed at a human's discretion. Great music is often described as closely following music theory
+            rules, but breaking them a few times to bring out exceptional sound. Well... I think that musicians should just
+            analyze those rule breaks and figure out the pattern so they can be added to the book of music theory.
+          </p>
+          <p>
+            The point is that most music follows well-known patterns. Surprisingly, there don't seem to be many
+            easily accessible and good attempts at making programmatic music generators online. I would have thought someone
+            would have done it in the 1980s or something.
+          </p>
+          <h4>Properties of Good Music</h4>
+          <p>
+            I've written a concise list of general properties of good-sounding music.
+            <ol>
+              <li>Harmonic consistency - adherence to a musical key, chord progressions, and the emphasis of chord notes.</li>
+              <li>Temporal consistency - inertia in changes of pitch or rhythm (scales and arpeggios versus random notes in the key).</li>
+              <li>Music Motifs - controlled repetition of ideas, borrowing of low-level musical structures.</li>
+              <li>Broad structure - distinct sections combined and modified to form a piece (like rhyme schemes, sections may be repeated. e.g. ABACA)/</li>
+            </ol>
+          </p>
+          <h4>Incorporating Music Theory Algorithmically</h4>
+          <p>
+            <ul>
+              <li>Top left: starting out with a single generic block</li>
+              <li>Top right: recursively subdividing the block</li>
+              <li>Bottom left: filling in concrete melodies and rhythms</li>
+              <li>Bottom right: borrowing from the pool of existing concrete melodies and rhythms</li>
+            </ul>
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='80%' src='project/programmatic-midi/iterative-process.png'/>)}
+              {wrapContent(<img width='100%' src='project/programmatic-midi/iterative-process.png'/>)}
+            </WidthSwitch>
+          </div>
+          <p>
+            In summary, music is structured at several different scales and is defined by regular patterns.
+            One crucial observation about music is that phrases can be broken up into smaller units, and those units
+            are often interchangeable with similar alternatives. A useful simplification we derive from this
+            observation is the representation of a given length of music as simply a (start_note, end_note, duration, chord_progression)
+            unit. The most important notes in a given isolated musical chunk are the first and last note.
+            We can recursively break this chunk into subchunks specified similarly, until we get to the scale of a few notes per chunk.
+            Therefore, when generating a new piece, we first select the high-level details, such as the average tempo, chord progressions,
+            and key. Then, we can perform the recursive subdivision process and build detail top-down.
+          </p>
+          <p>
+            In order to maintain harmonic and temporal consistency, we fill in the chunks between start and end notes with
+            a graph search. The nodes of the graph are notes, and the edges are the intervals between consecutive notes.
+            It is simple to apply constraints to satisfy the aforementioned consistencies. We simply cull all nodes that
+            don't match the chord progression at a given time, and cull all edges that break interval rules.
+            Then, a probabilistic graph search is an elegant solution.
+          </p>
+          <p>
+            As we fill in blocks, we end up with concrete melodies and rhythms. To satisfy the idea of motifs, we can play a clever
+            trick where future block fills start looking at the pool of previously generated patterns and preferentially borrow
+            compatible rhythms and melodies.
+          </p>
+          <p>
+            Finally, broad rearrangement can give us familiar section patterns. After doing some research, I've compiled a list
+            of common section patterns that we sample from.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='80%' src='project/programmatic-midi/section-patterns.png'/>)}
+              {wrapContent(<img width='100%' src='project/programmatic-midi/section-patterns.png'/>)}
+            </WidthSwitch>
+          </div>
+          <h4>Conclusion</h4>
+          <p>
+            The final programmatic music generator outputs satisfactory results. However, there do exist unfavorable generations.
+            Supplementing real training data with synthetic training data generated by this algorithm did not have a significant
+            qualitatively observable impact on the music generated by a Transformer-XL architecture. The code for the model
+            is available at <a>https://github.com/vm2781/remi</a>.
+          </p>
         </div>
       );
     }
@@ -365,7 +460,64 @@ export const NEW_PROJECTS: NewProjectInfo[] = [
       return (
         <div>
           <h4>Description</h4>
-          TODO
+          <p>
+            3D printing is incredible, and gears are fun. I was mulling over my sore lack of a personal robotic arm
+            on which to conduct machine learning experiments, and then thought of making my own.
+            But then came to mind the hassle of electronics. Why not just skip the electronics?
+          </p>
+          <p>
+            Clockwork is fascinating to look at. An escapement mechanism allows for controlled releases of energy from
+            some stored potential energy source - typically gravity or a spring. So, let's try building a fully mechanical
+            yet programmable robotic arm.
+          </p>
+          <p>
+            The basic idea I have is that the arm's movements will occur in ticks, just like a clock. An escapement
+            will regularly progress the arm's movement. We can manually control the movement of the arm by pulling
+            levers that redirect mechanical power through different gears. If we can do that, then we can write
+            simple programs consisting of lists of instructions that are fed through a conversion unit.
+            Punch cards sure would be dandy.
+          </p>
+          <p>
+            The more difficult and tedious part than wishful brainstorming is the actual engineering of the mechanism.
+            One feature I'd like is unlimited rotation of joints where physically allowed. Many electromechanical
+            robotic arms have rotation limits because the wires hidden inside will twist. You can get around this
+            using concentric conductive rings where electrical connections ride a shuttle around to avoid wire twist.
+            I'd like to make a gear-based version of this concept.
+          </p>
+          <p>
+            Here, I sketch out concept drawings for the arm, and begin printing parts for the base joint.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(
+                <>
+                  <img width='30%' src='project/clockwork-robotic-arm/sketch1.jpg'/>
+                  <img width='30%' src='project/clockwork-robotic-arm/parts.jpg'/>
+                </>
+              )}
+              {wrapContent(
+                <>
+                  <img width='50%' src='project/clockwork-robotic-arm/sketch1.jpg'/>
+                  <img width='50%' src='project/clockwork-robotic-arm/parts.jpg'/>
+                </>
+              )}
+            </WidthSwitch>
+          </div>
+          <p>
+            I then spent days designing a mechanical version of the concentric conductive twist joint power transmissions.
+            The pictured mechanism should be capable of transferring 4 independent power chains up the arm to other joints.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='30%' src='project/clockwork-robotic-arm/cad.png'/>)}
+              {wrapContent(<img width='30%' src='project/clockwork-robotic-arm/cad.png'/>)}
+            </WidthSwitch>
+          </div>
+
+          <h4>Project on Hold</h4>
+          <p>
+            I have become busy with research at GRAIL and other projects, so this will have to wait for the foreseeable future.
+          </p>
         </div>
       );
     }
