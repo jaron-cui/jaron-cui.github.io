@@ -25,8 +25,112 @@ export const NEW_PROJECTS: NewProjectInfo[] = [
     page: fullpage => {
       return (
         <div>
-          <h4>Description</h4>
-          TODO
+          <h4>Summary</h4>
+          <p>
+            I train a CDiT-based world model on a topographical navigation environment and demonstrate that it
+            can be used for action planning via probing with stochastically sampled actions. We effectively explore
+            the terrain virtually. This may be useful in applications where we must do zero-shot planning on novel terrain.
+          </p>
+          <h4>Motivation</h4>
+          <p>
+            My Computer Vision class, taught by Saining Xie, had a guest speaker YuTong Bai. Her recent
+            work, <i>Whole-Body Conditioned Egocentric Video Prediction</i>, trained an autoregressive
+            Conditional Diffusion Transformer (CDiT) on egocentric human video with pose data to serve as a World
+            model capable of predicting future visual states given past states and human pose actions.
+            In essence, the CDiT developed an understanding of the visual dynamics of human motion without any
+            explicit labeling of objects in the world.
+          </p>
+          <p>
+            World models seem to be a tentatively useful tool. On one hand, the perfect world model captures dynamics
+            to the point that it is essentially a hyperrealistic simulation. A hyperrealistic simulation would be
+            immensely useful for robotics applications. The most common training paradigm for robotics is domain-specific
+            data collection. This is expensive and generally nongeneralizable! Every new task we want to train a robot on
+            requires a whole new set of data collection for that task. But a performant and accurate simulation that
+            captures <i>general</i> dynamics theoretically encodes the information needed for any physical task.
+            AI world models also have the advantage over simulations in that they will continuously get better with
+            additional training data, whereas simulations need to be manually extended and improved.
+            Of course, it is easier said than done to train a good world model.
+          </p>
+          <p>
+            I became interested in seeing whether I could use world models to perform zero-shot planning on robotics tasks.
+            I settled on navigation and manipulation as target domains of robotics.
+          </p>
+          <h4>Implementation</h4>
+          <p>
+            In Bai's original paper, the environment consisted of egocentric navigation in the real world.
+            One observation I have regarding world models is that you can either use more informative state data or
+            have a more powerful model. Egocentric navigation uses a relatively uninformative observation
+            (just a single first person view) and a very powerful world model (capable of extrapolating entire 3D scenes from
+            single first person views).
+            I decided to build a simpler environment from scratch to accommodate my sparser computational resources.
+            I would use simpler dynamics with a more informative observation to cut down on uncertainty.
+            The environment I settled on is a top-down topographic view of procedurally generated mountainous terrain,
+            centered on the position of the actor.
+            Actions are XY displacements of the actor, which can be obstructed by impassable terrain above a certain altitude.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            {wrapContent(<Clip link='https://drive.google.com/file/d/1GAiFphsIMMTBZVtHWaG9WQcH3iZXq-ab/preview'/>)}
+          </div>
+          <p>
+            We can use this model for planning by algorithmically probing it with stochastically-sampled actions.
+            The resulting directed acyclic graph grows until the desired end state is found.
+            This means that our probing algorithm and world model can produce a sequence of actions to move from a
+            starting state to a goal state, where the only inputs are an image of the start state and an image
+            of the goal state. Isn't that amazing? The world model can simulate the dynamics of the world without
+            really "knowing" what it's simulating. It has no conception of mountains; it has simply learned that high
+            topographic values indicate impassability. We determine goal proximity with a distance function trained to
+            predict the navigational distance between two images.
+          </p>
+          <h4>Results</h4>
+          <p>
+            The trained CDiT has captured the dynamics of the environment accurately enough that planned trajectories
+            work when deployed in the real environment. Below, we have an example of a start and goal image pair with
+            an obstacle between them.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='30%' src='project/cdit-planning/obstruction-navigation.png'/>)}
+              {wrapContent(<img width='100%' src='project/cdit-planning/obstruction-navigation.png'/>)}
+            </WidthSwitch>
+          </div>
+          <p>
+            The algorithm is able compose a sequence of stochastically sampled actions that the world model believes
+            reaches the goal state. Below, we have the expected trajectory decoded with the VAE from the CDiT latents
+            (this video is entirely CDiT output!), and then the trajectory produced by rolling out the action sequence
+            in simulation.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(
+                <>
+                  <img width='15%' src='project/cdit-planning/obstructed_planned_trajectory.gif'/>
+                  <img width='15%' src='project/cdit-planning/obstructed_mujoco_rollout.gif'/>
+                </>
+              )}
+              {wrapContent(
+                <>
+                  <img width='100%' src='project/cdit-planning/obstructed_planned_trajectory.gif'/>
+                  <img width='100%' src='project/cdit-planning/obstructed_mujoco_rollout.gif'/>
+                </>
+              )}
+            </WidthSwitch>
+          </div>
+          <p>
+            Here, we have a longer-form zero-shot trajectory planning example where the algorithm is given a sparse
+            demonstration of the desired path. The algorithm plans the actions between each consecutive pair of snapshots
+            and produces a sequence of actions that successfully reproduce the path in simulation.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            {wrapContent(<Clip link='https://drive.google.com/file/d/1wcE78WWiQbHiQ5uxpbOBsvp_Xs2_y_Bb/preview' width='320' height='320'/>)}
+            {wrapContent(<Clip link='https://drive.google.com/file/d/1p31Emkaj0W9u8ygOV_QpUWbFPzzRHuVK/preview' width='320' height='320'/>)}
+          </div>
+          <p>
+            The most striking feature about extended world model exploration is how self-consistent the predicted world is.
+            When rolling out a random walk of 200 actions in this world model, the shapes of the terrain look very close
+            to the initial shapes. I suppose that one strength of diffusion models is that they are explicitly trained
+            to refine structure from noise, making them considerably robust to accumulated error. Normally, an input passed
+            through a recurrent model 200 times would end with a great deal of error.
+          </p>
         </div>
       );
     }
@@ -41,8 +145,105 @@ export const NEW_PROJECTS: NewProjectInfo[] = [
     page: fullpage => {
       return (
         <div>
-          <h4>Description</h4>
-          TODO
+          <h4>Summary</h4>
+          <p>
+            I attempt to build biorealistic neural networks composed of highly parameterized neurons with latent states
+            and genetically-defined behavioral projections meant to enable the nuanced chemical behaviors of real neurons
+            to be emulated. Specimens start from a single neuron and undergo self-regulated mitosis.
+            After 70 generations of evolutionary selection from mutated populations, I find that the neural population can
+            reach a stable size. I have not tried to evolve useful firing behavior because since my last work on the project,
+            I've learned more about neuroscience and have concluded that there are too many shortcomings with this model.
+            I plan to build a revised version. The main flaws are that:
+            <ol>
+              <li>
+                This simulation uses binary firing states, when a rate-coded firing state would have superior
+                representational capacity.
+              </li>
+              <li>
+                The quadratic growth of inter-neuron connection calculations is incredibly inefficient.
+                The version 2 of this project will seek to impose structural constraints that make connection checking
+                significantly sparser.
+              </li>
+            </ol>
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='50%' src='project/neural-evolution-v1/neural-evolution-specimen.gif'/>)}
+              {wrapContent(<img width='100%' src='project/neural-evolution-v1/neural-evolution-specimen.gif'/>)}
+            </WidthSwitch>
+          </div>
+          <h4>Motivation</h4>
+          <p>
+            What we call "neural networks" are, in my opinion, only <i>very</i> loosely based on how real
+            neural networks work. Consider a sequence of fully-connected layers interspaced with ReLU activations.
+            The main biologically-inspired components here are the activation functions and integration of inputs.
+            The activation function is based on action potentials, and the integration emulate the excitatory
+            and inhibitory signals from other neurons.
+          </p>
+          <p>
+            However, real neurons aren't arranged in neat layers, they don't behave like stateless, timeless functions,
+            and their connections aren't static. A real neural network brings to mind an interwoven web of connections
+            where timing matters and occasional rewiring encodes information. Inscrutable chemical interactions and signals
+            influence the network. And most dramatically, the entire network started as a handful of cells undergoing
+            mitosis.
+          </p>
+          <p>
+            I want to try and simulate a biorealistic neural network that starts as one cell and recursively divides
+            to grow into a cloud of neurons. I want these neurons to have action potentials, be able to initiate mitosis
+            or apoptosis based on external and internal factors, and communicate complex chemical messages to one another.
+          </p>
+          <h4>Neuron Parameters</h4>
+          <p>
+            The basic neural unit needs a considerable set of parameters to exhibit the desired behaviors.
+            Here is a diagram summarizing the parameters that I have settled on for this project.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='50%' src='project/neural-evolution-v1/data-representation.png'/>)}
+              {wrapContent(<img width='100%' src='project/neural-evolution-v1/data-representation.png'/>)}
+            </WidthSwitch>
+          </div>
+          <h4>Genome</h4>
+          <p>
+            I mentioned before that I want to allow complex evolving and reactive cell behaviors that emulate
+            the nuanced chemical interactions of real neurons. The way I accomplish this is by evolving the
+            functional parameters and hidden state of each neuron with a set of MLPs whose weights I designate
+            as part of the genome. For example, there is a parameter derivation MLP that projects the internal
+            and external state of a neuron into its activation threshold, signal strength, and hormone
+            emission for the current simulation tick. This allows the neuron to rewire itself in response
+            to various factors. There is the passive update MLP that evolves the hidden state each tick,
+            the active update MLP that evolves the hidden state upon firing, and then there are the MLPs
+            that output the connection strength between any two neurons and determine the hidden state of
+            daughter cells upon mitosis. This system of genetically-defined projections from state to
+            behavior is intended to allow for complex dynamics akin to those in real biology to develop.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='50%' src='project/neural-evolution-v1/genome.png'/>)}
+              {wrapContent(<img width='100%' src='project/neural-evolution-v1/genome.png'/>)}
+            </WidthSwitch>
+          </div>
+          <h4>Simulation Loop</h4>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='50%' src='project/neural-evolution-v1/code.png'/>)}
+              {wrapContent(<img width='100%' src='project/neural-evolution-v1/code.png'/>)}
+            </WidthSwitch>
+          </div>
+          <h4>Visualization</h4>
+          <p>
+            After 70 generations of population-based evolution selecting for specimens that have a neuron
+            count closest to 200 and minimize neuron death, we see that one of the surviving members displays
+            stable waves of cell division. The neurons undergo mitosis until the population is approximately
+            200, at which point they cease. We can see variable strength connections forming, but there is no
+            evolutionary pressure related to signal patterns in this case.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='50%' src='project/neural-evolution-v1/neural-evolution-specimen.gif'/>)}
+              {wrapContent(<img width='100%' src='project/neural-evolution-v1/neural-evolution-specimen.gif'/>)}
+            </WidthSwitch>
+          </div>
         </div>
       );
     }
@@ -57,7 +258,83 @@ export const NEW_PROJECTS: NewProjectInfo[] = [
       return (
         <div>
           <h4>Description</h4>
-          TODO
+          <p>
+            <i>Robot Utility Models</i> (RUMs) is a framework for training two-finger gripper manipulation policies with
+            behavior cloning
+            for the <i>hello robot</i> Stretch 3. The framework includes a hand-operated gripper tool for collecting
+            demonstrations. The gripper tool is mounted with an iPhone that tracks odometry and camera feed data
+            that can be transformed into positional and visual information matching that sensed from the robot's
+            perspective. Data can be collected quickly by human operators with cheap equipment, instead of through
+            teleoperation. We aim to augment the capabilities of the RUMs framework by implementing the composition
+            of more granular policies.
+          </p>
+          <h4>Trained Policies</h4>
+          <p>
+            We first select tasks to compose.
+            <ol>
+              <li>Picking up a lemon or lime.</li>
+              <li>Sorting a grasped lemon or lime to a left or right bowl, respectively.</li>
+            </ol>
+            These policies should be deployed in sequence automatically based on the visual context.
+            The sorting task serves the additional purpose of explicitly testing RUMs' handling of multi-modal tasks.
+            In order to determine which policy should be deployed at what time, we have two strategic options:
+            <ol>
+              <li>
+                Compare the camera's current view to the aggregated visual embeddings of the start frames of policies.
+              </li>
+              <li>
+                Query a VLM for agentic decision-making.
+              </li>
+            </ol>
+            The composition of the pickup and sorting tasks appears as follows:
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='50%' src='project/rums-composition/sort-lemon-rollout.gif'/>)}
+              {wrapContent(<img width='100%' src='project/rums-composition/sort-lemon-rollout.gif'/>)}
+            </WidthSwitch>
+          </div>
+          <p>
+            We trained these two policies on ~2000 demonstrations we collected in dozens of different environments.
+            Descriptions of all demonstrations taken are included in
+            this <a href='https://docs.google.com/document/d/1_k5rXlnYaIyyZ88u09NWMHRH34gcvnUyQs-CzBLu2FE/edit?usp=sharing'>
+              Task Data Descriptions
+            </a> document.
+          </p>
+          <p>
+            We also tried a variant of the sorting task where lemons and limes were not necessary sorted left and right,
+            but into a bowl with a physical label the color of the fruit. To reduce the data collection overhead,
+            I 3D-printed the labels with ARUCO fiducial patterns with the intent to double our effective sample size
+            in post-processing. I created one version of a given sample with the target bowl labeled yellow, and another
+            version where the lemon was color-shifted green and the target bowl labeled green.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(
+                <>
+                  <img width='30%' src='project/rums-composition/fiducial-raw.gif'/>
+                  <img width='30%' src='project/rums-composition/fiducial-lemon.gif'/>
+                  <img width='30%' src='project/rums-composition/fiducial-lime.gif'/>
+                </>
+              )}
+              <>
+                {wrapContent(<img width='100%' src='project/rums-composition/fiducial-raw.gif'/>)}
+                {wrapContent(<img width='100%' src='project/rums-composition/fiducial-lemon.gif'/>)}
+                {wrapContent(<img width='100%' src='project/rums-composition/fiducial-lime.gif'/>)}
+              </>
+            </WidthSwitch>
+          </div>
+          <h4>Alignment</h4>
+          <p>
+            Finally, I implemented an automatic pre-deployment alignment function that works by searching
+            the surroundings for the view angle that looks most like a target image.
+          </p>
+          <div style={{paddingBottom: '40px'}}>
+            <WidthSwitch>
+              {wrapContent(<img width='50%' src='project/rums-composition/rums-alignment.gif'/>)}
+              {wrapContent(<img width='100%' src='project/rums-composition/rums-alignment'/>)}
+            </WidthSwitch>
+          </div>
         </div>
       );
     }

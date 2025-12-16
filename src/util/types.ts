@@ -21,6 +21,7 @@ export type NewProjectInfo = {
   status: ProjectStatus;
   technologies: string[];
   repository?: string;
+  features?: string[];
   page: (fullpage: boolean) => JSX.Element;
 };
 
