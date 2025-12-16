@@ -47,16 +47,16 @@ export default function Home() {
         <Row>
           <Col style={{verticalAlign: 'bottom'}}>
             <h1>Jaron Cui</h1>
-            <h3>Student at Northeastern University</h3>
+            <h3>Master's Student at New York University</h3>
             <hr/>
             <p>
-              I'm a Northeastern University graduate and NYU Masters student interested in Computer Science and Robotics. Why?
+              I'm a Northeastern University graduate and NYU Masters student interested in machine learning and robotics. Why?
               Because I love to build things, both physically and in code! Here's what I've been working on lately:
             </p>
           </Col>
           <Col xs={2}>
-            <img src='portrait-square.jpg' alt='Portrait' style={{
-              width: '150px', height: '150px', margin: '20px', borderRadius: '50%'
+            <img src='portrait2-square.jpg' alt='Portrait' style={{
+              width: '200px', height: '200px', margin: '20px', borderRadius: '50%'
             }}/>
           </Col>
         </Row>
@@ -66,28 +66,28 @@ export default function Home() {
             <p>Click the headings below for interactive demos and more info.</p>
             <Row>
               <Col>
+                <h4><a href='/#/projects/neural-evolution-v1'>Neural Evo-Devo</a></h4>
+                <img src="project/neural-evolution-v1/neural-evolution-specimen.gif" alt="Growing a brain" width='100%'/>
+              </Col>
+              <Col>
                 <h4><a href='/#/projects/robotic-hand'>Robotic Hand</a></h4>
                 <img src="robot-hand.gif" alt="Robotic Hand" width='100%'/>
               </Col>
               <Col>
-                <h4><a href='/#/projects/rect'>Multiplayer PVP Platformer</a></h4>
-                <img src="rect-demo-1.gif" alt="Rect" width='100%'/>
-              </Col>
-              <Col>
-                <h4><a href='/#/3DViewport'>3D JS-only Viewport</a></h4>
-                <img src="3d-view-demo.gif" alt="3D Viewer" width='100%'/>
+                <h4><a href='https://en.wikipedia.org/wiki/Muscovy_duck'>My Ducks</a></h4>
+                <img src="ducks.gif" alt="Rect" width='100%'/>
               </Col>
             </Row>
           </Col>
         </Row>
-        <Row>
+        {/* <Row>
           <Col>
             <h2>Professional Experience</h2>
             {EXPERIENCES.map(experience => (
               <Experience {...experience}/>
             ))}
           </Col>
-        </Row>
+        </Row> */}
       </Container>
     </div>
   );
