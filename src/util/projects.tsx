@@ -6,6 +6,7 @@ import { wrapContent } from './util';
 import WidthSwitch from '../component/WidthSwitch';
 import Clip from '../Clip';
 import ProjectEntryGallery from '../component/ProjectEntryGallery';
+import Marimba from '../page/extraneous/Marimba';
 
 function YouTubeEmbed({ videoID }: { videoID: string }) {
   return (
@@ -14,6 +15,15 @@ function YouTubeEmbed({ videoID }: { videoID: string }) {
 }
 
 export const NEW_PROJECTS: NewProjectInfo[] = [
+  {
+    legacy: false,
+    id: 'marimba',
+    title: 'Marimba',
+    date: '2026-01-12',
+    status: 'COMPLETED',
+    technologies: ['Woodwork', 'Music', 'Chiseling'],
+    page: Marimba
+  }, 
   {
     legacy: false,
     id: 'cdit-planning',

@@ -1,5 +1,5 @@
 import { Button } from '@mui/material';
-import { BUTTON_STYLE, DEFAULT_FONT, DEFAULT_MARGIN } from '../util/styles';
+import { BUTTON_STYLE, CENTERED_VERTICAL, DEFAULT_FONT, DEFAULT_MARGIN } from '../util/styles';
 import { Col, Collapse, Container, Dropdown, Row } from "react-bootstrap";
 import { useEffect, useState } from 'react';
 import { dateToString, formatDateString } from '../util/util';
@@ -47,11 +47,13 @@ export default function Home() {
         <Row>
           <Col style={{verticalAlign: 'bottom'}}>
             <h1>Jaron Cui</h1>
-            <h3>Master's Student at New York University</h3>
+            <h3>Master's Student and Researcher at New York University</h3>
             <hr/>
             <p>
-              I'm a Northeastern University graduate and NYU Masters student interested in machine learning and robotics. Why?
-              Because I love to build things, both physically and in code! Here's what I've been working on lately:
+              I'm researching neural circuit architectural priors at <a href='https://robotics.engineering.nyu.edu/group/grail/'>NYU GRAIL</a>, where we aim to 
+              train bio-inspired artifical neural networks for robotic locomotion.
+              Previously, I worked on developing AR-ID computer vision units at <a href='https://amazon.jobs/content/en/teams/ftr/amazon-robotics'>Amazon Robotics</a>.
+              Now, I strive to push forward at the intersection of robotics and AI.
             </p>
           </Col>
           <Col xs={2}>
@@ -60,22 +62,60 @@ export default function Home() {
             }}/>
           </Col>
         </Row>
-        <Row style={{paddingBottom: '40px'}}>
+        <Row>
           <Col>
-            <h2>Recent Musings</h2>
-            <p>Click the headings below for interactive demos and more info.</p>
+            <h2>Neural Circuit Architectural Priors</h2>
             <Row>
               <Col>
-                <h4><a href='/#/projects/neural-evolution-v1'>Neural Evo-Devo</a></h4>
-                <img src="project/neural-evolution-v1/neural-evolution-specimen.gif" alt="Growing a brain" width='100%'/>
+                <img src="project/ncap/ncap-a1.gif" alt="NCAP controlling a Unitree A1 in MuJoCo simulation" width='100%'/>
+              </Col>
+              <Col>
+                <img src="project/ncap/compliant-a1.gif" alt="Compliant muscle model on the real Unitree A1" width='100%'/>
+              </Col>
+              <Col>
+                <img src="project/ncap/ncap-rat-task-diagram.png" alt="NCAP with rat action/observation space" width='100%'/>
+              </Col>
+            </Row>
+            <p>
+              A young chipmunk sprints up a tree and lunges to a branch.
+              If you were to pitch it like a baseball, it would uncurl and hit the ground running.
+              It does this with an acorn-powered brain the size of an almond.
+              Yet, the very best robots cannot ever hope to compare to a month-old rat creature in the woods.
+              Small animals demonstrate unbelievably robust and efficient locomotion.
+            </p>
+            <p>
+              At GRAIL, I've been working with PhD candidate <a href='https://www.linkedin.com/in/nikhilxb/'>Nikhil Bhattasali</a> on Neural Circuit Architectural Priors (NCAP).
+              Our goal is to build and train spiking neural networks (SNNs) based on the spinal circuits in rodents for use in robotic locomotion.
+              The advantage of such SNNs lies in their interpretability and robustness, composed of a few dozen neurons and synapses,
+              as opposed to the millions of parameters in deep neural networks.
+            </p>
+            <p>
+              Thus far, we've demonstrated that the neural architecture responsible for enabling rats to walk can be applied to the Unitree A1 quadruped.
+              A simulated brainstem command controls the forward target velocity, and adding turning and jumping is our next priority.
+              We are also exploring biorealistic muscle simulation as an alternate action space, which adds compliance to our robotic limbs.
+            </p>
+            <p>
+              Our abstract for applying NCAP to a simulated rat embodiment <b><i>Neural Circuit Architectural Priors for Rat Locomotion</i></b> was accepted
+              by the <a href='https://www.janelia.org/you-janelia/conferences/simulated-bodies-whole-body-biomechanical-models-0'>Simulated Bodies: Whole Body Biomechanical Models 2026 conference</a>. We will present there this coming April.
+              We plan to submit a paper chronicling further progress to <a href='https://blog.neurips.cc/category/2026-conference/'>NeurIPS 2026</a> by May.
+            </p>
+          </Col>
+        </Row>
+        <Row style={{paddingBottom: '40px'}}>
+          <Col>
+            <h2>Recent Doings</h2>
+            <Row>
+              <Col>
+                <h4><a href='/#/projects/marimba'>I Built a Marimba</a></h4>
+                <img src="project/marimba/marimba.jpg" alt="Marimba" width='100%'/>
+              </Col>
+              <Col>
+                <h4><a href='/#/projects/cdit-planning'>CDiT World Model</a></h4>
+                <img src="project/cdit-planning/obstructed_mujoco_rollout.gif" alt="World model exploration" width='100%'/>
               </Col>
               <Col>
                 <h4><a href='/#/projects/robotic-hand'>Robotic Hand</a></h4>
                 <img src="robot-hand.gif" alt="Robotic Hand" width='100%'/>
-              </Col>
-              <Col>
-                <h4><a href='https://en.wikipedia.org/wiki/Muscovy_duck'>My Ducks</a></h4>
-                <img src="ducks.gif" alt="Rect" width='100%'/>
               </Col>
             </Row>
           </Col>
