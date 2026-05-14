@@ -90,13 +90,13 @@ export default function Home() {
               as opposed to the millions of parameters in deep neural networks.
             </p>
             <p>
-              Thus far, we've demonstrated that the neural architecture responsible for enabling rats to walk can be applied to the Unitree A1 quadruped.
+              Thus far, we've demonstrated that the neural architecture responsible for enabling real animals to walk can be applied to the Unitree A1 quadruped.
               A simulated brainstem command controls the forward target velocity, and adding turning and jumping is our next priority.
               We are also exploring biorealistic muscle simulation as an alternate action space, which adds compliance to our robotic limbs.
             </p>
             <p>
-              Our abstract for applying NCAP to a simulated rat embodiment <b><i>Neural Circuit Architectural Priors for Rat Locomotion</i></b> was accepted
-              by the <a href='https://www.janelia.org/you-janelia/conferences/simulated-bodies-whole-body-biomechanical-models-0'>Simulated Bodies: Whole Body Biomechanical Models 2026 conference</a>. We will present there this coming April.
+              I co-first authored an abstract on our latest work, which was accepted
+              by the <a href='https://www.janelia.org/you-janelia/conferences/simulated-bodies-whole-body-biomechanical-models-0'>Simulated Bodies: Whole Body Biomechanical Models 2026 conference</a>. We presented in April.
               We plan to submit a paper chronicling further progress to <a href='https://blog.neurips.cc/category/2026-conference/'>NeurIPS 2026</a> by May.
             </p>
           </Col>
