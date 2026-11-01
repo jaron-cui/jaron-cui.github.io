@@ -1,0 +1,125 @@
+.slender-menu-item {
+  display: block;
+  width: 100%;
+  padding: 2px 8px;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 3px;
+}
+
+.slender-menu-item:hover {
+  color: #fff;
+  background: #3d6fb4;
+}
+
+.slender-icon-button {
+  padding: 0 2px;
+  line-height: 1;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  opacity: 0.8;
+}
+
+.slender-icon-button:hover {
+  opacity: 1;
+  background: #47506a;
+}
+
+.slender-row:hover {
+  background: #2a3040;
+}
+
+.slender-tab {
+  flex: 1;
+  padding: 3px 0;
+  color: inherit;
+  text-transform: capitalize;
+  background: transparent;
+  border: none;
+}
+
+.slender-tab[aria-selected='true'] {
+  background: #2a2e39;
+}
+
+.slender-tab:hover {
+  background: #3a4560;
+}
+
+.slender-panel select:hover,
+.slender-panel button:hover {
+  outline: 1px solid #5aa9ff;
+}
+
+.slender-segments {
+  display: inline-flex;
+  border: 1px solid #3a3f4d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.slender-segments button {
+  padding: 2px 12px;
+  color: inherit;
+  background: #232731;
+  border: none;
+}
+
+.slender-segments button + button {
+  border-left: 1px solid #3a3f4d;
+}
+
+.slender-segments button:hover:not(:disabled) {
+  background: #3a4560;
+}
+
+.slender-segments button[aria-pressed='true'] {
+  color: #fff;
+  background: #3d6fb4;
+}
+
+.slender-segments button:disabled {
+  opacity: 0.45;
+}
+
+.slender-segments button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+}
+
+.slender-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slender-tab {
+  display: flex;
+  justify-content: center;
+}
+
+.slender-transport-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  color: inherit;
+  background: #232731;
+  border: 1px solid #3a3f4d;
+  border-radius: 4px;
+}
+
+.slender-transport-button:hover {
+  background: #3a4560;
+}
+
+.slender-transport-button[aria-pressed='true'] {
+  color: #fff;
+  background: #3d6fb4;
+}
