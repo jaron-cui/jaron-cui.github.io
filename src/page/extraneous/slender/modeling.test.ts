@@ -249,30 +249,31 @@ describe('sight lines', () => {
 });
 
 describe('the scene cursor', () => {
+  const cursor = { x: 7, y: 8, z: 9 };
   const at = (document: EditorDocument, id: string, position: Vec3) => updateTransform(document, id, transform => ({ ...transform, position }));
   const scene = () => {
     let document = addObject(addObject(emptyDocument(), 'A', cubeMesh(10)), 'B', cubeMesh(10));
     const [a, b] = document.objects.map(object => object.id);
     document = at(at(document, a, { x: 100, y: 0, z: 0 }), b, { x: 0, y: 100, z: 0 });
-    return { document: { ...document, cursor: { x: 7, y: 8, z: 9 } }, a, b };
+    return { document, a, b };
   };
 
   it('is where new objects appear', () => {
     const { document } = scene();
-    const next = addObject(document, 'C', cubeMesh(1));
+    const next = addObject(document, 'C', cubeMesh(1), null, cursor);
     near(objectOrigin(next, next.activeObject!, 0), { x: 7, y: 8, z: 9 });
   });
 
   it('moves selected objects to it', () => {
     const { document, a, b } = scene();
-    const next = applySnap({ ...document, selectedObjects: [a, b] }, 'selectionToCursor', 0);
+    const next = applySnap({ ...document, selectedObjects: [a, b] }, 'selectionToCursor', 0, cursor).document;
     near(objectOrigin(next, a, 0), { x: 7, y: 8, z: 9 });
     near(objectOrigin(next, b, 0), { x: 7, y: 8, z: 9 });
   });
 
   it('can keep the offset between them', () => {
     const { document, a, b } = scene();
-    const next = applySnap({ ...document, selectedObjects: [a, b] }, 'selectionToCursorOffset', 0);
+    const next = applySnap({ ...document, selectedObjects: [a, b] }, 'selectionToCursorOffset', 0, cursor).document;
     const [ao, bo] = [objectOrigin(next, a, 0), objectOrigin(next, b, 0)];
     near({ x: ao.x - bo.x, y: ao.y - bo.y, z: ao.z - bo.z }, { x: 100, y: -100, z: 0 });
     near({ x: (ao.x + bo.x) / 2, y: (ao.y + bo.y) / 2, z: (ao.z + bo.z) / 2 }, { x: 7, y: 8, z: 9 });
@@ -280,33 +281,33 @@ describe('the scene cursor', () => {
 
   it('moves one object to another with Selection to Active', () => {
     const { document, a, b } = scene();
-    const next = applySnap({ ...document, selectedObjects: [a, b], activeObject: b }, 'selectionToActive', 0);
+    const next = applySnap({ ...document, selectedObjects: [a, b], activeObject: b }, 'selectionToActive', 0, cursor).document;
     near(objectOrigin(next, a, 0), { x: 0, y: 100, z: 0 });
     near(objectOrigin(next, b, 0), { x: 0, y: 100, z: 0 });
   });
 
   it('follows selections and actives, the grid, and the origin', () => {
     const { document, a, b } = scene();
-    near(applySnap({ ...document, selectedObjects: [a, b] }, 'cursorToSelected', 0).cursor, { x: 50, y: 50, z: 0 });
-    near(applySnap({ ...document, activeObject: a }, 'cursorToActive', 0).cursor, { x: 100, y: 0, z: 0 });
-    near(applySnap(document, 'cursorToOrigin', 0).cursor, { x: 0, y: 0, z: 0 });
-    near(applySnap({ ...document, cursor: { x: 149, y: 151, z: -49 } }, 'cursorToGrid', 0).cursor, { x: 100, y: 200, z: -0 });
+    near(applySnap({ ...document, selectedObjects: [a, b] }, 'cursorToSelected', 0, cursor).cursor, { x: 50, y: 50, z: 0 });
+    near(applySnap({ ...document, activeObject: a }, 'cursorToActive', 0, cursor).cursor, { x: 100, y: 0, z: 0 });
+    near(applySnap(document, 'cursorToOrigin', 0, cursor).cursor, { x: 0, y: 0, z: 0 });
+    near(applySnap(document, 'cursorToGrid', 0, { x: 149, y: 151, z: -49 }).cursor, { x: 100, y: 200, z: -0 });
   });
 
   it('snaps selection to the grid', () => {
     const { document, a } = scene();
     const moved = at(document, a, { x: 130, y: 0, z: 0 });
-    near(objectOrigin(applySnap({ ...moved, selectedObjects: [a] }, 'selectionToGrid', 0), a, 0), { x: 100, y: 0, z: 0 });
+    near(objectOrigin(applySnap({ ...moved, selectedObjects: [a] }, 'selectionToGrid', 0, cursor).document, a, 0), { x: 100, y: 0, z: 0 });
   });
 
   it('collapses selected vertices onto it in edit mode, or moves them together', () => {
     const { document, a } = scene();
     const editing = updateVertices(document, a, new Set([0, 1]));
-    const collapsed = applySnap(editing, 'selectionToCursor', 0);
+    const collapsed = applySnap(editing, 'selectionToCursor', 0, cursor).document;
     const world = worldVertices(collapsed, findObject(collapsed, a)!, 0);
     near(world[0], { x: 7, y: 8, z: 9 });
     near(world[1], { x: 7, y: 8, z: 9 });
-    const together = applySnap(editing, 'selectionToCursorOffset', 0);
+    const together = applySnap(editing, 'selectionToCursorOffset', 0, cursor).document;
     const kept = worldVertices(together, findObject(together, a)!, 0);
     expect(Math.hypot(kept[0].x - kept[1].x, kept[0].y - kept[1].y, kept[0].z - kept[1].z)).toBeCloseTo(20);
   });
@@ -314,8 +315,8 @@ describe('the scene cursor', () => {
   it('does nothing without a selection, returning the same document', () => {
     const { document } = scene();
     const empty = { ...document, selectedObjects: [] };
-    expect(applySnap(empty, 'selectionToCursor', 0)).toBe(empty);
-    expect(applySnap(empty, 'cursorToSelected', 0)).toBe(empty);
+    expect(applySnap(empty, 'selectionToCursor', 0, cursor).document).toBe(empty);
+    expect(applySnap(empty, 'cursorToSelected', 0, cursor).cursor).toBe(cursor);
   });
 
   function updateVertices(document: EditorDocument, id: string, selectedVertices: Set<number>): EditorDocument {
@@ -341,7 +342,7 @@ describe('selection and visibility', () => {
     expect(selectedVisible(hidden)).toEqual([b]);
     expect(duplicateObjects(hidden).selectedObjects).toHaveLength(1);
     expect(selectedVisible(toggleObjectVisible(hidden, a))).toEqual([a, b]);
-    const moved = applySnap({ ...hidden, cursor: { x: 50, y: 0, z: 0 } }, 'selectionToCursor', 0);
+    const moved = applySnap(hidden, 'selectionToCursor', 0, { x: 50, y: 0, z: 0 }).document;
     expect(objectOrigin(moved, a, 0).x).toBeCloseTo(0);
     expect(objectOrigin(moved, b, 0).x).toBeCloseTo(50);
   });

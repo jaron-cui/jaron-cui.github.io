@@ -1,12 +1,14 @@
 import { DEFAULT_FRAME_END, DEFAULT_FRAME_RATE, EditorDocument } from './document';
 import { OrbitCamera, PivotMode, SelectMode } from './editing';
 import { KeyingSet } from './keyframes';
+import { Vec3 } from './model';
 
 // Everything a project file holds. Undo history is left out on purpose.
 export type ProjectState = {
   document: EditorDocument;
   // duration is only in files from when the animation's length was kept here, in seconds.
-  view: { orbit: OrbitCamera; viewedCamera: string | null; time: number; duration?: number };
+  // cursor is only missing in files from when the document held it.
+  view: { orbit: OrbitCamera; viewedCamera: string | null; time: number; duration?: number; cursor?: Vec3 };
   layout: { outlinerWidth: number; timelineHeight: number; objectPaneHeight: number; transformPanelOpen: boolean; propertiesTab: 'object' | 'world' | 'render' };
   settings: {
     selectMode: SelectMode;
@@ -55,12 +57,11 @@ const upgraded = new WeakMap<EditorDocument, EditorDocument>();
 // Fills in what documents from before a field existed lack. The same document always gives the same
 // result, so a saved document and its copy in undo history stay recognizably the same.
 export function upgradeDocument(document: EditorDocument, duration?: number): EditorDocument {
-  if (document.cursor && document.frameRate) {
+  if (document.frameRate) {
     return document;
   }
   const result = upgraded.get(document) ?? {
     ...document,
-    cursor: document.cursor ?? { x: 0, y: 0, z: 0 },
     frameRate: DEFAULT_FRAME_RATE,
     // Older animations started at time zero.
     frameStart: 0,
@@ -68,6 +69,11 @@ export function upgradeDocument(document: EditorDocument, duration?: number): Ed
   };
   upgraded.set(document, result);
   return result;
+}
+
+// Where the scene cursor is, for a project saved at any age.
+export function savedCursor(view: ProjectState['view'], document: EditorDocument): Vec3 {
+  return view.cursor ?? (document as EditorDocument & { cursor?: Vec3 }).cursor ?? { x: 0, y: 0, z: 0 };
 }
 
 export function serializeProject(state: ProjectState): string {

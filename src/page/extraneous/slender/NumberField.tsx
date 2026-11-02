@@ -1,5 +1,8 @@
 import { CSSProperties, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react';
 
+// Yellow on a key, green with keys elsewhere, and as in Blender, orange for a change not keyed yet.
+export const KEY_STATE_COLORS = { none: undefined, animated: '#2c6e3f', keyed: '#8f7a1c', held: '#a8601e' };
+
 const DECIMALS = 3;
 const DRAG_THRESHOLD = 3;
 const FINE_DRAG = 0.1;

@@ -336,6 +336,13 @@ export function translated(vertices: Vec3[], selection: Selection, camera: Camer
   }, affected);
 }
 
+// Moves by a world offset.
+export function translatedBy(vertices: Vec3[], affected: Selection, offset: Vec3): Vec3[] {
+  return vertices.map((vertex, i) => (affected.has(i)
+    ? { x: vertex.x + offset.x, y: vertex.y + offset.y, z: vertex.z + offset.z }
+    : vertex));
+}
+
 // Turns the selection about its center, or a given one, around the axis pointing into the screen.
 // With y down, a positive angle is clockwise on screen.
 export function rotated(vertices: Vec3[], selection: Selection, camera: Camera, angle: number, affected: Selection = selection, center?: Vec3): Vec3[] {

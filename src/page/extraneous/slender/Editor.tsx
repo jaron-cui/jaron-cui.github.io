@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import './slender.css';
 import { Ease } from './animation';
 import {
-  addConstraint, addFolder, addObject, boneSegments, bonesInBox, chooseCamera, clickObject, DEFAULT_FOCAL_LENGTH, deleteFolder,
+  addConstraint, addFolder, addObject, boneSegments, bonesInBox, childOfInverse, chooseCamera, clickObject, DEFAULT_FOCAL_LENGTH, deleteFolder, keyConstraintInfluence, setChildOfOn, setConstraintInfluence, setConstraintTarget, setRotationMode, unkeyConstraintInfluence,
   deleteObjects, displayVertices, duplicateObjects, EditorDocument, emptyDocument, findBone, findObject, isVisible, moveToFolder, nodeTransformAt, objectsInBox,
   occlusionTest, parentMatrix, pickBone, pickObject, raycastSurface, removeConstraint, renameFolder, renameObject, resolveObject,
   dropHeldDocumentEdits, isSelectable, DEFAULT_FRAME_RATE, DEFAULT_FRAME_START, selectedVisible, setFrameEnd, setFrameRate, setFrameStart, toggleFolderSelectable, toggleObjectSelectable,
@@ -13,11 +13,14 @@ import {
 import {
   appendMesh, Axis, AxisLock, AXIS_VECTORS, blendPoints, extrudeSelection, lockVector, regionNormal, subdivideSelection, viewRay, connectedDistances, cursorScale, deleteSelected, duplicateSelection, elementsInBox, falloffWeights, fillSelection, MAX_PITCH, OrbitCamera, orbitAt,
   panOrbit, pickElement, scaledAbout, rotated, rotatedAroundAxis, selectionCenter, selectionPivot, PivotMode, SelectMode, Selection, straightDistances, toCamera,
-  translated, translatedAlongAxis, vertexNeighbors, walkStep, worldRotation,
+  translated, translatedAlongAxis, translatedBy, vertexNeighbors, walkStep, worldRotation,
 } from './editing';
+import { describeTyped, isTypedKey, nextField, TypedInput, typedOffset, typedValue, typeKey } from './typedInput';
 import { commit, endStep, History, redo, startHistory, undo } from './history';
-import { commitEdit, DEFAULT_KEYING, keyedCoordinates, KeyingSet, KEYING_PROPERTIES, midpointVertex, poseAt, writeKeys } from './keyframes';
-import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, rotateEuler, transformMatrix, viewMatrix } from './matrix';
+import { applyMirror, joinSelected, separateLooseParts, separateSelection } from './joining';
+import { AnimatedVertex, commitEdit, coordinatesIn, deleteKeys, DEFAULT_KEYING, keyState, keyedCoordinates, KeyingSet, KEYING_PROPERTIES, midpointVertex, poseAt, writeKeys } from './keyframes';
+import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, rotateRotation, rotationLike, transformMatrix, viewMatrix } from './matrix';
+import { clippedByMirrors, Modifier, newMirror } from './modifiers';
 import { Camera, Transform, Vec2, Vec3 } from './model';
 import { projectPoint } from './project';
 import { ConstraintHandlers, hexToRgb, ObjectPane, rgbToHex, Row, Section } from './ObjectPane';
@@ -30,14 +33,15 @@ import { AxisGuide, BoneDraw, drawOverlay } from './overlay';
 import { PaneDivider } from './PaneDivider';
 import { frameTimes, svgAnimation, svgFrame } from './exporting';
 import { NumberField } from './NumberField';
-import { FILE_EXTENSION, parseProject, ProjectState, serializeProject, upgradeDocument } from './projectFile';
+import { FILE_EXTENSION, parseProject, ProjectState, savedCursor, serializeProject, upgradeDocument } from './projectFile';
 import { applySnap, SNAP_LABELS, SnapAction } from './snapping';
 import { cameraGizmoMesh, circleMesh, cubeMesh, MeshData, planeMesh, torusMesh, vertexMesh } from './primitives';
 import { renderScene } from './render';
-import { BonePane, Brush, BrushPane, VertexGroupsPane } from './RigPanes';
+import { bonePartners, jointPartners, mirroredJoints, mirroredPose } from './armatureMirror';
+import { ArmaturePane, BonePane, Brush, BrushPane, ModifiersPane, VertexGroupsPane } from './RigPanes';
 import {
-  addArmature, addBone, addVertexGroup, assignToGroup, boneFromJoints, ClearField, clearTransforms, deleteBones, duplicateBones, extrudeBones, groupsAfterCopy, groupsAfterDelete, groupsAfterSubdivide,
-  PaintTool, paintWeights, parentBones, ParentKind, parentSelected, removeFromGroup, removeVertexGroup, renameBone, renameVertexGroup, selectedBonesOf, setBoneParent,
+  addArmature, addBone, addVertexGroup, assignToGroup, boneFromJoints, ClearField, clearTransforms, bonesToDelete, deleteBones, duplicateBones, extrudeBones, groupsAfterCopy, groupsAfterDelete, groupsAfterSubdivide,
+  PaintTool, paintWeights, parentBones, ParentKind, parentSelected, removeFromGroup, removeVertexGroup, renameBone, renameVertexGroup, selectedBonesOf, setBoneParent, symmetrizeBones,
 } from './rigging';
 import {
   canWriteFiles, currentTabId, deleteSession, downloadFile, FileHandle, forgetRecent, latestAbandonedSession, loadSession, pickFileToOpen, pickFileToSave, ProjectFile,
@@ -45,7 +49,7 @@ import {
 } from './storage';
 import { KeyEdit } from './CurvesEditor';
 import { Timeline } from './Timeline';
-import { TransformField, TransformPanel } from './TransformPanel';
+import { TransformAxis, TransformField, TransformPanel } from './TransformPanel';
 
 const PICK_RADIUS = 12;
 const ORBIT_PER_PIXEL = 0.008;
@@ -84,6 +88,7 @@ const WALK_ORBIT_DISTANCE = 100;
 const AXIS_KEYS: Record<string, Axis> = { KeyX: 'x', KeyY: 'y', KeyZ: 'z' };
 const DUPLICATE_STEP = 'duplicate';
 const EXTRUDE_STEP = 'extrude';
+const MIN_OBJECT_FACTOR = 0.001;
 const PAINT_STEP = 'weight-paint';
 const MIN_BRUSH_RADIUS = 2;
 const CLEAR_KEYS: Record<string, ClearField> = { KeyG: 'position', KeyR: 'rotation', KeyS: 'scale' };
@@ -100,10 +105,11 @@ const CREATE_ITEMS: { label: string; icon: JSX.Element; make: () => MeshData }[]
 // What a transformation acts on, as it was when the transformation began.
 type TransformTarget =
   // distances says how far each vertex is from the selection, when proportional editing is on.
-  | { kind: 'vertices'; id: string; matrix: Matrix; world: Vec3[]; selection: Selection; distances: number[] | null }
+  // modifiers can hold edited vertices back at a mirror.
+  | { kind: 'vertices'; id: string; matrix: Matrix; world: Vec3[]; selection: Selection; distances: number[] | null; modifiers: readonly Modifier[]; mirrorJoints: ReadonlyMap<number, number> | null }
   // Objects or bones. Moves are computed in the world, then expressed relative to each one's parent.
   // pinned marks bones connected to their parents, which turn but stay where they are.
-  | { kind: 'objects'; ids: string[]; transforms: Transform[]; worldPositions: Vec3[]; parentInverses: Matrix[]; matrices: Matrix[]; pinned?: boolean[] };
+  | { kind: 'objects'; ids: string[]; transforms: Transform[]; worldPositions: Vec3[]; parentInverses: Matrix[]; matrices: Matrix[]; pinned?: boolean[]; mirrored?: { source: string; id: string; transform: Transform }[] };
 
 type TransformKind = 'translate' | 'rotate' | 'scale';
 
@@ -121,6 +127,8 @@ type TransformMode = {
   normal: Vec3 | null;
   // Set when this transformation continues the undo step of the action that started it.
   step: string | null;
+  // Numbers typed, which the pointer has no say over until they are erased.
+  typed: TypedInput | null;
 };
 
 // What the pointer and keys currently mean.
@@ -135,7 +143,7 @@ type Mode =
   | { kind: 'painting'; tool: PaintTool; neighbors: number[][]; last: Vec2 }
   | { kind: 'brushResizing'; center: Vec2; original: number };
 
-type MenuKind = 'add' | 'parent' | 'boneParent' | 'file' | 'snap' | 'specials';
+type MenuKind = 'add' | 'parent' | 'boneParent' | 'file' | 'snap' | 'specials' | 'separate';
 type Menu = { kind: MenuKind; x: number; y: number };
 
 const PARENT_MENU_LABELS: Record<ParentKind, string> = {
@@ -150,7 +158,7 @@ function isTransformMode(mode: Mode): mode is TransformMode {
   return mode.kind === 'translate' || mode.kind === 'rotate' || mode.kind === 'scale';
 }
 
-function transformMessage({ kind, axis, space, normal }: Pick<TransformMode, 'kind' | 'axis' | 'space' | 'normal'>): string {
+function transformMessage({ kind, axis, space, normal, typed }: Pick<TransformMode, 'kind' | 'axis' | 'space' | 'normal' | 'typed'>): string {
   const action = { translate: 'Moving', rotate: 'Rotating', scale: 'Scaling' }[kind];
   const preposition = kind === 'rotate' ? 'around' : 'along';
   let scope = '';
@@ -158,6 +166,10 @@ function transformMessage({ kind, axis, space, normal }: Pick<TransformMode, 'ki
     scope = ` ${preposition} ${space} ${axis.toUpperCase()}`;
   } else if (normal) {
     scope = ` ${preposition} the normal`;
+  }
+  if (typed) {
+    const separate = kind === 'translate' && !axis && !normal;
+    return `${action}${scope}: ${describeTyped(typed, separate, { translate: '', rotate: '°', scale: '×' }[kind])}`;
   }
   return `${action}${scope}: X/Y/Z to lock an axis, again for local, left click to confirm, Esc or right click to cancel.`;
 }
@@ -188,15 +200,18 @@ function transformedPoints(
   const { kind, start } = mode;
   const center = mode.center ?? undefined;
   if (kind === 'scale') {
-    return scaledAbout(points, selection, cursorScale(start, point, mode.pivot), axis, affected, center);
+    return scaledAbout(points, selection, scaleFactor(mode, point), axis, affected, center);
   }
   if (kind === 'translate') {
+    if (mode.typed) {
+      return translatedBy(points, affected, typedOffset(mode.typed, axis));
+    }
     const [dx, dy] = [point.x - start.x, point.y - start.y];
     return axis
       ? translatedAlongAxis(points, selection, camera, axis, dx, dy, affected)
       : translated(points, selection, camera, dx, dy, affected);
   }
-  const angle = cursorAngle(mode, point);
+  const angle = rotationAngle(mode, axis, camera, point);
   return axis
     ? rotatedAroundAxis(points, selection, camera, axis, angle, affected, center)
     : rotated(points, selection, camera, angle, affected, center);
@@ -204,6 +219,23 @@ function transformedPoints(
 
 function cursorAngle({ start, pivot }: TransformMode, point: Vec2): number {
   return Math.atan2(point.y - pivot.y, point.x - pivot.x) - Math.atan2(start.y - pivot.y, start.x - pivot.x);
+}
+
+// A typed angle means the same whichever way the view faces: clockwise on screen if free, as in
+// Blender, and by the right hand about a locked axis, where the turn undoes worldRotation's flip.
+function rotationAngle(mode: TransformMode, lock: AxisLock | null, camera: Camera, point: Vec2): number {
+  return mode.typed
+    ? typedValue(mode.typed, 0, 0) * Math.PI / 180 * worldRotation(camera, lock, 1).angle
+    : cursorAngle(mode, point);
+}
+
+function scaleFactor(mode: TransformMode, point: Vec2): number {
+  return mode.typed ? typedValue(mode.typed, 0, 1) : cursorScale(mode.start, point, mode.pivot);
+}
+
+// An object's scale can come near zero but not reach it, since its children need its inverse.
+function objectFactor(factor: number): number {
+  return Math.abs(factor) < MIN_OBJECT_FACTOR ? MIN_OBJECT_FACTOR : factor;
 }
 
 // A world direction as seen from inside a parent, as a unit vector.
@@ -237,14 +269,19 @@ function influenceCircle(center: Vec2, world: Vec3, radius: number, camera: Came
 function computeTransient(mode: TransformMode, camera: Camera, point: Vec2, proportionalRadius: number | null): Transient {
   const { target } = mode;
   if (target.kind === 'vertices') {
+    const clipped = (world: Vec3[]) => clippedByMirrors(toLocal(target.matrix, world), toLocal(target.matrix, target.world), target.modifiers);
+    const finished = (world: Vec3[], affected: Selection): Transient => {
+      const local = clipped(world);
+      return { kind: 'vertices', id: target.id, ...(target.mirrorJoints ? mirroredJoints(local, target.selection, affected, target.mirrorJoints) : { local, affected }) };
+    };
     if (proportionalRadius === null || !target.distances) {
       const world = transformedPoints(mode, lockOf(mode, 0), target.world, target.selection, camera, point);
-      return { kind: 'vertices', id: target.id, local: toLocal(target.matrix, world), affected: target.selection };
+      return finished(world, target.selection);
     }
     const weights = falloffWeights(target.distances, proportionalRadius);
     const affected = new Set(weights.flatMap((weight, i) => (weight > 0 ? [i] : [])));
     const full = transformedPoints(mode, lockOf(mode, 0), target.world, target.selection, camera, point, affected);
-    return { kind: 'vertices', id: target.id, local: toLocal(target.matrix, blendPoints(target.world, full, weights)), affected };
+    return finished(blendPoints(target.world, full, weights), affected);
   }
 
   const everything = new Set(target.worldPositions.map((_, i) => i));
@@ -257,18 +294,19 @@ function computeTransient(mode: TransformMode, camera: Camera, point: Vec2, prop
     const inverse = target.parentInverses[i];
     const lock = lockOf(mode, i);
     const place = isLocal ? transformedPoints(mode, lock, [target.worldPositions[i]], new Set([0]), camera, point)[0] : moved[i];
-    const turn = mode.kind === 'rotate' ? worldRotation(camera, lock, cursorAngle(mode, point)) : null;
-    const factor = cursorScale(mode.start, point, mode.pivot);
+    const turn = mode.kind === 'rotate' ? worldRotation(camera, lock, rotationAngle(mode, lock, camera, point)) : null;
+    const factor = objectFactor(scaleFactor(mode, point));
     const scale = isLocal
       ? { ...original.scale, [mode.axis!]: original.scale[mode.axis!] * factor }
       : scaledTransform(original, inverse, mode.axis, factor);
     transforms.set(id, {
       ...original,
       position: target.pinned?.[i] ? original.position : applyMatrix(inverse, place.x, place.y, place.z),
-      rotation: turn ? rotateEuler(original.rotation, axisInParent(inverse, turn.axis), turn.angle) : original.rotation,
+      rotation: turn ? rotateRotation(original.rotation, axisInParent(inverse, turn.axis), turn.angle) : original.rotation,
       scale: mode.kind === 'scale' ? scale : original.scale,
     });
   });
+  target.mirrored?.forEach(({ source, id, transform }) => transforms.set(id, mirroredPose(transforms.get(source)!, transform)));
   return { kind: 'objects', transforms };
 }
 
@@ -346,6 +384,9 @@ export const Editor = () => {
   const menuOpenRef = useRef(false);
   menuOpenRef.current = menu !== null;
   const playingRef = useRef(false);
+  // Where new things appear and what Shift+S snaps to, in world space. This is a way of working, like
+  // the view, so undo and the unsaved changes mark ignore it.
+  const cursorRef = useRef<Vec3>({ x: 0, y: 0, z: 0 });
   // The camera object being looked through, if any. This is a way of viewing, so undo ignores it.
   const viewedCameraRef = useRef<string | null>(null);
   const walkOrbitRef = useRef<OrbitCamera | null>(null);
@@ -371,6 +412,15 @@ export const Editor = () => {
   const currentProportionalRadius = () => (proportionalRef.current ? proportionalRadiusRef.current : null);
 
   const currentDocument = () => historyRef.current.present;
+  // Bones along with their other sides, if the active armature mirrors its poses.
+  const withPosePartners = (document: EditorDocument, ids: string[], time: number): string[] => {
+    const armature = findObject(document, document.activeObject);
+    if (!armature?.bones || !armature.mirrorPose) {
+      return ids;
+    }
+    const partners = bonePartners(armature, poseAt(armature.vertices, time));
+    return Array.from(new Set(ids.flatMap(id => [id, ...(partners.has(id) ? [partners.get(id)!] : [])])));
+  };
   const hasUnsavedChanges = () => currentDocument() !== savedDocumentRef.current;
   const activeObject = () => findObject(currentDocument(), currentDocument().activeObject);
   const viewedCamera = () => {
@@ -441,7 +491,7 @@ export const Editor = () => {
         setMessage('Select bones to key.');
         return;
       }
-      apply(document.selectedBones.reduce((next, id) => updateTransform(next, id, transform => {
+      apply(withPosePartners(document, document.selectedBones, time).reduce((next, id) => updateTransform(next, id, transform => {
         const posable = { transform };
         const parts = transformParts(posable);
         return withTransformParts(posable, writeKeys(parts, [0, 1, 2], poseAt(parts, time), time, partCoordinates)).transform;
@@ -480,6 +530,56 @@ export const Editor = () => {
     setMessage(`Keyed ${chosen.length} objects at frame ${Math.round(time * document.frameRate)}.`);
   };
 
+  // I with the pointer over a property keys it, whole and whatever the keying buttons say, or removes
+  // the key if it is on one with no change to keep. Alt+I only removes. Returns whether it was over
+  // one. Asking the page what is under the pointer means a field that has since gone away cannot be
+  // left standing as the hovered one.
+  const keyHoveredProperty = (onlyRemove: boolean): boolean => {
+    const hovered = window.document.querySelector<HTMLElement>('[data-key-property]:hover');
+    if (!hovered) {
+      return false;
+    }
+    const property = JSON.parse(hovered.dataset.keyProperty!);
+    const document = currentDocument();
+    const time = timeRef.current;
+    const numbersOf = (vertices: AnimatedVertex[]) => vertices.flatMap(vertex => coordinatesIn(vertex).map(coordinate => vertex[coordinate]));
+    const node = property.id && (findBone(document, property.id)?.bone ?? findObject(document, property.id));
+    const constraint = property.kind === 'influence' ? node?.constraints.find((candidate: { id: string }) => candidate.id === property.constraintId) : undefined;
+    const object = activeObject();
+    let numbers: ReturnType<typeof numbersOf> = [];
+    if (property.kind === 'transform') {
+      numbers = numbersOf([transformParts(node)[property.part]]);
+    } else if (constraint) {
+      numbers = [constraint.influence];
+    } else if (object) {
+      numbers = numbersOf(Array.from(object.selectedVertices).map(i => object.vertices[i]));
+    }
+    const remove = onlyRemove || keyState(numbers, time) === 'keyed';
+    if (property.kind === 'transform') {
+      const part: number = property.part;
+      apply(updateTransform(document, property.id, transform => {
+        const posable = { transform };
+        const parts = transformParts(posable);
+        return withTransformParts(posable, remove ? deleteKeys(parts, [part], time) : writeKeys(parts, [part], poseAt(parts, time), time)).transform;
+      }));
+    } else if (property.kind === 'influence') {
+      // Parented is a switch, so its keys hold until the next.
+      const isSwitch = constraint?.kind === 'childOf';
+      apply(remove
+        ? unkeyConstraintInfluence(document, property.id, property.constraintId, time)
+        : keyConstraintInfluence(document, property.id, property.constraintId, time, undefined, isSwitch));
+    } else {
+      if (object) {
+        apply(updateObject(document, object.id, current => ({
+          ...current,
+          vertices: remove ? deleteKeys(current.vertices, current.selectedVertices, time) : writeKeys(current.vertices, current.selectedVertices, poseAt(current.vertices, time), time),
+        })));
+      }
+    }
+    setMessage(`${remove ? 'Removed the key' : 'Keyed'} at frame ${Math.round(time * document.frameRate)}.`);
+    return true;
+  };
+
   // An edit of keys that follows the pointer. Each preview starts over from where it began, and the
   // whole of it is one undo step, or none if cancelled.
   const beginKeyEdit = (): KeyEdit => {
@@ -512,13 +612,13 @@ export const Editor = () => {
     const object = activeObject();
     setMenu(null);
     if (document.mode === 'object' || !object) {
-      apply(addObject(document, label, make()));
+      apply(addObject(document, label, make(), null, cursorRef.current));
       setMessage(`Added ${label}. G to move it.`);
       return;
     }
     // New geometry appears at the cursor, which is a world position.
     const added = make();
-    const { cursor } = document;
+    const cursor = cursorRef.current;
     const matrix = worldMatrices(document, timeRef.current).get(object.id)!;
     const placed = toLocal(matrix, added.vertices.map(({ x, y, z }) => ({ x: x + cursor.x, y: y + cursor.y, z: z + cursor.z })));
     const { mesh, addedVertices } = appendMesh({ vertices: poseAt(object.vertices, timeRef.current), faces: object.faces, edges: object.edges }, { ...added, vertices: placed });
@@ -580,7 +680,12 @@ export const Editor = () => {
     refresh();
   };
 
-  const changeTransformField = (field: TransformField, axis: 'x' | 'y' | 'z', value: number, dragging = false) => {
+  const changeCursor = (axis: 'x' | 'y' | 'z', value: number) => {
+    cursorRef.current = { ...cursorRef.current, [axis]: value };
+    refresh();
+  };
+
+  const changeTransformField = (field: TransformField, axis: TransformAxis, value: number, dragging = false) => {
     const document = currentDocument();
     const object = activeObject();
     // In pose mode, the panel shows the active bone.
@@ -594,10 +699,15 @@ export const Editor = () => {
     const time = timeRef.current;
     const pose = nodeTransformAt(document, id, time);
     const next = { ...pose, [field]: { ...pose[field], [axis]: value } };
-    apply(updateTransform(document, id, transform => {
+    const written = (current: EditorDocument, node: string, value: Transform) => updateTransform(current, node, transform => {
       const posable = { transform };
-      return withTransformParts(posable, commitEdit(transformParts(posable), new Set([0, 1, 2]), [next.position, next.rotation, next.scale], time)).transform;
-    }), dragging ? NUMBER_DRAG_STEP : null);
+      return withTransformParts(posable, commitEdit(transformParts(posable), new Set([0, 1, 2]), [value.position, value.rotation, value.scale], time)).transform;
+    });
+    const others = document.mode === 'pose' ? withPosePartners(document, [id], time).filter(other => other !== id && !document.selectedBones.includes(other)) : [];
+    apply(others.reduce(
+      (current, other) => written(current, other, mirroredPose(next, nodeTransformAt(document, other, time))),
+      written(document, id, next),
+    ), dragging ? NUMBER_DRAG_STEP : null);
   };
 
   const endDragStep = () => {
@@ -613,9 +723,12 @@ export const Editor = () => {
     const pose = poseAt(object.vertices, time);
     const offset = value - selectionCenter(pose, object.selectedVertices)[axis];
     const next = pose.map((vertex, i) => (object.selectedVertices.has(i) ? { ...vertex, [axis]: vertex[axis] + offset } : vertex));
+    const { local, affected } = object.bones && object.mirrorEdit
+      ? mirroredJoints(next, object.selectedVertices, object.selectedVertices, jointPartners(object, pose))
+      : { local: next, affected: object.selectedVertices };
     apply(updateObject(currentDocument(), object.id, current => ({
       ...current,
-      vertices: commitEdit(current.vertices, current.selectedVertices, next, time),
+      vertices: commitEdit(current.vertices, affected, local, time),
     })), dragging ? NUMBER_DRAG_STEP : null);
   };
 
@@ -701,12 +814,14 @@ export const Editor = () => {
   const snap = (action: SnapAction) => {
     setMenu(null);
     const document = currentDocument();
-    const next = applySnap(document, action, timeRef.current);
-    if (next === document) {
+    const { document: next, cursor } = applySnap(document, action, timeRef.current, cursorRef.current);
+    if (next === document && cursor === cursorRef.current) {
       setMessage('Nothing selected to snap.');
     } else {
+      cursorRef.current = cursor;
       apply(next);
       setMessage(`${SNAP_LABELS[action]}.`);
+      refresh();
     }
   };
 
@@ -732,6 +847,41 @@ export const Editor = () => {
       vertexGroups: groupsAfterSubdivide(current.vertexGroups, splits, current.vertices.length),
     })));
     setMessage(`Subdivided ${splits.length} ${splits.length === 1 ? 'line' : 'lines'}.`);
+  };
+
+  // P in edit mode. The separated parts stay selected as objects, for when edit mode ends.
+  const separate = (byLooseParts: boolean) => {
+    setMenu(null);
+    const document = currentDocument();
+    const object = activeObject();
+    if (document.mode !== 'edit' || !object || object.bones || object.camera) {
+      return;
+    }
+    const next = byLooseParts ? separateLooseParts(document, object.id, timeRef.current) : separateSelection(document, object.id, timeRef.current);
+    if (next === document) {
+      setMessage(byLooseParts ? 'This mesh is all one piece.' : 'Select part of the mesh to separate, not none or all of it.');
+      return;
+    }
+    apply(next);
+    setMessage(`Separated ${next.objects.length - document.objects.length} ${next.objects.length - document.objects.length === 1 ? 'object' : 'objects'} from ${object.name}.`);
+  };
+
+  const modifierHandlers = (object: SceneObject) => {
+    const changed = (change: (modifiers: Modifier[]) => Modifier[], step: string | null = null) => apply(
+      updateObject(currentDocument(), object.id, current => ({ ...current, modifiers: change(current.modifiers ?? []) })), step
+    );
+    return {
+      onAddMirror: () => {
+        const document = currentDocument();
+        apply({
+          ...updateObject(document, object.id, current => ({ ...current, modifiers: [...(current.modifiers ?? []), newMirror(`modifier-${document.nextId}`)] })),
+          nextId: document.nextId + 1,
+        });
+      },
+      onChange: (id: string, change: Partial<Modifier>, dragging = false) => changed(modifiers => modifiers.map(modifier => (modifier.id === id ? { ...modifier, ...change } : modifier)), dragging ? NUMBER_DRAG_STEP : null),
+      onApply: (id: string) => apply(applyMirror(currentDocument(), object.id, id, timeRef.current)),
+      onRemove: (id: string) => changed(modifiers => modifiers.filter(modifier => modifier.id !== id)),
+    };
   };
 
   const toggleEditMode = () => {
@@ -781,9 +931,18 @@ export const Editor = () => {
 
   const constraintHandlers = (id: string): ConstraintHandlers => ({
     onAdd: kind => apply(addConstraint(currentDocument(), id, kind)),
-    onSetTarget: (constraintId, target) => apply(updateConstraint(currentDocument(), id, constraintId, { target })),
-    onSetInfluence: (constraintId, influence) => apply(updateConstraint(currentDocument(), id, constraintId, { influence }), `influence:${constraintId}`),
+    onSetTarget: (constraintId, target) => apply(setConstraintTarget(currentDocument(), id, constraintId, target, timeRef.current)),
+    onSetInfluence: (constraintId, influence) => apply(setConstraintInfluence(currentDocument(), id, constraintId, influence, timeRef.current), `influence:${constraintId}`),
     onRemove: constraintId => apply(removeConstraint(currentDocument(), id, constraintId)),
+    onSetInverse: constraintId => {
+      const document = currentDocument();
+      const node = findBone(document, id)?.bone ?? findObject(document, id);
+      const target = node?.constraints.find(candidate => candidate.id === constraintId)?.target ?? null;
+      apply(updateConstraint(document, id, constraintId, { inverse: childOfInverse(document, target, timeRef.current) }));
+    },
+    onClearInverse: constraintId => apply(updateConstraint(currentDocument(), id, constraintId, { inverse: undefined })),
+    onSetOn: (constraintId, on) => apply(setChildOfOn(currentDocument(), id, constraintId, on, timeRef.current)),
+    onChange: (constraintId, change, dragging) => apply(updateConstraint(currentDocument(), id, constraintId, change), dragging ? NUMBER_DRAG_STEP : null),
   });
 
   const chooseParent = (kind: ParentKind) => {
@@ -804,7 +963,7 @@ export const Editor = () => {
   };
 
   const captureState = (): Omit<ProjectState, 'document'> => ({
-    view: { orbit: orbitRef.current, viewedCamera: viewedCameraRef.current, time: timeRef.current },
+    view: { orbit: orbitRef.current, viewedCamera: viewedCameraRef.current, time: timeRef.current, cursor: cursorRef.current },
     layout: layoutRef.current,
     settings: {
       selectMode: selectModeRef.current,
@@ -831,6 +990,7 @@ export const Editor = () => {
     playingRef.current = false;
     orbitRef.current = state.view.orbit;
     viewedCameraRef.current = state.view.viewedCamera;
+    cursorRef.current = savedCursor(state.view, stored.present);
     timeRef.current = state.view.time;
     playClockRef.current = null;
     selectModeRef.current = state.settings.selectMode;
@@ -1070,7 +1230,7 @@ export const Editor = () => {
 
   const addArmatureObject = () => {
     setMenu(null);
-    apply(addArmature(currentDocument()));
+    apply(addArmature(currentDocument(), cursorRef.current));
     setMessage('Added Armature. Tab to edit its bones, Shift+Tab to pose them.');
   };
 
@@ -1085,7 +1245,7 @@ export const Editor = () => {
 
   const addCamera = () => {
     setMenu(null);
-    apply(addObject(currentDocument(), 'Camera', cameraGizmoMesh(), { focalLength: DEFAULT_FOCAL_LENGTH }));
+    apply(addObject(currentDocument(), 'Camera', cameraGizmoMesh(), { focalLength: DEFAULT_FOCAL_LENGTH }, cursorRef.current));
     setMessage('Added Camera. G and R to place it, Numpad 0 to look through it.');
   };
 
@@ -1138,14 +1298,14 @@ export const Editor = () => {
     const placeCursor = (point: Vec2) => {
       const document = currentDocument();
       const view = camera();
-      const { direction, onPlane } = viewRay(view, point, document.cursor);
+      const { direction, onPlane } = viewRay(view, point, cursorRef.current);
       const hit = raycastSurface(document, timeRef.current, view.position, direction);
-      const cursor = hit === null ? onPlane : {
+      cursorRef.current = hit === null ? onPlane : {
         x: view.position.x + direction.x * hit,
         y: view.position.y + direction.y * hit,
         z: view.position.z + direction.z * hit,
       };
-      apply({ ...document, cursor });
+      refresh();
     };
 
     const releasePointer = () => {
@@ -1254,7 +1414,7 @@ export const Editor = () => {
         const local = decompose(multiply(mode.parentInverse, world));
         transientRef.current = {
           kind: 'objects',
-          transforms: new Map([[mode.cameraId, { ...mode.transform, position: local.position, rotation: local.rotation }]]),
+          transforms: new Map([[mode.cameraId, { ...mode.transform, position: local.position, rotation: rotationLike(local.rotation, mode.transform.rotation) }]]),
         };
       } else {
         orbitRef.current = next;
@@ -1280,7 +1440,7 @@ export const Editor = () => {
             ? connectedDistances({ vertices: world, faces: object.faces, edges: object.edges }, object.selectedVertices)
             : straightDistances(world, object.selectedVertices);
         }
-        target = { kind: 'vertices', id: object.id, matrix, world, selection: object.selectedVertices, distances };
+        target = { kind: 'vertices', id: object.id, matrix, world, selection: object.selectedVertices, distances, modifiers: object.modifiers ?? [], mirrorJoints: object.bones && object.mirrorEdit && step !== DUPLICATE_STEP ? jointPartners(object, poseAt(object.vertices, time)) : null };
         pivot = selectionPivot(world, object.selectedVertices, camera());
       } else if (document.mode === 'pose') {
         // A bone connected to its parent is held there, and can only turn.
@@ -1291,6 +1451,7 @@ export const Editor = () => {
         const ids = topLevelOnly(document, document.selectedBones).filter(free);
         const matrices = worldMatrices(document, time);
         const worldPositions = ids.map(id => matrixOrigin(matrices.get(id)!));
+        const partners = object ? bonePartners(object, poseAt(object.vertices, time)) : new Map<string, string>();
         target = {
           kind: 'objects',
           ids,
@@ -1302,6 +1463,10 @@ export const Editor = () => {
             const { armature, bone } = findBone(document, id)!;
             return armature.bones!.some(other => other.id === bone.parent && other.tail === bone.head);
           }),
+          mirrored: object?.bones && object.mirrorPose ? ids.flatMap(source => {
+            const id = partners.get(source);
+            return id && !document.selectedBones.includes(id) ? [{ source, id, transform: nodeTransformAt(document, id, time) }] : [];
+          }) : undefined,
         };
         pivot = selectionPivot(worldPositions, new Set(worldPositions.map((_, i) => i)), camera());
       } else {
@@ -1326,7 +1491,7 @@ export const Editor = () => {
         return;
       }
       // Moving has no center to choose. Only turning and scaling do.
-      const center = pivotModeRef.current === 'cursor' && kind !== 'translate' ? document.cursor : null;
+      const center = pivotModeRef.current === 'cursor' && kind !== 'translate' ? cursorRef.current : null;
       if (center) {
         pivot = projectPoint(camera(), center);
         if (!pivot) {
@@ -1335,7 +1500,7 @@ export const Editor = () => {
         }
       }
       playingRef.current = false;
-      const mode: TransformMode = { kind, target, start: mouseRef.current, pivot, center, axis: null, space: 'global', normal, step };
+      const mode: TransformMode = { kind, target, start: mouseRef.current, pivot, center, axis: null, space: 'global', normal, step, typed: null };
       setMode(mode);
       setMessage(transformMessage(mode));
     };
@@ -1457,7 +1622,7 @@ export const Editor = () => {
       if (document.mode === 'edit' && object?.bones) {
         if (object.selectedVertices.size === 0) {
           setMessage('Nothing selected to delete.');
-        } else if (selectedBonesOf(object).length === object.bones.length) {
+        } else if (bonesToDelete(object, timeRef.current).length === object.bones.length) {
           setMessage('An armature keeps at least one bone. Delete the object instead.');
         } else {
           apply(deleteBones(document, object.id, timeRef.current));
@@ -1546,13 +1711,43 @@ export const Editor = () => {
         } else {
           openMenu('boneParent');
         }
-      } else if (document.mode !== 'object') {
-        setMessage('Parenting works in object mode, or on bones in edit mode.');
+      } else if (document.mode !== 'object' && !(document.mode === 'pose' && document.activeBone)) {
+        setMessage('Parenting works in object mode, in pose mode with a bone active, or on bones in edit mode.');
       } else if (!object || !selectedVisible(document).includes(object.id) || selectedVisible(document).length < 2) {
         setMessage('Select the children, then the parent last.');
       } else {
         openMenu('parent');
       }
+    };
+
+    // Ctrl+J: joins the other selected meshes into the active one.
+    const joinMeshes = () => {
+      const document = currentDocument();
+      if (document.mode !== 'object') {
+        return;
+      }
+      const { document: next, joined } = joinSelected(document, timeRef.current);
+      if (joined === 0) {
+        setMessage('Select the meshes to join, then the one to join them into last.');
+      } else {
+        apply(next);
+        setMessage(`Joined ${joined} ${joined === 1 ? 'mesh' : 'meshes'} into ${activeObject()?.name}.`);
+      }
+    };
+
+    // Shift+I in pose mode: the active bone reaches for the other selected bone.
+    const addBoneIk = () => {
+      const document = currentDocument();
+      const bone = document.activeBone;
+      if (document.mode !== 'pose' || !bone) {
+        setMessage('Shift+I adds inverse kinematics in pose mode: select the target bone, then the bone to reach for it last.');
+        return;
+      }
+      const added = addConstraint(document, bone, 'ik');
+      const constraints = findBone(added, bone)!.bone.constraints;
+      const target = document.selectedBones.find(id => id !== bone) ?? null;
+      apply(updateConstraint(added, bone, constraints[constraints.length - 1].id, { target }));
+      setMessage(target ? 'Added inverse kinematics. Set a pole and the chain length in the object pane.' : 'Added inverse kinematics. Choose its target in the object pane.');
     };
 
     // Ctrl+Shift+P: parents without keeping the child's place, moving it to the parent.
@@ -1572,7 +1767,7 @@ export const Editor = () => {
       if (ids.length === 0) {
         return;
       }
-      apply(clearTransforms(document, ids, field, timeRef.current));
+      apply(clearTransforms(document, document.mode === 'pose' ? withPosePartners(document, ids, timeRef.current) : ids, field, timeRef.current));
       setMessage(CLEAR_MESSAGES[field]);
     };
 
@@ -1602,7 +1797,7 @@ export const Editor = () => {
       }
       if (event.ctrlKey || event.metaKey) {
         // Ctrl+P would otherwise open the browser's print dialog, even in the middle of something.
-        if (event.code === 'KeyP') {
+        if (event.code === 'KeyP' || event.code === 'KeyJ') {
           event.preventDefault();
         }
         if (modeRef.current.kind !== 'idle' || event.repeat) {
@@ -1614,6 +1809,8 @@ export const Editor = () => {
           } else {
             openParentMenu();
           }
+        } else if (event.code === 'KeyJ') {
+          joinMeshes();
         } else if (event.code === 'Tab') {
           event.preventDefault();
           togglePoseOrWeight();
@@ -1648,16 +1845,30 @@ export const Editor = () => {
         return;
       }
       if (isTransformMode(mode)) {
-        if (event.code === 'Enter') {
+        const retyped = (typed: TypedInput | null) => {
+          const next = { ...mode, typed };
+          transientRef.current = computeTransient(next, camera(), mouseRef.current, currentProportionalRadius());
+          setMode(next);
+          setMessage(transformMessage(next));
+        };
+        if (event.code === 'Enter' || event.code === 'NumpadEnter') {
           confirmTransform(mode);
+        } else if (event.code === 'Tab') {
+          event.preventDefault();
+          if (mode.kind === 'translate' && !mode.axis && !mode.normal) {
+            retyped(nextField(mode.typed));
+          }
+        } else if (isTypedKey(event.key) && !event.altKey) {
+          retyped(typeKey(mode.typed, event.key));
         } else if (AXIS_KEYS[event.code] && !event.shiftKey && !event.altKey) {
           // Pressing a locked axis again goes from global to local, then releases it.
           const pressed = AXIS_KEYS[event.code];
+          const typed = mode.typed && { ...mode.typed, index: 0 };
           const next: TransformMode = mode.axis !== pressed
-            ? { ...mode, axis: pressed, space: 'global', normal: null }
+            ? { ...mode, axis: pressed, space: 'global', normal: null, typed }
             : mode.space === 'global'
-              ? { ...mode, space: 'local', normal: null }
-              : { ...mode, axis: null, space: 'global', normal: null };
+              ? { ...mode, space: 'local', normal: null, typed }
+              : { ...mode, axis: null, space: 'global', normal: null, typed };
           transientRef.current = computeTransient(next, camera(), mouseRef.current, currentProportionalRadius());
           setMode(next);
           setMessage(transformMessage(next));
@@ -1677,6 +1888,11 @@ export const Editor = () => {
       } else if (event.code === 'KeyO' && event.altKey) {
         event.preventDefault();
         toggleProportionalConnected();
+      } else if (event.code === 'KeyI' && event.altKey) {
+        event.preventDefault();
+        if (!keyHoveredProperty(true)) {
+          setMessage('Alt+I removes a key from the property under the pointer.');
+        }
       } else if (CLEAR_KEYS[event.code] && event.altKey) {
         event.preventDefault();
         clearSelected(CLEAR_KEYS[event.code]);
@@ -1705,6 +1921,9 @@ export const Editor = () => {
       } else if (event.code === 'KeyF' && event.shiftKey) {
         event.preventDefault();
         beginWalk();
+      } else if (event.code === 'KeyI' && event.shiftKey) {
+        event.preventDefault();
+        addBoneIk();
       } else if (event.shiftKey) {
         return;
       } else if (event.code === 'KeyA') {
@@ -1712,7 +1931,9 @@ export const Editor = () => {
       } else if (event.code === 'Numpad0') {
         toggleCameraView();
       } else if (event.code === 'KeyI') {
-        insertKey();
+        if (!keyHoveredProperty(false)) {
+          insertKey();
+        }
       } else if (event.code === 'Space') {
         event.preventDefault();
         togglePlaying();
@@ -1724,6 +1945,8 @@ export const Editor = () => {
         extrude();
       } else if (event.code === 'KeyW' && currentDocument().mode === 'edit' && !activeObject()?.bones) {
         openMenu('specials');
+      } else if (event.code === 'KeyP' && currentDocument().mode === 'edit' && !activeObject()?.bones) {
+        openMenu('separate');
       } else if (SELECT_MODE_KEYS[event.code] && currentDocument().mode === 'edit' && !activeObject()?.bones) {
         selectModeRef.current = SELECT_MODE_KEYS[event.code];
         refresh();
@@ -2072,7 +2295,7 @@ export const Editor = () => {
 
       drawOverlay(ctx, {
         camera: sceneCamera,
-        sceneCursor: document.cursor,
+        sceneCursor: cursorRef.current,
         bones,
         weightPaint: document.mode === 'weight' && active
           ? { ...worldOf(active), faces: active.faces, weights: active.vertices.map((_, i) => activeGroup?.weights.get(i) ?? 0) }
@@ -2203,47 +2426,66 @@ export const Editor = () => {
     : `${document.selectedObjects.length}/${document.objects.length} objects selected`;
 
   const renderTransformPanel = () => {
+    const shared = { time: timeRef.current, cursor: cursorRef.current, onCursorChange: changeCursor, onDragEnd: endDragStep };
     if (!active) {
-      return <TransformPanel kind='empty' message='No active object.' />;
+      return <TransformPanel {...shared} message='No active object.' />;
     }
+    const transformOf = (id: string, name: string, posable: Parameters<typeof transformAt>[0]) => ({
+      id,
+      name,
+      animated: posable.transform,
+      ...transformAt(posable, timeRef.current),
+      onChange: changeTransformField,
+      onRotationMode: (quaternion: boolean) => apply(setRotationMode(currentDocument(), id, quaternion)),
+    });
+    if (document.mode === 'pose') {
+      return activeBone
+        ? <TransformPanel {...shared} transform={transformOf(activeBone.id, activeBone.name, activeBone)} />
+        : <TransformPanel {...shared} message='No active bone.' />;
+    }
+    const transform = transformOf(active.id, active.name, active);
     if (document.mode === 'edit') {
-      if (active.selectedVertices.size === 0) {
-        return <TransformPanel kind='empty' message='No vertices selected.' />;
-      }
-      return (
+      return active.selectedVertices.size === 0 ? <TransformPanel {...shared} message='No vertices selected.' transform={transform} /> : (
         <TransformPanel
-          kind='vertices'
-          name={active.name}
-          count={active.selectedVertices.size}
-          median={selectionCenter(poseAt(active.vertices, timeRef.current), active.selectedVertices)}
-          onChange={changeVertexMedian}
-          onDragEnd={endDragStep}
+          {...shared}
+          vertices={{
+            name: 'Selection',
+            count: active.selectedVertices.size,
+            median: selectionCenter(poseAt(active.vertices, timeRef.current), active.selectedVertices),
+            animated: Array.from(active.selectedVertices).map(i => active.vertices[i]),
+            onChange: changeVertexMedian,
+          }}
+          transform={transform}
         />
       );
     }
-    if (document.mode === 'pose') {
-      if (!activeBone) {
-        return <TransformPanel kind='empty' message='No active bone.' />;
-      }
-      const pose = transformAt(activeBone, timeRef.current);
-      return <TransformPanel kind='object' name={activeBone.name} position={pose.position} rotation={pose.rotation} scale={pose.scale} onChange={changeTransformField} onDragEnd={endDragStep} />;
-    }
-    const { position, rotation, scale } = transformAt(active, timeRef.current);
-    return <TransformPanel kind='object' name={active.name} position={position} rotation={rotation} scale={scale} onChange={changeTransformField} onDragEnd={endDragStep} />;
+    return <TransformPanel {...shared} transform={transform} />;
   };
 
   const renderRigPanes = (object: SceneObject) => {
     if (object.bones) {
-      return activeBone && (
-        <BonePane
-          document={document}
-          armature={object}
-          bone={activeBone}
-          canChangeParent={document.mode === 'edit'}
-          onRename={name => apply(renameBone(currentDocument(), activeBone.id, name))}
-          onSetParent={parent => apply(setBoneParent(currentDocument(), object.id, activeBone.id, parent))}
-          constraintHandlers={constraintHandlers(activeBone.id)}
-        />
+      return (
+        <>
+          <ArmaturePane
+            armature={object}
+            pairs={bonePartners(object, poseAt(object.vertices, timeRef.current)).size / 2}
+            canSymmetrize={document.mode === 'edit' && selectedBonesOf(object).length > 0}
+            onChange={change => apply(updateObject(currentDocument(), object.id, current => ({ ...current, ...change })))}
+            onSymmetrize={() => apply(symmetrizeBones(currentDocument(), object.id, timeRef.current))}
+          />
+          {activeBone && (
+            <BonePane
+              document={document}
+              armature={object}
+              bone={activeBone}
+              time={timeRef.current}
+              canChangeParent={document.mode === 'edit'}
+              onRename={name => apply(renameBone(currentDocument(), activeBone.id, name))}
+              onSetParent={parent => apply(setBoneParent(currentDocument(), object.id, activeBone.id, parent))}
+              constraintHandlers={constraintHandlers(activeBone.id)}
+            />
+          )}
+        </>
       );
     }
     if (object.camera) {
@@ -2253,6 +2495,7 @@ export const Editor = () => {
     const groupId = object.activeGroup;
     return (
       <>
+        <ModifiersPane modifiers={object.modifiers ?? []} handlers={modifierHandlers(object)} />
         {document.mode === 'weight' && <BrushPane brush={brush} onChange={next => { brushRef.current = next; refresh(); }} />}
         <VertexGroupsPane
           document={document}
@@ -2510,6 +2753,7 @@ export const Editor = () => {
             <ObjectPane
               document={document}
               object={active}
+              time={timeRef.current}
               onEndStep={() => { historyRef.current = endStep(historyRef.current); }}
               onChangeStyle={changeStyle}
               onSetParent={parent => active && apply(setParent(currentDocument(), active.id, parent, timeRef.current))}
@@ -2564,7 +2808,7 @@ export const Editor = () => {
       {menu && (
         <div
           role='menu'
-          aria-label={{ add: 'Add', parent: 'Set Parent To', boneParent: 'Make Parent', file: 'File', snap: 'Snap', specials: 'Specials' }[menu.kind]}
+          aria-label={{ add: 'Add', parent: 'Set Parent To', boneParent: 'Make Parent', file: 'File', snap: 'Snap', specials: 'Specials', separate: 'Separate' }[menu.kind]}
           style={{ position: 'fixed', left: menu.x, top: menu.y, background: '#262a35', border: '1px solid #4a5060', borderRadius: 4, padding: 4, minWidth: 120 }}
         >
           {menu.kind === 'snap' && (
@@ -2579,6 +2823,13 @@ export const Editor = () => {
             <>
               <div style={{ padding: '2px 8px', opacity: 0.6 }}>Specials</div>
               <button role='menuitem' onClick={subdivide} className='slender-menu-item'>Subdivide</button>
+            </>
+          )}
+          {menu.kind === 'separate' && (
+            <>
+              <div style={{ padding: '2px 8px', opacity: 0.6 }}>Separate</div>
+              <button role='menuitem' onClick={() => separate(false)} className='slender-menu-item'>Selection</button>
+              <button role='menuitem' onClick={() => separate(true)} className='slender-menu-item'>By Loose Parts</button>
             </>
           )}
           {menu.kind === 'file' && (

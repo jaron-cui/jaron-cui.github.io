@@ -30,9 +30,12 @@ export type Geometry = PathGeometry | RectGeometry | EllipseGeometry;
 export type Stroke = { color: Color; width: number };
 export type Style = { fill: Color | null; stroke: Stroke | null };
 
-// Applied in the order scale, rotate, translate. Rotation is Euler angles in radians, applied
-// about x, then y, then z. Angles are not wrapped, so a track from 0 to 4 * PI spins twice.
-export type Transform = { position: Vec3; rotation: Vec3; scale: Vec3 };
+// Euler angles in radians, applied about x, then y, then z, and not wrapped, so a track from 0 to
+// 4 * PI spins twice. With w present it is instead a quaternion, normalized when used.
+export type Rotation = Vec3 & { w?: number };
+
+// Applied in the order scale, rotate, translate.
+export type Transform = { position: Vec3; rotation: Rotation; scale: Vec3 };
 
 // Three indices into a mesh's vertices. Winding does not matter.
 export type Face = [number, number, number];

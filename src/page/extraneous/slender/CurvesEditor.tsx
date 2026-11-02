@@ -8,7 +8,7 @@ import { panView, TimeView, timeScaleFactor, zoomView } from './timelineView';
 const CHANNEL_LIST_WIDTH = 150;
 const ZOOM_PER_WHEEL_PIXEL = 1.002;
 const CURVE_SAMPLE_PIXELS = 2;
-const COORDINATE_COLORS = { x: '#ff6a6a', y: '#7fe07f', z: '#6aa8ff' };
+const COORDINATE_COLORS = { x: '#ff6a6a', y: '#7fe07f', z: '#6aa8ff', w: '#c9c9d4' };
 const ACCENT = '#ffa030';
 
 type ValueView = { min: number; max: number };
@@ -70,7 +70,7 @@ type CurvesEditorProps = {
 
 // Editing what happens between keys. The left list picks which curve to focus on. Right click
 // selects keys and handles, Shift adding to them. G moves them, R turns handles about their keys, and
-// S stretches key timing about the current frame. Left click belongs to the time cursor, which the
+// S stretches key timing about the current frame and lengthens handles about their keys. Left click belongs to the time cursor, which the
 // surrounding pane handles. The wheel zooms at the cursor and middle drag pans.
 export const CurvesEditor = ({ channels, frameRate, time, frameStart, frameEnd, view, locked, onView, onEdit, onBeginKeyEdit, onMessage }: CurvesEditorProps) => {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -237,9 +237,30 @@ export const CurvesEditor = ({ channels, frameRate, time, frameStart, frameEnd, 
     });
   };
 
+  // Scales handles along their own lines, by how the pointer's distance from their keys has changed.
+  const beginHandleScale = () => {
+    const anchors = handlesAlone.flatMap(item => {
+      const channel = channelOf(item.channel)!;
+      const key = channel.track.keys.find(candidate => sameTime(candidate.time, item.time))!;
+      return [[x(key.time * frameRate), y(key.value * channel.scale)]];
+    });
+    const bounds = plotRef.current!.getBoundingClientRect();
+    const pivot = { x: bounds.left + anchors.reduce((sum, [ax]) => sum + ax, 0) / anchors.length, y: bounds.top + anchors.reduce((sum, [, ay]) => sum + ay, 0) / anchors.length };
+    const start = pointerRef.current!;
+    const startDistance = Math.max(1, Math.hypot(start.x - pivot.x, start.y - pivot.y));
+    onMessage('Scaling handles: left click to confirm, Esc or right click to cancel.');
+    beginEdit((edit, move) => {
+      const factor = Math.hypot(move.clientX - pivot.x, move.clientY - pivot.y) / startDistance;
+      edit.preview(document => handlesAlone.reduce((next, item) => {
+        const channel = channelOf(item.channel)!;
+        return updateChannel(next, channel, vertex => changeHandle(vertex, channel.coordinate, item.time, item.part as HandleSide, ([dt, dv]) => [dt * factor, dv * factor]));
+      }, document));
+    });
+  };
+
   const beginScale = () => {
     if (keysSelected.length === 0) {
-      onMessage('S stretches key timing. Select keys.');
+      beginHandleScale();
       return;
     }
     const bounds = plotRef.current!.getBoundingClientRect();

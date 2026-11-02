@@ -1,10 +1,12 @@
 import { Ease, Track } from './animation';
 import { Bone, deformVertices, distance, restMatrix, skinMatrix, tailOffset, VertexGroup } from './armature';
-import { applyConstraint, Constraint, ConstraintKind } from './constraints';
+import { applyConstraint, childOfMatrix, Constraint, ConstraintKind, CONSTRAINT_LABELS, DEFAULT_CHAIN_LENGTH } from './constraints';
 import { Occlusion, Selection } from './editing';
-import { AnimatedVertex, commitEdit, Coordinate, dropHeldEdits, isKeyed, keyEase, keyTimes, poseAt, scaleKeyTimes } from './keyframes';
-import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, transformMatrix } from './matrix';
+import { solveChain } from './ik';
+import { AnimatedVertex, commitEdit, convertRotation, Coordinate, coordinatesIn, deleteKeys, dropHeldEdits, isKeyed, keyEase, keyTimes, poseAt, scaleKeyTimes, setKeyEase, valueAt, writeKeys } from './keyframes';
+import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, rotationLike, transformMatrix } from './matrix';
 import { Camera, Edge, Face, fixed, Rgb, Scene, Transform, Vec2, Vec3 } from './model';
+import { Modifier, modifiedMesh } from './modifiers';
 import { MeshData } from './primitives';
 import { projectPoint } from './project';
 
@@ -16,6 +18,7 @@ export type ObjectTransform = { position: AnimatedVertex; rotation: AnimatedVert
 
 // Anything with a transform: an object or a bone.
 type Posable = { transform: ObjectTransform };
+type Constrained = Posable & { id: string; name: string; constraints: Constraint[] };
 
 export type SceneObject = {
   id: string;
@@ -44,6 +47,11 @@ export type SceneObject = {
   deformer: string | null;
   vertexGroups: VertexGroup[];
   activeGroup: string | null;
+  // Only missing in files from before there were any.
+  modifiers?: Modifier[];
+  // An armature's mirroring across its own x, of joints in edit mode and of bones in pose mode.
+  mirrorEdit?: boolean;
+  mirrorPose?: boolean;
 };
 
 // Folders only organize the outliner and group visibility. They have no effect on transforms.
@@ -53,8 +61,6 @@ export type EditorDocument = {
   objects: SceneObject[];
   folders: Folder[];
   skyColor: Rgb;
-  // Where new things appear and what Shift+S snaps to, in world space.
-  cursor: Vec3;
   // Key times stay in seconds. These say how frames map onto them, and which ones play.
   frameRate: number;
   frameStart: number;
@@ -90,7 +96,7 @@ const DEFAULT_FILL: Rgb = { r: 0x4a / 255, g: 0x6c / 255, b: 0xd8 / 255 };
 const DEFAULT_BORDER_COLOR: Rgb = { r: 0xe6 / 255, g: 0xed / 255, b: 1 };
 
 export function emptyDocument(): EditorDocument {
-  return { objects: [], folders: [], skyColor: DEFAULT_SKY, cursor: { x: 0, y: 0, z: 0 }, frameRate: DEFAULT_FRAME_RATE, frameStart: DEFAULT_FRAME_START, frameEnd: DEFAULT_FRAME_END, nextId: 1, mode: 'object', selectedObjects: [], activeObject: null, selectedBones: [], activeBone: null };
+  return { objects: [], folders: [], skyColor: DEFAULT_SKY, frameRate: DEFAULT_FRAME_RATE, frameStart: DEFAULT_FRAME_START, frameEnd: DEFAULT_FRAME_END, nextId: 1, mode: 'object', selectedObjects: [], activeObject: null, selectedBones: [], activeBone: null };
 }
 
 export function uniqueName(taken: string[], wanted: string): string {
@@ -110,15 +116,15 @@ function objectNames(objects: SceneObject[]): string[] {
   return objects.map(object => object.name);
 }
 
-// Adds an object at the scene cursor and makes it the only selected object.
+// Adds an object at a world point and makes it the only selected object.
 export function addObject(
-  document: EditorDocument, name: string, { vertices, faces, edges }: MeshData, camera: SceneObject['camera'] = null
+  document: EditorDocument, name: string, { vertices, faces, edges }: MeshData, camera: SceneObject['camera'] = null, at: Vec3 = { x: 0, y: 0, z: 0 }
 ): EditorDocument {
   const object: SceneObject = {
     id: `object-${document.nextId}`,
     name: uniqueName(objectNames(document.objects), name),
     transform: {
-      position: document.cursor,
+      position: at,
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 },
     },
@@ -137,6 +143,7 @@ export function addObject(
     deformer: null,
     vertexGroups: [],
     activeGroup: null,
+    modifiers: [],
   };
   return {
     ...document,
@@ -160,7 +167,11 @@ export function duplicateObjects(document: EditorDocument): EditorDocument {
     source.bones?.forEach(bone => newIds.set(bone.id, `bone-${number++}`));
   }
   const relinked = <T extends string | null>(id: T) => (id !== null && newIds.get(id)) || id;
-  const relinkedConstraints = (constraints: Constraint[]) => constraints.map(constraint => ({ ...constraint, target: relinked(constraint.target) }));
+  const relinkedConstraints = (constraints: Constraint[]) => constraints.map(constraint => ({
+    ...constraint,
+    target: relinked(constraint.target),
+    ...(constraint.pole ? { pole: relinked(constraint.pole) } : {}),
+  }));
   let objects = document.objects;
   for (const source of sources) {
     const copy: SceneObject = {
@@ -281,9 +292,31 @@ export function resolveObject(object: SceneObject, time: number, transient: Tran
 
 // Where every object and bone actually is: its own transform, inside its parent, then overridden
 // by its constraints in order. A bone's transform is relative to where it rests, which keeps its
-// offset from its parent bone. A constraint loop is broken by using the local transform at the
-// point it closes.
+// offset from its parent bone. Inverse kinematics then bends whole chains of bones, whose ends reach
+// for their targets. A constraint loop is broken by using the local transform at the point it closes.
 export function worldMatrices(document: EditorDocument, time: number, transient: Transient | null = null): Map<string, Matrix> {
+  if (transient) {
+    return computeWorldMatrices(document, time, transient);
+  }
+  // Documents never change, so a result stays good. Child Of asks for past frames over and over.
+  const known = worldMatrixCache.get(document) ?? new Map<number, Map<string, Matrix>>();
+  worldMatrixCache.set(document, known);
+  const found = known.get(time);
+  if (found) {
+    return found;
+  }
+  const result = computeWorldMatrices(document, time, null);
+  if (known.size >= WORLD_MATRIX_CACHE_SIZE) {
+    known.clear();
+  }
+  known.set(time, result);
+  return result;
+}
+
+const WORLD_MATRIX_CACHE_SIZE = 64;
+const worldMatrixCache = new WeakMap<EditorDocument, Map<number, Map<string, Matrix>>>();
+
+function computeWorldMatrices(document: EditorDocument, time: number, transient: Transient | null): Map<string, Matrix> {
   const objects = new Map(document.objects.map(object => [object.id, object]));
   const bones = new Map<string, { armature: SceneObject; bone: Bone; rest: Matrix; length: number }>();
   for (const armature of document.objects) {
@@ -297,8 +330,64 @@ export function worldMatrices(document: EditorDocument, time: number, transient:
       });
     }
   }
+  const isNode = (id: string | null | undefined): id is string => Boolean(id) && (objects.has(id!) || bones.has(id!));
+  // Which IK chain each bone is in, its bones listed from the root. A bone stays with the first chain
+  // to reach it, and a later chain stops short of it.
+  type Chain = { owner: string; constraint: Constraint; influence: number; ids: string[] };
+  const chains = new Map<string, Chain>();
+  bones.forEach(({ bone }, owner) => {
+    bone.constraints.forEach(constraint => {
+      const influence = valueAt(constraint.influence, time);
+      if (constraint.kind !== 'ik' || !isNode(constraint.target) || constraint.target === owner || influence <= 0 || chains.has(owner)) {
+        return;
+      }
+      const limit = constraint.chainLength || Infinity;
+      const ids: string[] = [];
+      for (let id: string | null = owner; id && ids.length < limit && !chains.has(id) && !ids.includes(id); id = bones.get(id)?.bone.parent ?? null) {
+        ids.unshift(id);
+      }
+      const chain = { owner, constraint, influence, ids };
+      ids.forEach(id => chains.set(id, chain));
+    });
+  });
+  const solving = new Set<Chain>();
   const result = new Map<string, Matrix>();
   const visiting = new Set<string>();
+  const withConstraints = (id: string, matrix: Matrix, constraints: Constraint[]) => constraints.reduce((current, constraint) => {
+    const { kind, target, influence, inverse } = constraint;
+    if (kind === 'ik' || target === id || !isNode(target)) {
+      return current;
+    }
+    return kind === 'childOf'
+      ? childOfMatrix(current, constraint, resolve(target), time, past => worldMatrices(document, past).get(target)!)
+      : applyConstraint(current, kind, resolve(target), valueAt(influence, time), inverse);
+  }, matrix);
+  // A bone in the pose alone, from the world matrix its parent has.
+  const posedBone = (entry: NonNullable<ReturnType<typeof bones.get>>, parentWorld: Matrix | null): Matrix => {
+    const parent = entry.bone.parent ? bones.get(entry.bone.parent) : undefined;
+    const base = parent && parentWorld
+      ? multiply(multiply(parentWorld, invertMatrix(parent.rest)), entry.rest)
+      : multiply(resolve(entry.armature.id), entry.rest);
+    return withConstraints(entry.bone.id, multiply(base, ownTransform(entry.bone.id, entry.bone)), entry.bone.constraints);
+  };
+  const solve = (chain: Chain) => {
+    solving.add(chain);
+    const rootParent = bones.get(chain.ids[0])!.bone.parent;
+    let parentWorld = rootParent ? resolve(rootParent) : null;
+    const posed = chain.ids.map(id => {
+      parentWorld = posedBone(bones.get(id)!, parentWorld);
+      return parentWorld;
+    });
+    const { constraint, influence, owner } = chain;
+    const solved = solveChain(posed, bones.get(owner)!.length, {
+      target: matrixOrigin(resolve(constraint.target!)),
+      pole: isNode(constraint.pole) && constraint.pole !== owner ? matrixOrigin(resolve(constraint.pole)) : null,
+      poleAngle: constraint.poleAngle ?? 0,
+      influence: Math.min(1, influence),
+    });
+    chain.ids.forEach((id, i) => result.set(id, solved[i]));
+    solving.delete(chain);
+  };
   const ownTransform = (id: string, node: Posable): Matrix => transformMatrix(transient?.kind === 'objects' && transient.transforms.get(id) || transformAt(node, time));
   const resolve = (id: string): Matrix => {
     const done = result.get(id);
@@ -306,6 +395,11 @@ export function worldMatrices(document: EditorDocument, time: number, transient:
       return done;
     }
     const entry = bones.get(id);
+    const chain = chains.get(id);
+    if (chain && !solving.has(chain)) {
+      solve(chain);
+      return result.get(id)!;
+    }
     const object = objects.get(id)!;
     const local = ownTransform(id, entry ? entry.bone : object);
     if (visiting.has(id)) {
@@ -314,11 +408,7 @@ export function worldMatrices(document: EditorDocument, time: number, transient:
     visiting.add(id);
     let matrix: Matrix;
     if (entry) {
-      const parent = entry.bone.parent ? bones.get(entry.bone.parent) : undefined;
-      const base = parent
-        ? multiply(multiply(resolve(parent.bone.id), invertMatrix(parent.rest)), entry.rest)
-        : multiply(resolve(entry.armature.id), entry.rest);
-      matrix = multiply(base, local);
+      matrix = posedBone(entry, entry.bone.parent && bones.has(entry.bone.parent) ? resolve(entry.bone.parent) : null);
     } else {
       const parentBone = object.parent ? bones.get(object.parent) : undefined;
       if (parentBone) {
@@ -326,11 +416,7 @@ export function worldMatrices(document: EditorDocument, time: number, transient:
       } else {
         matrix = object.parent && objects.has(object.parent) ? multiply(resolve(object.parent), local) : local;
       }
-    }
-    for (const { kind, target, influence } of (entry ? entry.bone : object).constraints) {
-      if (target && target !== id && (objects.has(target) || bones.has(target))) {
-        matrix = applyConstraint(matrix, kind, resolve(target), influence);
-      }
+      matrix = withConstraints(id, matrix, object.constraints);
     }
     visiting.delete(id);
     result.set(id, matrix);
@@ -355,9 +441,19 @@ export function worldVertices(document: EditorDocument, object: SceneObject, tim
 }
 
 // What an object's or bone's own transform is relative to, in the world: for a bone, where it would
-// be with no pose; for an object, its parent's frame, or the identity without one.
+// be with no pose; for an object, its parent's frame, or the identity without one. Child Of
+// constraints count, being parents themselves.
 export function parentMatrix(document: EditorDocument, node: SceneObject | Bone, time: number): Matrix {
   const matrices = worldMatrices(document, time);
+  return node.constraints.reduce((matrix, constraint) => {
+    const { kind, target } = constraint;
+    return kind === 'childOf' && target !== node.id && target && matrices.has(target)
+      ? childOfMatrix(matrix, constraint, matrices.get(target)!, time, past => worldMatrices(document, past).get(target)!)
+      : matrix;
+  }, hierarchyMatrix(document, node, time, matrices));
+}
+
+function hierarchyMatrix(document: EditorDocument, node: SceneObject | Bone, time: number, matrices: Map<string, Matrix>): Matrix {
   const found = findBone(document, node.id);
   if (found) {
     const { armature, bone } = found;
@@ -413,10 +509,18 @@ export function displayVertices(
     }
     return result;
   }
+  return deformedBy(document, object, local, object.vertexGroups, time, transient, matrices);
+}
+
+// Vertices relative to an object, bent by its armature if it has one.
+function deformedBy(
+  document: EditorDocument, object: SceneObject, local: Vec3[], groups: VertexGroup[], time: number, transient: Transient | null, matrices: Map<string, Matrix>
+): Vec3[] {
   const armature = findObject(document, object.deformer);
   if (!armature?.bones) {
     return local;
   }
+  const own = matrices.get(object.id)!;
   // Each bone's movement from rest, measured in world space and then expressed relative to this object.
   const joints = resolveObject(armature, time, transient).local;
   const armatureWorld = matrices.get(armature.id)!;
@@ -425,7 +529,22 @@ export function displayVertices(
     const restWorld = multiply(armatureWorld, restMatrix(joints[bone.head], joints[bone.tail]));
     return [bone.name, multiply(multiply(inverse, skinMatrix(matrices.get(bone.id)!, restWorld)), own)];
   }));
-  return deformVertices(local, object.vertexGroups, skins);
+  return deformVertices(local, groups, skins);
+}
+
+// A mesh as it finally looks, with its modifiers. Mesh editing still sees only displayVertices and
+// the object's own faces, since the generated parts cannot be edited.
+export function renderedMesh(
+  document: EditorDocument, object: SceneObject, time: number, transient: Transient | null, matrices: Map<string, Matrix>
+): MeshData {
+  const modifiers = object.modifiers ?? [];
+  if (modifiers.length === 0) {
+    return { vertices: displayVertices(document, object, time, transient, matrices), faces: object.faces, edges: object.edges };
+  }
+  const { local } = resolveObject(object, time, transient);
+  const { vertices, faces, edges, groups } = modifiedMesh({ vertices: local, faces: object.faces, edges: object.edges }, object.vertexGroups, modifiers);
+  const isEditing = document.mode === 'edit' && document.activeObject === object.id;
+  return { vertices: isEditing ? vertices : deformedBy(document, object, vertices, groups, time, transient, matrices), faces, edges };
 }
 
 // The view from a camera object, from wherever parents and constraints put it. Scale is ignored.
@@ -487,15 +606,15 @@ export function toScene(document: EditorDocument, camera: Camera, time: number, 
     camera,
     nodes: document.objects.filter(object => !object.camera && !object.bones && isVisible(document, object)).map(object => {
       const { transform } = resolveObject(object, time, transient);
-      const local = displayVertices(document, object, time, transient, matrices);
+      const { vertices: local, faces, edges } = renderedMesh(document, object, time, transient, matrices);
       return {
         kind: 'mesh',
         name: object.name,
         transform,
         worldMatrix: fixed(matrices.get(object.id)!),
         vertices: local,
-        faces: fixed(object.faces),
-        edges: fixed(object.edges),
+        faces: fixed(faces),
+        edges: fixed(edges),
         fill: object.fill,
         border: { color: { ...object.border.color, a: 1 }, width: object.border.width },
         ...(highlight && document.mode === 'object' && document.selectedObjects.includes(object.id)
@@ -661,7 +780,7 @@ export function setParent(document: EditorDocument, id: string, parent: string |
   const world = worldMatrices(document, time).get(id)!;
   const { position, rotation, scale } = decompose(multiply(invertMatrix(parentMatrix(reparented, newParent, time)), world));
   return updateObject(reparented, id, current => withTransformParts(
-    current, commitEdit(transformParts(current), new Set([0, 1, 2]), [position, rotation, scale], time)
+    current, commitEdit(transformParts(current), new Set([0, 1, 2]), [position, rotationLike(rotation, transformAt(current, time).rotation), scale], time)
   ));
 }
 
@@ -674,9 +793,11 @@ export function releaseReferences(document: EditorDocument, gone: string[], time
       next = setParent(next, object.id, null, time);
     }
   }
-  const cleared = (constraints: Constraint[]) => constraints.map(constraint => (
-    constraint.target && gone.includes(constraint.target) ? { ...constraint, target: null } : constraint
-  ));
+  const cleared = (constraints: Constraint[]) => constraints.map(constraint => ({
+    ...constraint,
+    target: constraint.target && gone.includes(constraint.target) ? null : constraint.target,
+    ...(constraint.pole && gone.includes(constraint.pole) ? { pole: null } : {}),
+  }));
   return {
     ...next,
     objects: next.objects.map(object => ({
@@ -713,7 +834,13 @@ function updateConstraints(document: EditorDocument, id: string, change: (constr
 }
 
 export function addConstraint(document: EditorDocument, id: string, kind: ConstraintKind): EditorDocument {
-  const constraint: Constraint = { id: `constraint-${document.nextId}`, kind, target: null, influence: 1 };
+  const constraint: Constraint = {
+    id: `constraint-${document.nextId}`,
+    kind,
+    target: null,
+    influence: 1,
+    ...(kind === 'ik' ? { chainLength: DEFAULT_CHAIN_LENGTH, pole: null, poleAngle: 0 } : {}),
+  };
   return {
     ...updateConstraints(document, id, constraints => [...constraints, constraint]),
     nextId: document.nextId + 1,
@@ -724,6 +851,72 @@ export function updateConstraint(document: EditorDocument, id: string, constrain
   return updateConstraints(document, id, constraints => constraints.map(constraint => (
     constraint.id === constraintId ? { ...constraint, ...change } : constraint
   )));
+}
+
+function findNode(document: EditorDocument, id: string): (Constrained & { parent: string | null }) | null {
+  return findBone(document, id)?.bone ?? findObject(document, id);
+}
+
+function findConstraint(document: EditorDocument, id: string, constraintId: string): Constraint | undefined {
+  return findNode(document, id)?.constraints.find(constraint => constraint.id === constraintId);
+}
+
+// Child Of keeps where the child is now, by undoing where the target is now.
+export function childOfInverse(document: EditorDocument, target: string | null, time: number): Matrix | undefined {
+  const matrix = target ? worldMatrices(document, time).get(target) : undefined;
+  return matrix && invertMatrix(matrix);
+}
+
+export function setConstraintTarget(document: EditorDocument, id: string, constraintId: string, target: string | null, time: number): EditorDocument {
+  const isChildOf = findConstraint(document, id, constraintId)?.kind === 'childOf';
+  return updateConstraint(document, id, constraintId, isChildOf ? { target, inverse: childOfInverse(document, target, time) } : { target });
+}
+
+// A constraint's influence as a part of its own, so that key operations work on it. Keys go on x.
+function influenceParts(constraints: Constraint[]): AnimatedVertex[] {
+  return constraints.map(({ influence }) => ({ x: influence, y: 0, z: 0 }));
+}
+
+function withInfluenceParts(constraints: Constraint[], parts: AnimatedVertex[]): Constraint[] {
+  return constraints.map((constraint, i) => ({ ...constraint, influence: parts[i].x }));
+}
+
+// Changes a constraint's influence. If it is animated, the change holds until the frame changes.
+export function setConstraintInfluence(document: EditorDocument, id: string, constraintId: string, influence: number, time: number): EditorDocument {
+  return updateConstraints(document, id, constraints => withInfluenceParts(constraints, commitEdit(
+    influenceParts(constraints), new Set([constraints.findIndex(constraint => constraint.id === constraintId)]), constraints.map(() => ({ x: influence, y: 0, z: 0 })), time
+  )));
+}
+
+// Turns a Child Of on or off here. With no keys it means always or never, so turning it on starts
+// following from where the target is now.
+export function setChildOfOn(document: EditorDocument, id: string, constraintId: string, on: boolean, time: number): EditorDocument {
+  const constraint = findConstraint(document, id, constraintId);
+  const set = setConstraintInfluence(document, id, constraintId, on ? 1 : 0, time);
+  return on && typeof constraint?.influence === 'number'
+    ? updateConstraint(set, id, constraintId, { inverse: childOfInverse(document, constraint.target, time) })
+    : set;
+}
+
+// Keys a constraint's influence at a time, with the given value or what it has there.
+export function keyConstraintInfluence(document: EditorDocument, id: string, constraintId: string, time: number, value?: number, hold = false): EditorDocument {
+  return updateConstraints(document, id, constraints => {
+    const index = constraints.findIndex(constraint => constraint.id === constraintId);
+    const parts = influenceParts(constraints);
+    const keyed = writeKeys(parts, [index], constraints.map(constraint => ({ x: value ?? valueAt(constraint.influence, time), y: 0, z: 0 })), time, () => ['x']);
+    return withInfluenceParts(constraints, hold ? setKeyEase(keyed, [index], time, 'hold') : keyed);
+  });
+}
+
+export function unkeyConstraintInfluence(document: EditorDocument, id: string, constraintId: string, time: number): EditorDocument {
+  return updateConstraints(document, id, constraints => withInfluenceParts(
+    constraints, deleteKeys(influenceParts(constraints), [constraints.findIndex(constraint => constraint.id === constraintId)], time)
+  ));
+}
+
+// Switches a node between Euler and quaternion rotation, keeping what its keys do.
+export function setRotationMode(document: EditorDocument, id: string, quaternion: boolean): EditorDocument {
+  return updateTransform(document, id, transform => ({ ...transform, rotation: convertRotation(transform.rotation, quaternion) }));
 }
 
 export function removeConstraint(document: EditorDocument, id: string, constraintId: string): EditorDocument {
@@ -749,8 +942,9 @@ function surfaceTriangles(document: EditorDocument, time: number, transient: Tra
   return document.objects
     .filter(object => !object.camera && isVisible(document, object))
     .flatMap(object => {
-      const world = toWorld(matrices.get(object.id)!, displayVertices(document, object, time, transient, matrices));
-      return object.faces.map(([a, b, c]): Triangle => [world[a], world[b], world[c]]);
+      const { vertices, faces } = renderedMesh(document, object, time, transient, matrices);
+      const world = toWorld(matrices.get(object.id)!, vertices);
+      return faces.map(([a, b, c]): Triangle => [world[a], world[b], world[c]]);
     });
 }
 
@@ -846,16 +1040,17 @@ export function pickObject(document: EditorDocument, camera: Camera, time: numbe
   const matrices = worldMatrices(document, time);
 
   for (const object of document.objects.filter(candidate => isSelectable(document, candidate))) {
-    const world = toWorld(matrices.get(object.id)!, displayVertices(document, object, time, null, matrices));
+    const mesh = renderedMesh(document, object, time, null, matrices);
+    const world = toWorld(matrices.get(object.id)!, mesh.vertices);
     const projected = world.map(vertex => projectPoint(camera, vertex));
-    for (const [a, b] of object.bones ? object.edges : []) {
+    for (const [a, b] of object.bones ? mesh.edges : []) {
       const [pa, pb] = [projected[a], projected[b]];
       if (pa && pb && distanceToSegment(point, pa, pb) <= boneDistance) {
         boneHit = object.id;
         boneDistance = distanceToSegment(point, pa, pb);
       }
     }
-    for (const [a, b, c] of object.faces) {
+    for (const [a, b, c] of mesh.faces) {
       const [pa, pb, pc] = [projected[a], projected[b], projected[c]];
       if (pa && pb && pc && inTriangle(point, pa, pb, pc)) {
         const distance = [a, b, c].reduce((sum, i) => (
@@ -867,7 +1062,7 @@ export function pickObject(document: EditorDocument, camera: Camera, time: numbe
         }
       }
     }
-    for (const [a, b] of object.edges) {
+    for (const [a, b] of mesh.edges) {
       const [pa, pb] = [projected[a], projected[b]];
       if (pa && pb) {
         const distance = distanceToSegment(point, pa, pb);
@@ -925,17 +1120,21 @@ export function objectsInBox(document: EditorDocument, camera: Camera, time: num
   const matrices = worldMatrices(document, time);
   return document.objects
     .filter(object => isSelectable(document, object))
-    .filter(object => toWorld(matrices.get(object.id)!, displayVertices(document, object, time, null, matrices)).some(vertex => {
+    .filter(object => toWorld(matrices.get(object.id)!, renderedMesh(document, object, time, null, matrices).vertices).some(vertex => {
       const p = projectPoint(camera, vertex);
       return p !== null && p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY && !occluded?.(vertex);
     }))
     .map(object => object.id);
 }
 
-type KeyTarget = { object: SceneObject; part: 'transform' | 'vertices' | Bone; indices: number[] };
+type KeyTarget = { object: SceneObject; part: 'transform' | 'vertices' | Bone | { constraintsOf: Constrained }; indices: number[] };
+
+function constraintTargets(object: SceneObject, node: Constrained): KeyTarget[] {
+  return node.constraints.length > 0 ? [{ object, part: { constraintsOf: node }, indices: node.constraints.map((_, i) => i) }] : [];
+}
 
 function boneTargets(object: SceneObject, bones: Bone[]): KeyTarget[] {
-  return bones.map(bone => ({ object, part: bone, indices: [0, 1, 2] }));
+  return bones.flatMap((bone): KeyTarget[] => [{ object, part: bone, indices: [0, 1, 2] }, ...constraintTargets(object, bone)]);
 }
 
 // What a row of the animation pane covers. In edit mode, the active object's vertices. In pose
@@ -961,6 +1160,7 @@ function keyTargets(document: EditorDocument, row: KeyRow): KeyTarget[] {
   return objects.flatMap((object): KeyTarget[] => [
     { object, part: 'transform', indices: [0, 1, 2] },
     { object, part: 'vertices', indices: object.vertices.map((_, i) => i) },
+    ...constraintTargets(object, object),
     ...boneTargets(object, object.bones ?? []),
   ]);
 }
@@ -969,7 +1169,10 @@ function partOf({ object, part }: KeyTarget): AnimatedVertex[] {
   if (part === 'transform') {
     return transformParts(object);
   }
-  return part === 'vertices' ? object.vertices : transformParts(part);
+  if (part === 'vertices') {
+    return object.vertices;
+  }
+  return 'constraintsOf' in part ? influenceParts(part.constraintsOf.constraints) : transformParts(part);
 }
 
 export function rowKeyTimes(document: EditorDocument, row: KeyRow): number[] {
@@ -992,14 +1195,16 @@ export function rowKeyEase(document: EditorDocument, row: KeyRow, time: number):
 // Forgets edits not keyed, as leaving their frame does. Returns the same document if there were none.
 export function dropHeldDocumentEdits(document: EditorDocument): EditorDocument {
   let changed = false;
-  const dropped = <T extends { transform: ObjectTransform }>(node: T): T => {
+  const dropped = <T extends { transform: ObjectTransform; constraints: Constraint[] }>(node: T): T => {
     const parts = transformParts(node);
     const next = dropHeldEdits(parts);
-    if (next === parts) {
+    const influences = influenceParts(node.constraints);
+    const nextInfluences = dropHeldEdits(influences);
+    if (next === parts && nextInfluences === influences) {
       return node;
     }
     changed = true;
-    return withTransformParts(node, next);
+    return { ...withTransformParts(node, next), constraints: withInfluenceParts(node.constraints, nextInfluences) };
   };
   const objects = document.objects.map(object => {
     const vertices = dropHeldEdits(object.vertices);
@@ -1014,7 +1219,10 @@ export function dropHeldDocumentEdits(document: EditorDocument): EditorDocument 
 export function setFrameRate(document: EditorDocument, rate: number): EditorDocument {
   const frameRate = Math.max(1, Math.round(rate));
   const factor = document.frameRate / frameRate;
-  const scaled = <T extends { transform: ObjectTransform }>(node: T): T => withTransformParts(node, scaleKeyTimes(transformParts(node), factor));
+  const scaled = <T extends { transform: ObjectTransform; constraints: Constraint[] }>(node: T): T => ({
+    ...withTransformParts(node, scaleKeyTimes(transformParts(node), factor)),
+    constraints: withInfluenceParts(node.constraints, scaleKeyTimes(influenceParts(node.constraints), factor)),
+  });
   return {
     ...document,
     frameRate,
@@ -1038,13 +1246,13 @@ export function setFrameEnd(document: EditorDocument, frame: number): EditorDocu
   return { ...document, frameEnd, frameStart: Math.min(frameEnd, document.frameStart) };
 }
 
-// One animated number shown in the curves editor. Vertices and transform parts are keyed together,
-// so a channel is one coordinate of one of them.
+// One animated number shown in the curves editor: one coordinate of a vertex or a transform part, or
+// a constraint's influence.
 export type CurveChannel = {
   id: string;
   label: string;
   owner: string;
-  part: 'transform' | 'vertices';
+  part: 'transform' | 'vertices' | 'constraints';
   index: number;
   coordinate: Coordinate;
   // Multiplies stored values into the units shown, as with rotations in degrees.
@@ -1052,14 +1260,13 @@ export type CurveChannel = {
   track: Track;
 };
 
-const COORDINATES: Coordinate[] = ['x', 'y', 'z'];
 const TRANSFORM_PART_NAMES = ['Location', 'Rotation', 'Scale'];
 
-function channelsOf(owner: string, name: string, part: CurveChannel['part'], vertices: AnimatedVertex[], indices: number[], labelOf: (index: number) => string, scaleOf: (index: number) => number): CurveChannel[] {
+function channelsOf(owner: string, part: CurveChannel['part'], vertices: AnimatedVertex[], indices: number[], labelOf: (index: number, coordinate: Coordinate) => string, scaleOf: (index: number) => number): CurveChannel[] {
   return indices.flatMap(index => (isKeyed(vertices[index])
-    ? COORDINATES.filter(coordinate => typeof vertices[index][coordinate] !== 'number').map((coordinate): CurveChannel => ({
+    ? coordinatesIn(vertices[index]).filter(coordinate => typeof vertices[index][coordinate] !== 'number').map((coordinate): CurveChannel => ({
       id: `${owner}/${part}/${index}/${coordinate}`,
-      label: `${name}${labelOf(index)} ${coordinate.toUpperCase()}`,
+      label: labelOf(index, coordinate),
       owner,
       part,
       index,
@@ -1073,11 +1280,20 @@ function channelsOf(owner: string, name: string, part: CurveChannel['part'], ver
 // What the curves editor shows: the animated values of whatever is selected.
 export function curveChannels(document: EditorDocument): CurveChannel[] {
   const active = findObject(document, document.activeObject);
-  const transformChannels = (node: { id: string; name: string; transform: ObjectTransform }) => channelsOf(
-    node.id, `${node.name} `, 'transform', transformParts(node), [0, 1, 2], index => TRANSFORM_PART_NAMES[index], index => (index === 1 ? 180 / Math.PI : 1)
-  );
+  const transformChannels = (node: Constrained) => [
+    ...channelsOf(
+      node.id, 'transform', transformParts(node), [0, 1, 2],
+      (index, coordinate) => `${node.name} ${TRANSFORM_PART_NAMES[index]} ${coordinate.toUpperCase()}`,
+      // A quaternion's numbers are not angles.
+      index => (index === 1 && node.transform.rotation.w === undefined ? 180 / Math.PI : 1)
+    ),
+    ...channelsOf(
+      node.id, 'constraints', influenceParts(node.constraints), node.constraints.map((_, i) => i),
+      index => `${node.name} ${CONSTRAINT_LABELS[node.constraints[index].kind]} Influence`, () => 1
+    ),
+  ];
   if (document.mode === 'edit' && active) {
-    return channelsOf(active.id, 'Vertex ', 'vertices', active.vertices, Array.from(active.selectedVertices), index => String(index), () => 1);
+    return channelsOf(active.id, 'vertices', active.vertices, Array.from(active.selectedVertices), (index, coordinate) => `Vertex ${index} ${coordinate.toUpperCase()}`, () => 1);
   }
   if (document.mode === 'pose' && active?.bones) {
     return active.bones.filter(bone => document.selectedBones.includes(bone.id)).flatMap(transformChannels);
@@ -1090,6 +1306,9 @@ export function updateChannel(document: EditorDocument, { owner, part, index }: 
   const replaced = (vertices: AnimatedVertex[]) => vertices.map((vertex, i) => (i === index ? change(vertex) : vertex));
   if (part === 'vertices') {
     return updateObject(document, owner, object => ({ ...object, vertices: replaced(object.vertices) }));
+  }
+  if (part === 'constraints') {
+    return updateConstraints(document, owner, constraints => withInfluenceParts(constraints, replaced(influenceParts(constraints))));
   }
   return updateTransform(document, owner, transform => {
     const posable = { transform };
@@ -1105,11 +1324,15 @@ export function changeRowKeys(
   for (const target of keyTargets(document, row)) {
     const changed = change(partOf(target), target.indices);
     const { part } = target;
-    next = part === 'transform' || part === 'vertices'
-      ? updateObject(next, target.object.id, object => (
+    if (part === 'transform' || part === 'vertices') {
+      next = updateObject(next, target.object.id, object => (
         part === 'transform' ? withTransformParts(object, changed) : { ...object, vertices: changed }
-      ))
-      : updateBone(next, part.id, bone => withTransformParts(bone, changed));
+      ));
+    } else if ('constraintsOf' in part) {
+      next = updateConstraints(next, part.constraintsOf.id, constraints => withInfluenceParts(constraints, changed));
+    } else {
+      next = updateBone(next, part.id, bone => withTransformParts(bone, changed));
+    }
   }
   return next;
 }

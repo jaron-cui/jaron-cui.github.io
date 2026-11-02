@@ -1,8 +1,10 @@
 import { ReactNode } from 'react';
-import { CONSTRAINT_LABELS, ConstraintKind } from './constraints';
+import { CONSTRAINT_LABELS, ConstraintKind, isSwitchedOn } from './constraints';
 import { Constraint } from './constraints';
 import { EditorDocument, SceneObject, validParentBones, validParents } from './document';
+import { keyState, valueAt } from './keyframes';
 import { Rgb } from './model';
+import { KEY_STATE_COLORS, NumberField } from './NumberField';
 
 export function hexToRgb(hex: string): Rgb {
   return {
@@ -18,6 +20,7 @@ export function rgbToHex({ r, g, b }: Rgb): string {
 }
 
 const CONSTRAINT_KINDS = Object.keys(CONSTRAINT_LABELS) as ConstraintKind[];
+const DEGREES_PER_RADIAN = 180 / Math.PI;
 export const fieldStyle = { width: '100%', minWidth: 0 };
 
 export const Section = ({ title, children }: { title: string; children: ReactNode }) => (
@@ -49,11 +52,17 @@ export type ConstraintHandlers = {
   onSetTarget: (constraintId: string, target: string | null) => void;
   onSetInfluence: (constraintId: string, influence: number) => void;
   onRemove: (constraintId: string) => void;
+  // Child Of.
+  onSetInverse: (constraintId: string) => void;
+  onClearInverse: (constraintId: string) => void;
+  onSetOn: (constraintId: string, on: boolean) => void;
+  // Inverse Kinematics.
+  onChange: (constraintId: string, change: Partial<Constraint>, dragging?: boolean) => void;
 };
 
 // The constraints of an object or a bone.
-export const ConstraintList = ({ document, owner, constraints, handlers }: {
-  document: EditorDocument; owner: string; constraints: Constraint[]; handlers: ConstraintHandlers;
+export const ConstraintList = ({ document, owner, isBone, time, constraints, handlers }: {
+  document: EditorDocument; owner: string; isBone?: boolean; time: number; constraints: Constraint[]; handlers: ConstraintHandlers;
 }) => {
   const targets = constraintTargets(document, owner);
   return (
@@ -75,18 +84,62 @@ export const ConstraintList = ({ document, owner, constraints, handlers }: {
               {targets.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
             </select>
           </Row>
-          <Row label='Influence'>
-            <input
-              type='range'
-              aria-label='Constraint influence'
-              min={0}
-              max={1}
-              step={0.01}
-              value={constraint.influence}
-              onChange={event => handlers.onSetInfluence(constraint.id, Number(event.target.value))}
-              style={fieldStyle}
-            />
-          </Row>
+          <div
+            data-testid='influence-property'
+            data-key-property={JSON.stringify({ kind: 'influence', id: owner, constraintId: constraint.id })}
+            style={{ background: KEY_STATE_COLORS[keyState([constraint.influence], time)], borderRadius: 3, padding: '2px 2px 0' }}
+          >
+            {constraint.kind === 'childOf' ? (
+              <Row label='Parented'>
+                <input
+                  type='checkbox'
+                  aria-label='Parented'
+                  checked={isSwitchedOn(constraint, time)}
+                  onChange={event => handlers.onSetOn(constraint.id, event.target.checked)}
+                />
+              </Row>
+            ) : (
+              <Row label='Influence'>
+                <input
+                  type='range'
+                  aria-label='Constraint influence'
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={valueAt(constraint.influence, time)}
+                  onChange={event => handlers.onSetInfluence(constraint.id, Number(event.target.value))}
+                  style={fieldStyle}
+                />
+              </Row>
+            )}
+          </div>
+          {constraint.kind === 'childOf' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 4 }}>
+              <button disabled={!constraint.target} onClick={() => handlers.onSetInverse(constraint.id)}>Set Inverse</button>
+              <button disabled={!constraint.inverse} onClick={() => handlers.onClearInverse(constraint.id)}>Clear Inverse</button>
+            </div>
+          )}
+          {constraint.kind === 'ik' && (
+            <div style={{ marginTop: 4 }}>
+              <Row label='Pole'>
+                <select
+                  aria-label='Pole target'
+                  value={constraint.pole ?? ''}
+                  onChange={event => handlers.onChange(constraint.id, { pole: event.target.value || null })}
+                  style={fieldStyle}
+                >
+                  <option value=''>None</option>
+                  {targets.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
+                </select>
+              </Row>
+              <Row label='Pole angle'>
+                <NumberField label='Pole angle' value={(constraint.poleAngle ?? 0) * DEGREES_PER_RADIAN} dragStep={1} onCommit={(degrees, dragging) => handlers.onChange(constraint.id, { poleAngle: degrees / DEGREES_PER_RADIAN }, dragging)} />
+              </Row>
+              <Row label='Chain'>
+                <NumberField label='Chain length' value={constraint.chainLength ?? 0} dragStep={0.1} onCommit={(length, dragging) => handlers.onChange(constraint.id, { chainLength: Math.max(0, Math.round(length)) }, dragging)} />
+              </Row>
+            </div>
+          )}
         </div>
       ))}
       <select
@@ -100,7 +153,7 @@ export const ConstraintList = ({ document, owner, constraints, handlers }: {
         style={fieldStyle}
       >
         <option value=''>Add constraint…</option>
-        {CONSTRAINT_KINDS.map(kind => <option key={kind} value={kind}>{CONSTRAINT_LABELS[kind]}</option>)}
+        {CONSTRAINT_KINDS.filter(kind => isBone || kind !== 'ik').map(kind => <option key={kind} value={kind}>{CONSTRAINT_LABELS[kind]}</option>)}
       </select>
     </>
   );
@@ -109,6 +162,7 @@ export const ConstraintList = ({ document, owner, constraints, handlers }: {
 type ObjectPaneProps = {
   document: EditorDocument;
   object: SceneObject | null;
+  time: number;
   onEndStep: () => void;
   onChangeStyle: (field: string, change: (object: SceneObject) => SceneObject) => void;
   onSetParent: (parent: string | null) => void;
@@ -119,7 +173,7 @@ type ObjectPaneProps = {
 
 // The active object's relations, constraints, and render settings.
 export const ObjectPane = ({
-  document, object, onEndStep, onChangeStyle, onSetParent, constraintHandlers, rig,
+  document, object, time, onEndStep, onChangeStyle, onSetParent, constraintHandlers, rig,
 }: ObjectPaneProps) => {
   if (!object) {
     return (
@@ -146,7 +200,7 @@ export const ObjectPane = ({
       </Section>
 
       <Section title='Constraints'>
-        <ConstraintList document={document} owner={id} constraints={constraints} handlers={constraintHandlers} />
+        <ConstraintList document={document} owner={id} time={time} constraints={constraints} handlers={constraintHandlers} />
       </Section>
 
       {rig}

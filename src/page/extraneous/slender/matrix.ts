@@ -1,9 +1,23 @@
-import { Camera, Transform, Vec3 } from './model';
+import { Camera, Rotation, Transform, Vec3 } from './model';
 
 // A 3D affine transform: the top three rows of a 4x4 matrix, in row order.
 export type Matrix = number[];
 
-function rotationRows({ x, y, z }: Vec3): number[] {
+function quaternionRows({ w = 1, x, y, z }: Rotation): number[] {
+  const length = Math.hypot(w, x, y, z) || 1;
+  const [a, b, c, d] = [w / length, x / length, y / length, z / length];
+  return [
+    1 - 2 * (c * c + d * d), 2 * (b * c - a * d), 2 * (b * d + a * c),
+    2 * (b * c + a * d), 1 - 2 * (b * b + d * d), 2 * (c * d - a * b),
+    2 * (b * d - a * c), 2 * (c * d + a * b), 1 - 2 * (b * b + c * c),
+  ];
+}
+
+function rotationRows(rotation: Rotation): number[] {
+  if (rotation.w !== undefined) {
+    return quaternionRows(rotation);
+  }
+  const { x, y, z } = rotation;
   const [cx, sx] = [Math.cos(x), Math.sin(x)];
   const [cy, sy] = [Math.cos(y), Math.sin(y)];
   const [cz, sz] = [Math.cos(z), Math.sin(z)];
@@ -131,6 +145,69 @@ export function rotateEuler(euler: Vec3, axis: Vec3, angle: number): Vec3 {
     y: nearestEquivalentAngle(y, euler.y),
     z: nearestEquivalentAngle(z, euler.z),
   };
+}
+
+// The same turn, with its sign chosen so that blending from the reference goes the short way.
+export function nearestQuaternion(rotation: Rotation, reference: Rotation): Rotation {
+  const dot = (rotation.w ?? 1) * (reference.w ?? 1) + rotation.x * reference.x + rotation.y * reference.y + rotation.z * reference.z;
+  return dot >= 0 ? rotation : { w: -(rotation.w ?? 1), x: -rotation.x, y: -rotation.y, z: -rotation.z };
+}
+
+function quaternionFromRows(r: number[]): Rotation {
+  const trace = r[0] + r[4] + r[8];
+  if (trace > 0) {
+    const s = Math.sqrt(trace + 1) * 2;
+    return { w: s / 4, x: (r[7] - r[5]) / s, y: (r[2] - r[6]) / s, z: (r[3] - r[1]) / s };
+  }
+  if (r[0] > r[4] && r[0] > r[8]) {
+    const s = Math.sqrt(1 + r[0] - r[4] - r[8]) * 2;
+    return { w: (r[7] - r[5]) / s, x: s / 4, y: (r[1] + r[3]) / s, z: (r[2] + r[6]) / s };
+  }
+  if (r[4] > r[8]) {
+    const s = Math.sqrt(1 + r[4] - r[0] - r[8]) * 2;
+    return { w: (r[2] - r[6]) / s, x: (r[1] + r[3]) / s, y: s / 4, z: (r[5] + r[7]) / s };
+  }
+  const s = Math.sqrt(1 + r[8] - r[0] - r[4]) * 2;
+  return { w: (r[3] - r[1]) / s, x: (r[2] + r[6]) / s, y: (r[5] + r[7]) / s, z: s / 4 };
+}
+
+// A rotation as a quaternion or as Euler angles, staying near a reference of the same kind if given,
+// so that keys written from the result blend the short way.
+export function rotationAs(rotation: Rotation, quaternion: boolean, reference?: Rotation): Rotation {
+  if ((rotation.w !== undefined) === quaternion) {
+    return rotation;
+  }
+  const rows = rotationRows(rotation);
+  if (quaternion) {
+    const result = quaternionFromRows(rows);
+    return reference ? nearestQuaternion(result, reference) : result;
+  }
+  const { x, y, z } = eulerFromRows(rows);
+  return reference
+    ? { x: nearestEquivalentAngle(x, reference.x), y: nearestEquivalentAngle(y, reference.y), z: nearestEquivalentAngle(z, reference.z) }
+    : { x, y, z };
+}
+
+// A rotation in the same form as another, for writing a result into something that uses that form.
+export function rotationLike(rotation: Rotation, like: Rotation): Rotation {
+  return rotationAs(rotation, like.w !== undefined, like);
+}
+
+// The given rotation applied after the existing one, about a global unit axis, in the same form.
+export function rotateRotation(rotation: Rotation, axis: Vec3, angle: number): Rotation {
+  if (rotation.w === undefined) {
+    return rotateEuler(rotation, axis, angle);
+  }
+  const length = Math.hypot(rotation.w, rotation.x, rotation.y, rotation.z) || 1;
+  const [w, x, y, z] = [rotation.w / length, rotation.x / length, rotation.y / length, rotation.z / length];
+  const [c, s] = [Math.cos(angle / 2), Math.sin(angle / 2)];
+  const [a, b, d] = [axis.x * s, axis.y * s, axis.z * s];
+  return nearestQuaternion({
+    w: c * w - a * x - b * y - d * z,
+    x: c * x + a * w + b * z - d * y,
+    y: c * y - a * z + b * w + d * x,
+    z: c * z + a * y - b * x + d * w,
+  }, rotation);
 }
 
 // One number for how much a matrix enlarges things, used for stroke widths.

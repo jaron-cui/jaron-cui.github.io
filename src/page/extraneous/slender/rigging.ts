@@ -1,4 +1,5 @@
 import { automaticWeights, Bone, restMatrix, VertexGroup } from './armature';
+import { bonePartners, isCenterBone, isOnPlane, jointPartners, reflected } from './armatureMirror';
 import {
   addObject, canParent, EditorDocument, findBone, findObject, ObjectTransform, releaseReferences, SceneObject, selectedVisible, setParent, toWorld,
   transformParts, uniqueName, updateObject, updateTransform, withTransformParts, worldMatrices,
@@ -7,6 +8,7 @@ import { Selection } from './editing';
 import { commitEdit, poseAt } from './keyframes';
 import { applyMatrix, multiply } from './matrix';
 import { Vec3 } from './model';
+import { flippedName } from './modifiers';
 
 const DEFAULT_BONE_LENGTH = 100;
 
@@ -17,8 +19,9 @@ export type PaintTool = 'mix' | 'subtract' | 'smooth';
 const CLEARED: Record<ClearField, Vec3> = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } };
 const PART_INDEX: Record<ClearField, number> = { position: 0, rotation: 1, scale: 2 };
 
+// Bones start as quaternions, as in Blender, since they turn freely and blend the short way.
 function restTransform(): ObjectTransform {
-  return { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } };
+  return { position: { x: 0, y: 0, z: 0 }, rotation: { w: 1, x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } };
 }
 
 // Resets one part of each object's or bone's transform, keying it if it is animated.
@@ -27,18 +30,18 @@ export function clearTransforms(document: EditorDocument, ids: string[], field: 
   return ids.reduce((next, id) => updateTransform(next, id, transform => {
     const posable = { transform };
     const pose: Vec3[] = [];
-    pose[index] = CLEARED[field];
+    pose[index] = field === 'rotation' && transform.rotation.w !== undefined ? { w: 1, ...CLEARED.rotation } as Vec3 : CLEARED[field];
     return withTransformParts(posable, commitEdit(transformParts(posable), new Set([index]), pose, time)).transform;
   }), document);
 }
 
 // An armature with one upright bone, selected as an object.
-export function addArmature(document: EditorDocument): EditorDocument {
+export function addArmature(document: EditorDocument, at?: Vec3): EditorDocument {
   const added = addObject(document, 'Armature', {
     vertices: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: DEFAULT_BONE_LENGTH }],
     faces: [],
     edges: [[0, 1]],
-  });
+  }, null, at);
   const bone = newBone(`bone-${added.nextId}`, 'Bone', null, 0, 1);
   return {
     ...updateObject(added, added.activeObject!, object => ({ ...object, bones: [bone] })),
@@ -108,7 +111,18 @@ export function extrudeBones(document: EditorDocument, armatureId: string, time:
   const bones = [...object.bones!];
   const tails: number[] = [];
   let active: string | null = document.activeBone;
-  object.selectedVertices.forEach(joint => {
+  // With mirroring, the other side grows too, and only this side stays selected, so the other follows.
+  const partners = object.mirrorEdit ? jointPartners(object, pose) : new Map<number, number>();
+  const chosen = Array.from(object.selectedVertices);
+  const leading = chosen.filter(joint => {
+    const partner = partners.get(joint);
+    return partner === undefined || partner === joint || !object.selectedVertices.has(partner) || joint < partner;
+  });
+  const following = leading.flatMap(joint => {
+    const partner = partners.get(joint);
+    return partner === undefined || partner === joint ? [] : [partner];
+  });
+  [...following, ...leading].forEach(joint => {
     const fromTail = object.bones!.find(bone => bone.tail === joint);
     const fromHead = object.bones!.find(bone => bone.head === joint);
     const source = fromTail ?? fromHead;
@@ -117,7 +131,9 @@ export function extrudeBones(document: EditorDocument, armatureId: string, time:
       vertices.push(pose[joint]);
       active = `bone-${number++}`;
       bones.push(newBone(active, uniqueName(bones.map(bone => bone.name), source.name), fromTail ? fromTail.id : source.parent, joint, tail));
-      tails.push(tail);
+      if (leading.includes(joint)) {
+        tails.push(tail);
+      }
     }
   });
   return {
@@ -162,7 +178,7 @@ export function duplicateBones(document: EditorDocument, armatureId: string): Ed
 // Deletes the selected bones. Their children attach to whatever they were attached to, and
 // anything that followed them lets go, staying in place.
 export function deleteBones(document: EditorDocument, armatureId: string, time: number): EditorDocument {
-  const chosen = selectedBonesOf(findObject(document, armatureId)!);
+  const chosen = bonesToDelete(findObject(document, armatureId)!, time);
   const gone = chosen.map(bone => bone.id);
   const released = releaseReferences(document, gone, time);
   const parentAfter = (id: string | null): string | null => {
@@ -174,6 +190,88 @@ export function deleteBones(document: EditorDocument, armatureId: string, time: 
     object.bones!.filter(bone => !gone.includes(bone.id)).map(bone => ({ ...bone, parent: parentAfter(bone.parent) })),
     new Set(),
   ));
+}
+
+// The selected bones, with their other sides if the armature mirrors its edits.
+export function bonesToDelete(object: SceneObject, time: number): Bone[] {
+  const chosen = selectedBonesOf(object);
+  if (!object.mirrorEdit) {
+    return chosen;
+  }
+  const partners = bonePartners(object, poseAt(object.vertices, time));
+  return object.bones!.filter(bone => chosen.some(other => other.id === bone.id || partners.get(other.id) === bone.id));
+}
+
+// Makes the other side of each selected bone match it, creating bones that are missing: where they
+// lie, what they are parented to, and their constraints, whose targets flip sides where they have
+// one. With both sides selected, -x is the side kept, as in Blender.
+export function symmetrizeBones(document: EditorDocument, armatureId: string, time: number): EditorDocument {
+  const object = findObject(document, armatureId)!;
+  const pose = poseAt(object.vertices, time);
+  const partners = bonePartners(object, pose);
+  const chosen = selectedBonesOf(object);
+  const meanX = (bone: Bone) => pose[bone.head].x + pose[bone.tail].x;
+  const sources = chosen.filter(bone => {
+    if (isCenterBone(bone, pose)) {
+      return false;
+    }
+    const other = chosen.find(candidate => candidate.id === partners.get(bone.id));
+    return !other || meanX(bone) < meanX(other);
+  });
+  let number = document.nextId;
+  const created = new Map(sources.filter(bone => !partners.has(bone.id)).map(bone => [bone.id, `bone-${number++}`]));
+  const partnerOf = (id: string) => created.get(id) ?? partners.get(id) ?? id;
+
+  const vertices = [...object.vertices];
+  const joints = jointPartners(object, pose, partners);
+  const partnerJoint = (joint: number) => {
+    if (!joints.has(joint)) {
+      joints.set(joint, isOnPlane(pose[joint]) ? joint : vertices.length);
+      if (!isOnPlane(pose[joint])) {
+        vertices.push(reflected(pose[joint]));
+      }
+    }
+    return joints.get(joint)!;
+  };
+  const flipTarget = (target: string | null | undefined) => {
+    if (!target) {
+      return target ?? null;
+    }
+    if (object.bones!.some(bone => bone.id === target)) {
+      return partnerOf(target);
+    }
+    const flipped = flippedName(findObject(document, target)?.name ?? '');
+    return document.objects.find(other => other.id !== target && other.name === flipped)?.id ?? target;
+  };
+
+  let bones = [...object.bones!];
+  for (const source of sources) {
+    const [head, tail] = [partnerJoint(source.head), partnerJoint(source.tail)];
+    [[source.head, head], [source.tail, tail]].forEach(([from, to]) => {
+      if (from !== to) {
+        vertices[to] = reflected(pose[from]);
+      }
+    });
+    const constraints = source.constraints.map(constraint => ({
+      ...constraint,
+      id: `constraint-${number++}`,
+      target: flipTarget(constraint.target),
+      ...(constraint.kind === 'ik' ? { pole: flipTarget(constraint.pole) } : {}),
+    }));
+    const parent = source.parent && partnerOf(source.parent);
+    const id = partnerOf(source.id);
+    if (created.has(source.id)) {
+      const flipped = flippedName(source.name);
+      const name = uniqueName(bones.map(bone => bone.name), flipped);
+      bones.push({ ...newBone(id, name, parent, head, tail), constraints });
+    } else {
+      bones = bones.map(bone => (bone.id === id ? { ...bone, parent, head, tail, constraints } : bone));
+    }
+  }
+  return {
+    ...updateObject(document, armatureId, current => withBones({ ...current, vertices }, bones, current.selectedVertices)),
+    nextId: number,
+  };
 }
 
 // Parents the selected bones to the active bone. Connected moves each one's head to the parent's tail.

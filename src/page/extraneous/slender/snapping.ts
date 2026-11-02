@@ -113,40 +113,55 @@ function withoutActive(document: EditorDocument, ids: string[]): string[] {
   return ids.filter(id => id !== active);
 }
 
-// Carries out a Shift+S choice. Returns the same document if there was nothing to act on.
-export function applySnap(document: EditorDocument, action: SnapAction, time: number): EditorDocument {
+// Carries out a Shift+S choice, which changes either the document or the scene cursor. Returns the
+// same document and cursor if there was nothing to act on.
+export function applySnap(document: EditorDocument, action: SnapAction, time: number, cursor: Vec3): { document: EditorDocument; cursor: Vec3 } {
+  return action.startsWith('cursor')
+    ? { document, cursor: snappedCursor(document, action, time, cursor) }
+    : { document: snappedSelection(document, action, time, cursor), cursor };
+}
+
+function snappedCursor(document: EditorDocument, action: SnapAction, time: number, cursor: Vec3): Vec3 {
+  switch (action) {
+    case 'cursorToOrigin':
+      return { x: 0, y: 0, z: 0 };
+    case 'cursorToGrid':
+      return toGrid(cursor);
+    case 'cursorToSelected':
+      return selectionMedian(document, time) ?? cursor;
+    case 'cursorToActive':
+      return activePoint(document, time) ?? cursor;
+    default:
+      return cursor;
+  }
+}
+
+function snappedSelection(document: EditorDocument, action: SnapAction, time: number, cursor: Vec3): EditorDocument {
   const object = editing(document);
   const ids = object ? [] : movableNodes(document);
   const move = (place: (world: Vec3) => Vec3, nodes = ids) => (object
     ? moveSelectedVertices(document, object, time, place)
     : moveNodes(document, nodes, time, place));
   const hasSelection = selectionMedian(document, time) !== null;
-  const setCursor = (cursor: Vec3 | null) => (cursor ? { ...document, cursor } : document);
 
   switch (action) {
-    case 'cursorToOrigin':
-      return setCursor({ x: 0, y: 0, z: 0 });
-    case 'cursorToGrid':
-      return setCursor(toGrid(document.cursor));
-    case 'cursorToSelected':
-      return setCursor(selectionMedian(document, time));
-    case 'cursorToActive':
-      return setCursor(activePoint(document, time));
     case 'selectionToGrid':
       return hasSelection ? move(toGrid) : document;
     case 'selectionToCursor':
-      return hasSelection ? move(() => document.cursor) : document;
+      return hasSelection ? move(() => cursor) : document;
     case 'selectionToCursorOffset': {
       const median = selectionMedian(document, time);
       if (!median) {
         return document;
       }
-      const offset = { x: document.cursor.x - median.x, y: document.cursor.y - median.y, z: document.cursor.z - median.z };
+      const offset = { x: cursor.x - median.x, y: cursor.y - median.y, z: cursor.z - median.z };
       return move(({ x, y, z }) => ({ x: x + offset.x, y: y + offset.y, z: z + offset.z }), topLevelOnly(document, ids));
     }
     case 'selectionToActive': {
       const target = activePoint(document, time);
       return target && hasSelection ? move(() => target, withoutActive(document, ids)) : document;
     }
+    default:
+      return document;
   }
 }

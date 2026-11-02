@@ -6,8 +6,8 @@ The owner knows Blender well and wants its keybinds and behavior matched. When a
 
 ## State at handoff
 
-- **Nothing is committed.** All Slender work is uncommitted in the working tree, alongside unrelated uncommitted deck work (`src/page/extraneous/decision-making-presentation/`, `Ncap.tsx`, `package.json`, and part of `src/App.tsx`). Keep them separate when committing, and commit only when asked.
-- Type-check passes and all 265 unit tests pass.
+- **The owner committed up to `Slender v2`.** Everything since, from the IK work on, is uncommitted, alongside unrelated uncommitted deck work (`src/page/extraneous/decision-making-presentation/`, `Ncap.tsx`, `package.json`, and part of `src/App.tsx`). Keep them separate when committing, and commit only when asked.
+- Type-check passes and all 324 unit tests pass.
 - Run with `npm start`, then open `/#/slender`. The rendering demo is at `/#/slender/demo`.
 
 ## Done
@@ -17,8 +17,10 @@ The owner knows Blender well and wants its keybinds and behavior matched. When a
 - **Undo and redo** over whole-document snapshots.
 - **Animation:** keys on vertices and object transforms, animation pane with scrubbing, key dragging, easing, and playback.
 - **Panes:** outliner (folders, visibility, drag in and out, rename, no manual ordering by request), N panel, object pane (parent, constraints, render settings), world tab (sky color), draggable borders.
-- **Relations:** parenting with Ctrl+P and Ctrl+Shift+P; Copy Location, Copy Rotation, and Look At constraints with influence; Alt+G, Alt+R, Alt+S clear.
-- **Rigging:** armatures, bones with extrude, duplicate, delete, and parenting in edit mode; pose mode with keying; bone constraints; parenting objects to bones; vertex groups; Armature Deform and automatic weights; weight painting with mix, subtract, and smooth.
+- **Relations:** parenting with Ctrl+P and Ctrl+Shift+P; Copy Location, Copy Rotation, Look At, and Child Of constraints with animatable influence; a keyable Parented toggle on Child Of; hover plus I and Alt+I on properties, with key colors on fields; Alt+G, Alt+R, Alt+S clear.
+- **Rigging:** armatures, bones with extrude, duplicate, delete, and parenting in edit mode; pose mode with keying; bone constraints; inverse kinematics with pole, chain length, and Shift+I; parenting objects to bones; vertex groups; Armature Deform and automatic weights; weight painting with mix, subtract, and smooth.
+- **Modeling additions:** Ctrl+J join; P separate by selection or loose parts; Mirror modifier with axes, merge, clipping, and apply.
+- **Rotation modes:** Euler or quaternion per object or bone, chosen in the N panel.
 - **Viewing:** orbit, pan, zoom, camera objects, camera view, Shift+F walk with Shift to speed up and Space to zoom to a surface.
 - **Top bar:** mode and select mode button groups, camera view, proportional editing, Overlays, X-Ray. SVG icons in `icons.tsx`, hover colors in `slender.css`.
 
@@ -33,14 +35,16 @@ The file is the real copy. The owner sometimes closes without saving on purpose 
 
 ## Not requested yet, but missing
 
-- Keying fill, border, focal length, sky, and constraint influence.
+- Keying fill, border, focal length, and sky.
 - Proportional editing in object mode, and falloff shapes other than smooth. Blender has both.
-- Inverse kinematics, bone roll, and Alt+S shrink/fatten in edit mode. Alt+S does nothing in edit mode today.
+- Bone roll, and Alt+S shrink/fatten in edit mode. Alt+S does nothing in edit mode today.
 - Posing while weight painting. Blender allows it; here, switch to the armature to pose.
 - A cancelled extrude is undone, which leaves it on the redo stack.
 
 ## Not verified
 
+- **Rigging a real character.** `slender-rigging-check.cjs` built a leg in the browser and its screenshots showed the foot on target and the knee at the pole, but no mesh has been skinned to an IK leg by hand, and playing back through Parented keys is covered by unit tests only.
+- **Ctrl+J in a real browser.** It calls `preventDefault`, but the test driver's keys do not reach browser shortcuts, so whether Chrome's downloads page stays away is unconfirmed, as with Ctrl+P.
 - **Ctrl+P and Ctrl+Shift+P against a real browser.** The test driver's keys do not reach browser shortcuts, so the code that calls `preventDefault` has not been shown to stop the print dialog in a real window. The page cannot catch Ctrl+Tab at all, which is why Shift+Tab exists.
 - **Weight painting by hand.** Strokes were driven by script, so how radius and strength feel is untested. Weights live on vertices, so a brush that reaches no vertex does nothing, which is easy to hit on a low-poly mesh like the default cube.
 - **The native file pickers and permission prompts.** The check replaces the pickers with ones returning real handles from the browser's private file system, so real file writes, reads, and Open Recent ran, but no native dialog or permission prompt has. Firefox and Safari have no file picker API, so they fall back to upload and download, which has not been run.
@@ -62,9 +66,10 @@ The file is the real copy. The owner sometimes closes without saving on purpose 
   1. Start the app on port 3457: `BROWSER=none PORT=3457 npx react-scripts start`
   2. Start Edge: `msedge --headless=new --disable-gpu --remote-debugging-port=9337 --window-size=1200,900 --user-data-dir=<temp folder> about:blank`
   3. Run `node scripts/slender-browser-check.cjs`. It prints results to read through rather than pass or fail, and writes screenshots next to itself, so move them out of the repo or delete them.
-- **Older check scripts need repair.** `slender-browser-check.cjs` and `slender-rig-check.cjs` did not run to the end after keys stopped being written automatically and the pane changed: one hung, then neither got through in fresh browsers. `slender-todo-check.cjs` is current.
+- **Older check scripts need repair.** `slender-browser-check.cjs` and `slender-rig-check.cjs` did not run to the end after keys stopped being written automatically and the pane changed: one hung, then neither got through in fresh browsers. `slender-todo-check.cjs` and `slender-rigging-check.cjs` are current.
 - `scripts/slender-browser-check.cjs` predates rigging. `scripts/slender-rig-check.cjs` covers the parent and clear keys, armatures, posing, and painting, and runs the same way.
 - `scripts/slender-todo-check.cjs <screenshot folder>` covers extrude, selection display, local axes, the cursor, selection rules, numeric drag, frames, timeline zoom and pan, curves, subdivide, and export.
+- `scripts/slender-rigging-check.cjs <screenshot folder>` covers the N panel, the cursor staying out of undo, rotation modes, join and separate, the mirror, an IK leg with a pole, an object on a bone, Child Of, and S on handles. Look at its screenshots: bones are not readable from the page.
 - `scripts/slender-save-check.cjs` covers saving, refresh, close, recovery, and refusing bad files. It opens its own tabs, so give it a fresh `--user-data-dir`.
 - If every click seems to do nothing in the browser check, look for a compile error: the error overlay swallows clicks. A stale `node_modules/.cache/.eslintcache` once reported a false error in `App.tsx`; deleting it fixed that.
 - Editing files while `react-scripts start` compiles can crash it with `RangeError: Invalid count value` from its error formatter. This is not a code bug; restart it.

@@ -127,6 +127,20 @@ export const Outliner = ({
     </button>
   );
 
+  const collapseButton = (id: string, name: string) => {
+    const isCollapsed = collapsed.includes(id);
+    return (
+      <button
+        aria-label={isCollapsed ? `Expand ${name}` : `Collapse ${name}`}
+        onPointerDown={event => event.stopPropagation()}
+        onClick={() => setCollapsed(isCollapsed ? collapsed.filter(other => other !== id) : [...collapsed, id])}
+        className='slender-icon-button'
+      >
+        {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+      </button>
+    );
+  };
+
   const renderObject = (object: SceneObject, depth: number) => {
     const { id, name, vertices, camera, bones, parent, visible } = object;
     const isSelected = document.selectedObjects.includes(id);
@@ -158,6 +172,7 @@ export const Outliner = ({
           opacity: visible ? 1 : 0.55,
         }}
       >
+        {bones && collapseButton(id, name)}
         {renaming === id ? renameInput(id, name, onRenameObject) : (
           <>
             <span title={camera ? 'Camera' : bones ? `Armature, ${bones.length} bones` : `Mesh, ${vertices.length} vertices`} style={{ color: camera ? '#8fd18f' : bones ? '#8fc8e8' : '#e0a060' }}>
@@ -170,7 +185,7 @@ export const Outliner = ({
           </>
         )}
       </div>
-      {bones && renderBones(object, null, depth + 1)}
+      {bones && !collapsed.includes(id) && renderBones(object, null, depth + 1)}
       </Fragment>
     );
   };
@@ -231,14 +246,7 @@ export const Outliner = ({
             opacity: visible ? 1 : 0.55,
           }}
         >
-          <button
-            aria-label={isCollapsed ? `Expand ${name}` : `Collapse ${name}`}
-            onPointerDown={event => event.stopPropagation()}
-            onClick={() => setCollapsed(isCollapsed ? collapsed.filter(other => other !== id) : [...collapsed, id])}
-            className='slender-icon-button'
-          >
-            {isCollapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
-          </button>
+          {collapseButton(id, name)}
           <FolderFill size={12} style={{ color: '#d8b870', flexShrink: 0 }} />
           {renaming === id ? renameInput(id, name, onRenameFolder) : (
             <>
