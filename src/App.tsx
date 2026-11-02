@@ -16,6 +16,8 @@ import Groc from './page/extraneous/Grocery';
 import { Rect } from './page/extraneous/rect/Rect';
 import { Chess } from './page/extraneous/chess/view';
 import { ConnectFour } from './page/extraneous/connect-four/view';
+import { Slender } from './page/extraneous/slender/Slender';
+import { Editor } from './page/extraneous/slender/Editor';
 
 const paths = [
   ['/', () => <Home />],
@@ -32,8 +34,13 @@ const paths = [
   ['/#/screen', () => <Groc />],
   ['/#/rect', () => <Rect />],
   ['/#/chess', () => <Chess/>],
-  ['/#/connect-four', () => <ConnectFour/>]
+  ['/#/connect-four', () => <ConnectFour/>],
+  ['/#/slender', () => <Editor/>],
+  ['/#/slender/demo', () => <Slender/>]
 ]
+
+// Full-screen pages that render without the site navigation bar.
+const fullScreenPrefixes = ['/#/slender'];
 
 function App() {
   const { pathname, hash } = useLocation();
@@ -53,7 +60,7 @@ function App() {
 
   return (
     <>
-      <Navigation currentPath={currentPath}/>
+      {!fullScreenPrefixes.some(prefix => currentPath.startsWith(prefix)) && <Navigation currentPath={currentPath}/>}
       <div>
         {getPage()}
       </div>
