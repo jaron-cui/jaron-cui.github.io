@@ -1,1 +1,0 @@
-import{t as e}from"./App-CyJBrXz-.js";import{t}from"./slenderRenderer-3FYrT_dZ.js";import{b as n}from"./index-CGYnBESa.js";var r=n();function i(){return(0,r.jsx)(e,{createRenderer:e=>new t(e),title:`NCAP rat (Slender)`})}export{i as default};
