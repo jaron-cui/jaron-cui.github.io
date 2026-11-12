@@ -1,7 +1,7 @@
 import { Constraint } from './constraints';
 import { AnimatedVertex } from './keyframes';
-import { applyMatrix, invertMatrix, Matrix, multiply } from './matrix';
-import { Vec3 } from './model';
+import { applyMatrix, invertMatrix, Matrix, multiply } from '../../../lib/vrender/matrix';
+import { Vec3 } from '../../../lib/vrender/model';
 
 // A bone runs between two of its armature's vertices, which are shared where bones connect. Its
 // transform is its pose, relative to where it rests. Like an object, it can have constraints, and

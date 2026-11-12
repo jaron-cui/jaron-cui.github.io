@@ -1,5 +1,5 @@
 import { AxisLock, lockVector } from './editing';
-import { Vec3 } from './model';
+import { Vec3 } from '../../../lib/vrender/model';
 
 // A number typed during a transformation. A free move has one for each world axis, with Tab going
 // between them. Everything else reads the first.

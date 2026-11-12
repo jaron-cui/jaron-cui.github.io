@@ -1,5 +1,5 @@
 import { Animated, AnimatedScene, CubicEase, Track, track } from './animation';
-import { Anchor, Color, fixed, MeshNode, Rgb, Transform } from './model';
+import { Anchor, Color, fixed, MeshNode, Rgb, Transform } from '../../../lib/vrender/model';
 import { cubeMesh, MeshData, torusMesh } from './primitives';
 
 const EASE_IN_OUT: CubicEase = [0.42, 0, 0.58, 1];

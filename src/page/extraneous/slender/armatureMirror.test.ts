@@ -2,7 +2,7 @@ import { Bone } from './armature';
 import { bonePartners, jointPartners, mirroredJoints, mirroredPose } from './armatureMirror';
 import { addConstraint, addObject, boneSegments, emptyDocument, findBone, findObject, updateConstraint, updateObject, updateTransform, worldMatrices } from './document';
 import { poseAt } from './keyframes';
-import { Vec3 } from './model';
+import { Vec3 } from '../../../lib/vrender/model';
 import { bonesToDelete, deleteBones, extrudeBones, symmetrizeBones } from './rigging';
 
 function transform() {

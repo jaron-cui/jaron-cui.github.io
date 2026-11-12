@@ -1,5 +1,5 @@
 import { VertexGroup } from './armature';
-import { Edge, Face, Vec3 } from './model';
+import { Edge, Face, Vec3 } from '../../../lib/vrender/model';
 import { MeshData } from './primitives';
 
 export type MirrorAxis = 'x' | 'y' | 'z';

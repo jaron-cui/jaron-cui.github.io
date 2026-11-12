@@ -43,7 +43,7 @@ export function runModal({ onMove, onConfirm, onCancel }: Modal): void {
 // Gives a pane first refusal of plain keys while the pointer is over it, as Blender's editors have.
 // The handler says whether it used the key, and any it does not use go on to the viewport. The
 // pointer's last position is returned for transformations to start from.
-export function usePaneKeys(rootRef: RefObject<HTMLElement>, enabled: boolean, handler: (event: KeyboardEvent) => boolean): RefObject<{ x: number; y: number }> {
+export function usePaneKeys(rootRef: RefObject<HTMLElement | null>, enabled: boolean, handler: (event: KeyboardEvent) => boolean): RefObject<{ x: number; y: number }> {
   const pointerRef = useRef({ x: 0, y: 0 });
   const latest = useRef({ enabled, handler });
   latest.current = { enabled, handler };

@@ -7,8 +7,9 @@ The owner knows Blender well and wants its keybinds and behavior matched. When a
 ## State at handoff
 
 - **The owner committed up to `Slender v2`.** Everything since, from the IK work on, is uncommitted, alongside unrelated uncommitted deck work (`src/page/extraneous/decision-making-presentation/`, `Ncap.tsx`, `package.json`, and part of `src/App.tsx`). Keep them separate when committing, and commit only when asked.
-- Type-check passes and all 324 unit tests pass.
-- Run with `npm start`, then open `/#/slender`. The rendering demo is at `/#/slender/demo`.
+- **The site moved from Create React App to Vite** (React 19, TypeScript 7, Vitest), on 2026-11-08. Type-check passes and all 334 unit tests pass, with Slender's own tests unchanged under Vitest.
+- Run with `npm start` (Vite, port 3000), then open `/#/slender`. The rendering demo is at `/#/slender/demo`.
+- **Ellipsoids** were added on 2026-11-08 for the rat demo at `/#/rat2` (`src/page/extraneous/rat-ncap/app/slenderRenderer.ts`), which rigs a MuJoCo rat on Slender bones.
 
 ## Done
 
@@ -20,6 +21,7 @@ The owner knows Blender well and wants its keybinds and behavior matched. When a
 - **Relations:** parenting with Ctrl+P and Ctrl+Shift+P; Copy Location, Copy Rotation, Look At, and Child Of constraints with animatable influence; a keyable Parented toggle on Child Of; hover plus I and Alt+I on properties, with key colors on fields; Alt+G, Alt+R, Alt+S clear.
 - **Rigging:** armatures, bones with extrude, duplicate, delete, and parenting in edit mode; pose mode with keying; bone constraints; inverse kinematics with pole, chain length, and Shift+I; parenting objects to bones; vertex groups; Armature Deform and automatic weights; weight painting with mix, subtract, and smooth.
 - **Modeling additions:** Ctrl+J join; P separate by selection or loose parts; Mirror modifier with axes, merge, clipping, and apply.
+- **Ellipsoids:** Shift+A, Ellipsoid. Radii along local x, y, z and a length that sweeps it along local z, so length 0 is an ellipsoid and equal radii make a capsule. Drawn from its exact perspective outline, in closed form: an ellipse from the projected quadric, or for a swept one, two end ellipses joined by their outer tangents, found by solving for the tangent planes where the ellipsoid is two unit spheres (`sweptOutline` in `project.ts`). `drawItems` fills runs of same-coloured opaque shapes as one path. It has no vertices; `renderedMesh` gives a low-poly stand-in, so picking, box select, and occlusion work unchanged. No edit, pose, or weight mode, no modifiers or vertex groups, not joinable. Radii and length are in the object pane and are not keyable.
 - **Rotation modes:** Euler or quaternion per object or bone, chosen in the N panel.
 - **Viewing:** orbit, pan, zoom, camera objects, camera view, Shift+F walk with Shift to speed up and Space to zoom to a surface.
 - **Top bar:** mode and select mode button groups, camera view, proportional editing, Overlays, X-Ray. SVG icons in `icons.tsx`, hover colors in `slender.css`.
@@ -27,6 +29,12 @@ The owner knows Blender well and wants its keybinds and behavior matched. When a
 ## Next
 
 Nothing is queued. All the owner's requests so far are done. Ask what comes next.
+
+## Shared code and the homepage demo (2026-11-08)
+
+- The renderer (scene model, matrix, geometry, projection, canvas drawing, SVG export) moved to `src/lib/vrender/`, and file open/save to `src/lib/psave/`. `storage.ts` keeps Slender's sessions and recent files and calls psave for files.
+- `animation.ts` has a new ease, `'bounce'`: an elastic ease-out that overshoots the next key and rings down into it (`elastic()`). The editor plays it; no editor UI sets it yet.
+- `SlenderDemo.tsx` is the homepage demo: `cube.slender` in a viewport that swings round with a drag (with fling), the picked property's value curve with draggable keys and selectable segments (Linear / Eased / Bounce), an editor bar, play/pause, a two-box playback range, and an outliner of animated properties. Edits are not saved; a reload restores the cube.
 
 ## Saving
 
@@ -61,9 +69,9 @@ The file is the real copy. The owner sometimes closes without saving on purpose 
 ## Checking work
 
 - `npx tsc --noEmit -p .`
-- `CI=true npx react-scripts test --watchAll=false src/page/extraneous/slender`
+- `npx vitest run src/page/extraneous/slender`
 - `scripts/slender-browser-check.cjs` drives the real editor with mouse and keyboard over the DevTools protocol. To run it:
-  1. Start the app on port 3457: `BROWSER=none PORT=3457 npx react-scripts start`
+  1. Start the app on port 3457: `npx vite --port 3457`
   2. Start Edge: `msedge --headless=new --disable-gpu --remote-debugging-port=9337 --window-size=1200,900 --user-data-dir=<temp folder> about:blank`
   3. Run `node scripts/slender-browser-check.cjs`. It prints results to read through rather than pass or fail, and writes screenshots next to itself, so move them out of the repo or delete them.
 - **Older check scripts need repair.** `slender-browser-check.cjs` and `slender-rig-check.cjs` did not run to the end after keys stopped being written automatically and the pane changed: one hung, then neither got through in fresh browsers. `slender-todo-check.cjs` and `slender-rigging-check.cjs` are current.
@@ -71,6 +79,5 @@ The file is the real copy. The owner sometimes closes without saving on purpose 
 - `scripts/slender-todo-check.cjs <screenshot folder>` covers extrude, selection display, local axes, the cursor, selection rules, numeric drag, frames, timeline zoom and pan, curves, subdivide, and export.
 - `scripts/slender-rigging-check.cjs <screenshot folder>` covers the N panel, the cursor staying out of undo, rotation modes, join and separate, the mirror, an IK leg with a pole, an object on a bone, Child Of, and S on handles. Look at its screenshots: bones are not readable from the page.
 - `scripts/slender-save-check.cjs` covers saving, refresh, close, recovery, and refusing bad files. It opens its own tabs, so give it a fresh `--user-data-dir`.
-- If every click seems to do nothing in the browser check, look for a compile error: the error overlay swallows clicks. A stale `node_modules/.cache/.eslintcache` once reported a false error in `App.tsx`; deleting it fixed that.
-- Editing files while `react-scripts start` compiles can crash it with `RangeError: Invalid count value` from its error formatter. This is not a code bug; restart it.
+- If every click seems to do nothing in the browser check, look for a compile error: the error overlay swallows clicks. Vite shows compile errors in an overlay too.
 - Two results in that script always look wrong and are not bugs: `showing restores: false`, because hiding a folder also deselects its contents, and `was locked: null`, the pointer lock gap above.

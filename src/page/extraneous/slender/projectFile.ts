@@ -1,7 +1,7 @@
 import { DEFAULT_FRAME_END, DEFAULT_FRAME_RATE, EditorDocument } from './document';
 import { OrbitCamera, PivotMode, SelectMode } from './editing';
 import { KeyingSet } from './keyframes';
-import { Vec3 } from './model';
+import { Vec3 } from '../../../lib/vrender/model';
 
 // Everything a project file holds. Undo history is left out on purpose.
 export type ProjectState = {

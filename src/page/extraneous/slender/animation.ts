@@ -1,4 +1,4 @@
-import { Fixed, Scene } from './model';
+import { Fixed, Scene } from '../../../lib/vrender/model';
 
 // Control points of a CSS-style timing curve from (0, 0) to (1, 1).
 export type CubicEase = [x1: number, y1: number, x2: number, y2: number];
@@ -8,7 +8,8 @@ export type CubicEase = [x1: number, y1: number, x2: number, y2: number];
 export type BezierEase = { out: [time: number, value: number]; in: [time: number, value: number] };
 
 // How a key eases toward the next key. 'hold' keeps its value until the next key arrives.
-export type Ease = 'linear' | 'hold' | CubicEase | BezierEase;
+// 'bounce' overshoots the next key and springs back and forth into it (an elastic ease-out).
+export type Ease = 'linear' | 'hold' | 'bounce' | CubicEase | BezierEase;
 
 // Time is in seconds, not frames, so playback and export can sample at any rate.
 export type Key = { time: number; value: number; ease?: Ease };
@@ -59,6 +60,13 @@ function parameterAt(x1: number, x2: number, progress: number): number {
   return (low + high) / 2;
 }
 
+// An elastic ease-out: reaches the end early, overshoots it, and rings down into it.
+export function elastic(progress: number): number {
+  if (progress <= 0) return 0;
+  if (progress >= 1) return 1;
+  return Math.pow(2, -10 * progress) * Math.sin((10 * progress - 0.75) * ((2 * Math.PI) / 3)) + 1;
+}
+
 // Maps progress in time to progress in value.
 function applyCubicEase([x1, y1, x2, y2]: CubicEase, progress: number): number {
   return cubicAt(y1, y2, parameterAt(x1, x2, progress));
@@ -93,7 +101,7 @@ export function sampleTrack({ keys, held }: Track, time: number): number {
     const u = 1 - s;
     return u * u * u * from.value + 3 * u * u * s * (from.value + ease.out[1]) + 3 * u * s * s * (to.value + ease.in[1]) + s * s * s * to.value;
   }
-  const eased = ease === 'linear' ? progress : applyCubicEase(ease, progress);
+  const eased = ease === 'linear' ? progress : ease === 'bounce' ? elastic(progress) : applyCubicEase(ease, progress);
   return from.value + (to.value - from.value) * eased;
 }
 

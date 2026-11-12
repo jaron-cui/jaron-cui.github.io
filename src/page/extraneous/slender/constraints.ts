@@ -1,7 +1,7 @@
 import { Track } from './animation';
 import { sampleTrack } from './animation';
-import { invertMatrix, Matrix, matrixOrigin, multiply } from './matrix';
-import { Vec3 } from './model';
+import { invertMatrix, Matrix, matrixOrigin, multiply } from '../../../lib/vrender/matrix';
+import { Vec3 } from '../../../lib/vrender/model';
 
 export type ConstraintKind = 'copyLocation' | 'copyRotation' | 'lookAt' | 'childOf' | 'ik';
 

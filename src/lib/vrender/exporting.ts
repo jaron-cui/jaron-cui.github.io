@@ -1,5 +1,5 @@
 import { Color, Scene, Vec2 } from './model';
-import { DrawItem, projectScene } from './project';
+import { DrawItem, EllipseArc, projectScene } from './project';
 
 // How finely curves are flattened, in image units. Exports get viewed zoomed in more than the viewport.
 const FLATTENING_TOLERANCE = 0.1;
@@ -19,6 +19,33 @@ function pathData(points: Vec2[], closed: boolean): string {
   return closed ? `${line}Z` : line;
 }
 
+function arcPoint({ x, y, radiusX, radiusY, angle }: EllipseArc, t: number): Vec2 {
+  const [cos, sin] = [Math.cos(angle), Math.sin(angle)];
+  const [u, v] = [radiusX * Math.cos(t), radiusY * Math.sin(t)];
+  return { x: x + u * cos - v * sin, y: y + u * sin + v * cos };
+}
+
+// SVG arcs in the same direction canvas draws them. A full turn goes as two halves, since an SVG
+// arc cannot end where it starts.
+function arcsData(arcs: EllipseArc[]): string {
+  const turn = 2 * Math.PI;
+  return arcs.map((arc, i) => {
+    let span = (((arc.end - arc.start) % turn) + turn) % turn;
+    span = span <= 1e-9 ? turn : span;
+    const pieces = span > turn - 1e-6 ? [arc.start + span / 2, arc.start + span] : [arc.start + span];
+    const start = arcPoint(arc, arc.start);
+    const rotation = round(arc.angle * 180 / Math.PI);
+    let data = `${i === 0 ? 'M' : 'L'}${round(start.x)} ${round(start.y)}`;
+    let from = arc.start;
+    for (const to of pieces) {
+      const end = arcPoint(arc, to);
+      data += `A${round(arc.radiusX)} ${round(arc.radiusY)} ${rotation} ${to - from > Math.PI ? 1 : 0} 1 ${round(end.x)} ${round(end.y)}`;
+      from = to;
+    }
+    return data;
+  }).join('') + 'Z';
+}
+
 // Each item as SVG, matching how render.ts draws it: a mesh's border is stroked at twice its width
 // and the fill goes over the inner half.
 function itemSvg(item: DrawItem): string {
@@ -29,6 +56,13 @@ function itemSvg(item: DrawItem): string {
       ? ` stroke="${color(item.stroke.color)}" stroke-opacity="${item.stroke.color.a}" stroke-width="${round(item.stroke.width)}"`
       : '';
     return `<path d="${d}" ${fill}${stroke}/>`;
+  }
+  if (item.kind === 'ellipsoid') {
+    const d = arcsData(item.arcs);
+    const border = item.border && item.border.width > 0
+      ? `<path d="${d}" fill="none" stroke="${color(item.border.color)}" stroke-width="${round(item.border.width * 2)}" stroke-linejoin="round"/>`
+      : '';
+    return `${border}<path d="${d}" fill="${color(item.fill)}"/>`;
   }
   const faces = item.polygons.map(polygon => pathData(polygon, true)).join('');
   const lines = item.lines.map(line => pathData(line, false)).join('');

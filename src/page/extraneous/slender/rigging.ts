@@ -6,8 +6,8 @@ import {
 } from './document';
 import { Selection } from './editing';
 import { commitEdit, poseAt } from './keyframes';
-import { applyMatrix, multiply } from './matrix';
-import { Vec3 } from './model';
+import { applyMatrix, multiply } from '../../../lib/vrender/matrix';
+import { Vec3 } from '../../../lib/vrender/model';
 import { flippedName } from './modifiers';
 
 const DEFAULT_BONE_LENGTH = 100;
@@ -346,7 +346,7 @@ export function parentSelected(document: EditorDocument, kind: ParentKind, time:
       next = clearTransforms(next, [id], 'position', time);
     }
     const child = findObject(next, id)!;
-    if ((kind === 'armature' || kind === 'armatureAuto') && !child.bones && !child.camera) {
+    if ((kind === 'armature' || kind === 'armatureAuto') && !child.bones && !child.camera && !child.ellipsoid) {
       next = withBoneGroups(updateObject(next, id, object => ({ ...object, deformer: active.id })), id, active.bones!);
       if (kind === 'armatureAuto') {
         next = withAutomaticWeights(next, id, active, time);

@@ -8,10 +8,10 @@ import {
 import { ConstraintKind } from './constraints';
 import { commit, endStep, redo, startHistory, undo } from './history';
 import { retimeKeys, writeKeys } from './keyframes';
-import { applyMatrix, decompose, invertMatrix, multiply, rotateEuler, transformMatrix } from './matrix';
-import { Camera, Transform, Vec3 } from './model';
+import { applyMatrix, decompose, invertMatrix, multiply, rotateEuler, transformMatrix } from '../../../lib/vrender/matrix';
+import { Camera, Transform, Vec3 } from '../../../lib/vrender/model';
 import { cameraGizmoMesh, cubeMesh, MeshData, planeMesh, vertexMesh } from './primitives';
-import { projectPoint } from './project';
+import { projectPoint } from '../../../lib/vrender/project';
 
 // Looks along +z with +y toward the bottom of the image.
 const FRONT: Camera = { position: { x: 0, y: 0, z: -500 }, rotation: { x: Math.PI / 2, y: 0, z: 0 }, focalLength: 500 };

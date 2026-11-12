@@ -4,11 +4,11 @@ import { applyConstraint, childOfMatrix, Constraint, ConstraintKind, CONSTRAINT_
 import { Occlusion, Selection } from './editing';
 import { solveChain } from './ik';
 import { AnimatedVertex, commitEdit, convertRotation, Coordinate, coordinatesIn, deleteKeys, dropHeldEdits, isKeyed, keyEase, keyTimes, poseAt, scaleKeyTimes, setKeyEase, valueAt, writeKeys } from './keyframes';
-import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, rotationLike, transformMatrix } from './matrix';
-import { Camera, Edge, Face, fixed, Rgb, Scene, Transform, Vec2, Vec3 } from './model';
+import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, rotationLike, transformMatrix } from '../../../lib/vrender/matrix';
+import { Camera, Edge, EllipsoidShape, Face, fixed, Rgb, Scene, SceneNode, Transform, Vec2, Vec3 } from '../../../lib/vrender/model';
 import { Modifier, modifiedMesh } from './modifiers';
-import { MeshData } from './primitives';
-import { projectPoint } from './project';
+import { ellipsoidMesh, MeshData } from './primitives';
+import { projectPoint } from '../../../lib/vrender/project';
 
 // What the editor edits. Every change makes a new document that shares its unchanged parts, so
 // a past document is a complete undo step, selection included.
@@ -39,6 +39,9 @@ export type SceneObject = {
   selectedVertices: Selection;
   // Set on a camera, whose mesh is only the wire shape that marks it and is never rendered.
   camera: { focalLength: number } | null;
+  // Set on an ellipsoid, which has no vertices of its own. It draws from its exact outline, and
+  // picks and hides things through a stand-in mesh. Missing in files from before there were any.
+  ellipsoid?: EllipsoidShape | null;
   // Clicks and boxes in the viewport pass through it. It can still be chosen in the outliner.
   unselectable?: boolean;
   // Set on an armature, whose vertices are its bones' joints and whose edges are its bones.
@@ -152,6 +155,12 @@ export function addObject(
     selectedObjects: [object.id],
     activeObject: object.id,
   };
+}
+
+// Adds an ellipsoid at a world point and makes it the only selected object.
+export function addEllipsoid(document: EditorDocument, shape: EllipsoidShape, at: Vec3 = { x: 0, y: 0, z: 0 }, name = 'Ellipsoid'): EditorDocument {
+  const next = addObject(document, name, { vertices: [], faces: [], edges: [] }, null, at);
+  return updateObject(next, next.activeObject!, object => ({ ...object, ellipsoid: shape }));
 }
 
 // Copies the selected objects, animation included, and selects the copies. Copies refer to each
@@ -537,6 +546,9 @@ function deformedBy(
 export function renderedMesh(
   document: EditorDocument, object: SceneObject, time: number, transient: Transient | null, matrices: Map<string, Matrix>
 ): MeshData {
+  if (object.ellipsoid) {
+    return ellipsoidMesh(object.ellipsoid);
+  }
   const modifiers = object.modifiers ?? [];
   if (modifiers.length === 0) {
     return { vertices: displayVertices(document, object, time, transient, matrices), faces: object.faces, edges: object.edges };
@@ -604,23 +616,23 @@ export function toScene(document: EditorDocument, camera: Camera, time: number, 
   return {
     background: { ...document.skyColor, a: 1 },
     camera,
-    nodes: document.objects.filter(object => !object.camera && !object.bones && isVisible(document, object)).map(object => {
+    nodes: document.objects.filter(object => !object.camera && !object.bones && isVisible(document, object)).map((object): SceneNode => {
       const { transform } = resolveObject(object, time, transient);
-      const { vertices: local, faces, edges } = renderedMesh(document, object, time, transient, matrices);
-      return {
-        kind: 'mesh',
+      const style = {
         name: object.name,
         transform,
         worldMatrix: fixed(matrices.get(object.id)!),
-        vertices: local,
-        faces: fixed(faces),
-        edges: fixed(edges),
         fill: object.fill,
         border: { color: { ...object.border.color, a: 1 }, width: object.border.width },
         ...(highlight && document.mode === 'object' && document.selectedObjects.includes(object.id)
           ? { highlight: fixed(object.id === document.activeObject ? ACTIVE_OUTLINE : SELECTED_OUTLINE) }
           : {}),
       };
+      if (object.ellipsoid) {
+        return { kind: 'ellipsoid', ...style, radii: object.ellipsoid.radii, length: object.ellipsoid.length };
+      }
+      const { vertices: local, faces, edges } = renderedMesh(document, object, time, transient, matrices);
+      return { kind: 'mesh', ...style, vertices: local, faces: fixed(faces), edges: fixed(edges) };
     }),
   };
 }

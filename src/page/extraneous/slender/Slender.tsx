@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { evaluateScene } from './animation';
 import { DEMO_DURATION, demoScene } from './demo';
-import { renderScene, View } from './render';
+import { renderScene, View } from '../../../lib/vrender/render';
 
 const ZOOM_PER_WHEEL_PIXEL = 1.002;
 

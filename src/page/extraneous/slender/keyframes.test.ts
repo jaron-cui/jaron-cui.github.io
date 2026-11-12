@@ -1,7 +1,7 @@
 import {
   AnimatedVertex, changeHandle, commitEdit, deleteKeys, dropHeldEdits, remapKeys, rotateOffset, scaledTimes, shiftedTimes, isKeyed, keyEase, keyTimes, poseAt, retimeKeys, setKeyEase, snapTime, writeKeys,
 } from './keyframes';
-import { Vec3 } from './model';
+import { Vec3 } from '../../../lib/vrender/model';
 
 const A: Vec3 = { x: 0, y: 0, z: 0 };
 const B: Vec3 = { x: 10, y: 20, z: 30 };

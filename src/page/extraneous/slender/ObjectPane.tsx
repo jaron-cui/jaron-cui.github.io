@@ -3,7 +3,7 @@ import { CONSTRAINT_LABELS, ConstraintKind, isSwitchedOn } from './constraints';
 import { Constraint } from './constraints';
 import { EditorDocument, SceneObject, validParentBones, validParents } from './document';
 import { keyState, valueAt } from './keyframes';
-import { Rgb } from './model';
+import { Rgb } from '../../../lib/vrender/model';
 import { KEY_STATE_COLORS, NumberField } from './NumberField';
 
 export function hexToRgb(hex: string): Rgb {
@@ -204,6 +204,33 @@ export const ObjectPane = ({
       </Section>
 
       {rig}
+
+      {object.ellipsoid && (
+        <Section title='Ellipsoid'>
+          {(['x', 'y', 'z'] as const).map(axis => (
+            <Row key={axis} label={`Radius ${axis.toUpperCase()}`}>
+              <NumberField
+                label={`Radius ${axis.toUpperCase()}`}
+                value={object.ellipsoid!.radii[axis]}
+                dragStep={1}
+                onCommit={value => onChangeStyle(`ellipsoid-${axis}`, current => ({
+                  ...current,
+                  ellipsoid: { ...current.ellipsoid!, radii: { ...current.ellipsoid!.radii, [axis]: Math.max(0.01, value) } },
+                }))}
+              />
+            </Row>
+          ))}
+          <Row label='Length'>
+            <NumberField
+              label='Length'
+              value={object.ellipsoid.length}
+              dragStep={1}
+              onCommit={value => onChangeStyle('ellipsoid-length', current => ({ ...current, ellipsoid: { ...current.ellipsoid!, length: Math.max(0, value) } }))}
+            />
+          </Row>
+          <div style={{ opacity: 0.6 }}>Swept along local Z by the length each way. Equal radii make a capsule.</div>
+        </Section>
+      )}
 
       {bones ? null : camera ? (
         <Section title='Lens'>

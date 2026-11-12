@@ -5,8 +5,8 @@ import {
 } from './document';
 import { connectedDistances, falloffWeights } from './editing';
 import { writeKeys } from './keyframes';
-import { applyMatrix, invertMatrix, multiply } from './matrix';
-import { Vec3 } from './model';
+import { applyMatrix, invertMatrix, multiply } from '../../../lib/vrender/matrix';
+import { Vec3 } from '../../../lib/vrender/model';
 import { cubeMesh, MeshData } from './primitives';
 import {
   addArmature, addBone, addVertexGroup, assignToGroup, clearTransforms, deleteBones, duplicateBones, extrudeBones, groupsAfterCopy, groupsAfterDelete, paintWeights, parentBones,

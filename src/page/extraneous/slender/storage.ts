@@ -1,22 +1,11 @@
+import * as psave from '../../../lib/psave/files';
+import type { FileHandle } from '../../../lib/psave/files';
 import { EditorDocument } from './document';
 import { History } from './history';
 import { FILE_EXTENSION, ProjectState } from './projectFile';
 
-// The parts of the File System Access API used here, which TypeScript's DOM types do not include.
-export type FileHandle = {
-  name: string;
-  getFile: () => Promise<File>;
-  createWritable: () => Promise<{ write: (data: string) => Promise<void>; close: () => Promise<void> }>;
-  isSameEntry: (other: FileHandle) => Promise<boolean>;
-  queryPermission?: (options: { mode: 'readwrite' }) => Promise<PermissionState>;
-  requestPermission?: (options: { mode: 'readwrite' }) => Promise<PermissionState>;
-};
-
-type PickerOptions = { suggestedName?: string; types: { description: string; accept: Record<string, string[]> }[] };
-type PickerWindow = {
-  showOpenFilePicker?: (options: PickerOptions) => Promise<FileHandle[]>;
-  showSaveFilePicker?: (options: PickerOptions) => Promise<FileHandle>;
-};
+export type { FileHandle };
+export { canWriteFiles, downloadFile, readHandle, writeHandle } from '../../../lib/psave/files';
 
 export type ProjectFile = { name: string; handle: FileHandle | null };
 
@@ -46,11 +35,7 @@ const LOCK_RETRY_MS = 100;
 const MAX_RECENT = 10;
 const MAX_ABANDONED_SESSIONS = 3;
 const MAX_ABANDONED_AGE_MS = 14 * 24 * 60 * 60 * 1000;
-const PICKER_TYPES = [{ description: 'Slender project', accept: { 'application/json': [FILE_EXTENSION] } }];
-
-function pickerWindow(): PickerWindow {
-  return window as unknown as PickerWindow;
-}
+const FILE_TYPE: psave.FileType = { description: 'Slender project', extension: FILE_EXTENSION };
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -187,82 +172,11 @@ export async function forgetRecent(handle: FileHandle): Promise<void> {
   await replaceRecent(kept);
 }
 
-// The user dismissing a picker is not a failure.
-function isCancel(error: unknown): boolean {
-  return error instanceof DOMException && error.name === 'AbortError';
-}
-
 // Asks the user to choose a file to open, or returns null if they decline.
-export async function pickFileToOpen(): Promise<{ name: string; text: string; handle: FileHandle | null } | null> {
-  const { showOpenFilePicker } = pickerWindow();
-  if (showOpenFilePicker) {
-    try {
-      const [handle] = await showOpenFilePicker.call(window, { types: PICKER_TYPES });
-      return await readHandle(handle);
-    } catch (error) {
-      if (isCancel(error)) {
-        return null;
-      }
-      throw error;
-    }
-  }
-  // Browsers without the picker can still read a chosen file, but cannot write back to it.
-  return new Promise(resolve => {
-    const input = window.document.createElement('input');
-    input.type = 'file';
-    input.accept = FILE_EXTENSION;
-    input.addEventListener('change', async () => {
-      const file = input.files?.[0];
-      resolve(file ? { name: file.name, text: await file.text(), handle: null } : null);
-    });
-    input.addEventListener('cancel', () => resolve(null));
-    input.click();
-  });
+export function pickFileToOpen(): Promise<psave.OpenedFile | null> {
+  return psave.pickFileToOpen(FILE_TYPE);
 }
 
-export async function readHandle(handle: FileHandle): Promise<{ name: string; text: string; handle: FileHandle }> {
-  await ensurePermission(handle);
-  const file = await handle.getFile();
-  return { name: handle.name, text: await file.text(), handle };
-}
-
-export function canWriteFiles(): boolean {
-  return Boolean(pickerWindow().showSaveFilePicker);
-}
-
-export async function pickFileToSave(suggestedName: string): Promise<FileHandle | null> {
-  try {
-    return await pickerWindow().showSaveFilePicker!.call(window, { suggestedName, types: PICKER_TYPES });
-  } catch (error) {
-    if (isCancel(error)) {
-      return null;
-    }
-    throw error;
-  }
-}
-
-async function ensurePermission(handle: FileHandle): Promise<void> {
-  if (!handle.queryPermission || (await handle.queryPermission({ mode: 'readwrite' })) === 'granted') {
-    return;
-  }
-  if (handle.requestPermission && (await handle.requestPermission({ mode: 'readwrite' })) === 'granted') {
-    return;
-  }
-  throw new Error(`Permission to use ${handle.name} was not given.`);
-}
-
-export async function writeHandle(handle: FileHandle, text: string): Promise<void> {
-  await ensurePermission(handle);
-  const writable = await handle.createWritable();
-  await writable.write(text);
-  await writable.close();
-}
-
-export function downloadFile(name: string, content: string | Blob, type = 'application/json') {
-  const url = URL.createObjectURL(content instanceof Blob ? content : new Blob([content], { type }));
-  const link = window.document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  URL.revokeObjectURL(url);
+export function pickFileToSave(suggestedName: string): Promise<FileHandle | null> {
+  return psave.pickFileToSave(FILE_TYPE, suggestedName);
 }

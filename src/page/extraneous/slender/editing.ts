@@ -1,7 +1,7 @@
-import { applyMatrix, invertMatrix, viewMatrix } from './matrix';
-import { Camera, Edge, Face, Vec2, Vec3 } from './model';
+import { applyMatrix, invertMatrix, viewMatrix } from '../../../lib/vrender/matrix';
+import { Camera, Edge, Face, Vec2, Vec3 } from '../../../lib/vrender/model';
 import { MeshData } from './primitives';
-import { projectPoint } from './project';
+import { projectPoint } from '../../../lib/vrender/project';
 
 // Vertex indices.
 export type Selection = Set<number>;

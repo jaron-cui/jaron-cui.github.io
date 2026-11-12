@@ -7,8 +7,8 @@ import {
 import { applyMirror, joinSelected, separateLooseParts, separateSelection } from './joining';
 import { track } from './animation';
 import { isKeyed, keyState, poseAt, setKeyEase, writeKeys } from './keyframes';
-import { rotateRotation, transformMatrix } from './matrix';
-import { Vec3 } from './model';
+import { rotateRotation, transformMatrix } from '../../../lib/vrender/matrix';
+import { Vec3 } from '../../../lib/vrender/model';
 import { clippedByMirrors, flippedName, newMirror } from './modifiers';
 import { cubeMesh, planeMesh } from './primitives';
 import { parseProject, savedCursor, serializeProject } from './projectFile';

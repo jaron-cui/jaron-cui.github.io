@@ -1,13 +1,13 @@
 import { deleteObjects, EditorDocument, findObject, SceneObject, selectedVisible, uniqueName, updateObject, worldMatrices } from './document';
 import { deleteVertices, vertexNeighbors } from './editing';
 import { AnimatedVertex, negatedValue, poseAt, transformedVertex } from './keyframes';
-import { invertMatrix, multiply } from './matrix';
-import { Edge, Face } from './model';
+import { invertMatrix, multiply } from '../../../lib/vrender/matrix';
+import { Edge, Face } from '../../../lib/vrender/model';
 import { mirrorMesh, MirrorAxis, MirrorModifier } from './modifiers';
 import { groupsAfterDelete } from './rigging';
 
 function isMesh(object: SceneObject): boolean {
-  return !object.camera && !object.bones;
+  return !object.camera && !object.bones && !object.ellipsoid;
 }
 
 // Ctrl+J: moves the other selected meshes into the active one, keeping where they appear. Vertex

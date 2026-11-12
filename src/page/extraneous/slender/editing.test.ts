@@ -2,10 +2,10 @@ import {
   appendMesh, blendPoints, proportionalWeights, cursorScale, deleteSelected, scaledAbout, deleteVertices, duplicateSelection, elementsInBox, pickElement, fillSelection, walkStep, MAX_PITCH, OrbitCamera, orbitAt, panOrbit, pickVertex, rotated, rotatedAroundAxis, toCamera, translated,
   translatedAlongAxis, verticesInBox, wireframeEdges,
 } from './editing';
-import { applyMatrix, viewMatrix } from './matrix';
-import { Camera, Vec3 } from './model';
+import { applyMatrix, viewMatrix } from '../../../lib/vrender/matrix';
+import { Camera, Vec3 } from '../../../lib/vrender/model';
 import { cubeMesh, MeshData, planeMesh, vertexMesh } from './primitives';
-import { projectPoint } from './project';
+import { projectPoint } from '../../../lib/vrender/project';
 
 // Looks along +z with +y toward the bottom of the image, which keeps these point layouts easy to read.
 const FRONT: Camera = { position: { x: 0, y: 0, z: -100 }, rotation: { x: Math.PI / 2, y: 0, z: 0 }, focalLength: 100 };

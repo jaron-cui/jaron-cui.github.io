@@ -62,9 +62,26 @@ export type MeshNode = {
   border: Stroke | null;
 };
 
+// An ellipsoid with semi-axes radii along its local x, y and z, swept along its local z from
+// -length to +length. Length 0 is a plain ellipsoid, and equal radii with a length make a capsule.
+// Its silhouette is exact at any angle, and draws like a mesh's: an opaque fill with a border
+// outside it.
+export type EllipsoidShape = { radii: Vec3; length: number };
+
+export type EllipsoidNode = EllipsoidShape & {
+  kind: 'ellipsoid';
+  name: string;
+  transform: Transform;
+  // As on a mesh: replaces the transform when given.
+  worldMatrix?: Fixed<number[]>;
+  highlight?: Fixed<Rgb>;
+  fill: Rgb;
+  border: Stroke | null;
+};
+
 export type ShapeNode = { kind: 'shape'; name: string; transform: Transform; geometry: Geometry; style: Style };
 export type GroupNode = { kind: 'group'; name: string; transform: Transform; children: SceneNode[] };
-export type SceneNode = ShapeNode | MeshNode | GroupNode;
+export type SceneNode = ShapeNode | MeshNode | EllipsoidNode | GroupNode;
 
 // Looks along its local +y, with its local +z up, so zero rotation is level and facing forward. A
 // point at distance focalLength in front of the camera draws at scale 1, in CSS pixels before the

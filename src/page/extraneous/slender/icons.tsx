@@ -102,6 +102,11 @@ export const TorusIcon = () => (
     <ellipse cx={8} cy={8} rx={2.6} ry={1.4} />
   </Icon>
 );
+export const EllipsoidIcon = () => (
+  <Icon>
+    <path d='M5.5 3.2a2.6 2.6 0 0 1 5 0l1.3 9.4a2.6 2.6 0 0 1-7.6 0Z' transform='rotate(35 8 8)' fill='currentColor' fillOpacity={0.25} />
+  </Icon>
+);
 export const MeshIcon = () => <Icon><path d='M2.5 12.5 6 3.5h7.5L10 12.5Z M6 3.5 10 12.5' fill='currentColor' fillOpacity={0.2} /></Icon>;
 
 const BONE = 'M3 13 5.2 7.6 13 3 8.4 10.8Z M3 13 13 3';

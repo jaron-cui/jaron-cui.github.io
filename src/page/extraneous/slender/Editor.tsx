@@ -1,8 +1,9 @@
+import type { JSX } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import './slender.css';
 import { Ease } from './animation';
 import {
-  addConstraint, addFolder, addObject, boneSegments, bonesInBox, childOfInverse, chooseCamera, clickObject, DEFAULT_FOCAL_LENGTH, deleteFolder, keyConstraintInfluence, setChildOfOn, setConstraintInfluence, setConstraintTarget, setRotationMode, unkeyConstraintInfluence,
+  addConstraint, addEllipsoid, addFolder, addObject, boneSegments, bonesInBox, childOfInverse, chooseCamera, clickObject, DEFAULT_FOCAL_LENGTH, deleteFolder, keyConstraintInfluence, setChildOfOn, setConstraintInfluence, setConstraintTarget, setRotationMode, unkeyConstraintInfluence,
   deleteObjects, displayVertices, duplicateObjects, EditorDocument, emptyDocument, findBone, findObject, isVisible, moveToFolder, nodeTransformAt, objectsInBox,
   occlusionTest, parentMatrix, pickBone, pickObject, raycastSurface, removeConstraint, renameFolder, renameObject, resolveObject,
   dropHeldDocumentEdits, isSelectable, DEFAULT_FRAME_RATE, DEFAULT_FRAME_START, selectedVisible, setFrameEnd, setFrameRate, setFrameStart, toggleFolderSelectable, toggleObjectSelectable,
@@ -19,24 +20,24 @@ import { describeTyped, isTypedKey, nextField, TypedInput, typedOffset, typedVal
 import { commit, endStep, History, redo, startHistory, undo } from './history';
 import { applyMirror, joinSelected, separateLooseParts, separateSelection } from './joining';
 import { AnimatedVertex, commitEdit, coordinatesIn, deleteKeys, DEFAULT_KEYING, keyState, keyedCoordinates, KeyingSet, KEYING_PROPERTIES, midpointVertex, poseAt, writeKeys } from './keyframes';
-import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, rotateRotation, rotationLike, transformMatrix, viewMatrix } from './matrix';
+import { applyMatrix, decompose, invertMatrix, Matrix, matrixOrigin, multiply, rotateRotation, rotationLike, transformMatrix, viewMatrix } from '../../../lib/vrender/matrix';
 import { clippedByMirrors, Modifier, newMirror } from './modifiers';
-import { Camera, Transform, Vec2, Vec3 } from './model';
-import { projectPoint } from './project';
+import { Camera, Transform, Vec2, Vec3 } from '../../../lib/vrender/model';
+import { projectPoint } from '../../../lib/vrender/project';
 import { ConstraintHandlers, hexToRgb, ObjectPane, rgbToHex, Row, Section } from './ObjectPane';
 import { Outliner } from './Outliner';
 import {
-  BoneIcon, CameraIcon, CircleIcon, ConnectedIcon, EditModeIcon, FaceModeIcon, LineModeIcon, ObjectModeIcon, OverlaysIcon, PlaneIcon,
+  BoneIcon, CameraIcon, CircleIcon, EllipsoidIcon, ConnectedIcon, EditModeIcon, FaceModeIcon, LineModeIcon, ObjectModeIcon, OverlaysIcon, PlaneIcon,
   PoseModeIcon, ProportionalIcon, RenderIcon, TorusIcon, VertexIcon, VertexModeIcon, WeightModeIcon, WorldIcon, XRayIcon,
 } from './icons';
 import { AxisGuide, BoneDraw, drawOverlay } from './overlay';
 import { PaneDivider } from './PaneDivider';
-import { frameTimes, svgAnimation, svgFrame } from './exporting';
+import { frameTimes, svgAnimation, svgFrame } from '../../../lib/vrender/exporting';
 import { NumberField } from './NumberField';
 import { FILE_EXTENSION, parseProject, ProjectState, savedCursor, serializeProject, upgradeDocument } from './projectFile';
 import { applySnap, SNAP_LABELS, SnapAction } from './snapping';
 import { cameraGizmoMesh, circleMesh, cubeMesh, MeshData, planeMesh, torusMesh, vertexMesh } from './primitives';
-import { renderScene } from './render';
+import { renderScene } from '../../../lib/vrender/render';
 import { bonePartners, jointPartners, mirroredJoints, mirroredPose } from './armatureMirror';
 import { ArmaturePane, BonePane, Brush, BrushPane, ModifiersPane, VertexGroupsPane } from './RigPanes';
 import {
@@ -330,7 +331,7 @@ function commitTransient(document: EditorDocument, transient: Transient, time: n
 
 // Which modes an object can be in, besides object mode.
 function modeSupports(object: SceneObject, mode: EditorDocument['mode']): boolean {
-  if (object.camera) {
+  if (object.camera || object.ellipsoid) {
     return mode === 'object';
   }
   return mode !== (object.bones ? 'weight' : 'pose');
@@ -891,6 +892,8 @@ export const Editor = () => {
       setMessage('Object mode.');
     } else if (activeObject()?.camera) {
       setMessage('A camera has no mesh to edit.');
+    } else if (activeObject()?.ellipsoid) {
+      setMessage('An ellipsoid has no mesh to edit. Its radii and length are in the object pane.');
     } else if (activeObject() && !isVisible(document, activeObject()!)) {
       setMessage('Show the object to edit it.');
     } else if (activeObject()) {
@@ -921,7 +924,7 @@ export const Editor = () => {
   const togglePoseOrWeight = () => {
     const document = currentDocument();
     const object = activeObject();
-    if (object?.camera || !object) {
+    if (object?.camera || object?.ellipsoid || !object) {
       setMessage('Select an armature to pose or a mesh to paint.');
     } else {
       const special = object.bones ? 'pose' : 'weight';
@@ -1241,6 +1244,12 @@ export const Editor = () => {
       apply(addBone(currentDocument(), object.id));
       setMessage('Added a bone. G to move it, E to grow more from it.');
     }
+  };
+
+  const addEllipsoidObject = () => {
+    setMenu(null);
+    apply(addEllipsoid(currentDocument(), { radii: { x: 60, y: 60, z: 60 }, length: 60 }, cursorRef.current));
+    setMessage('Added Ellipsoid. Set its radii and length in the object pane; equal radii make a capsule.');
   };
 
   const addCamera = () => {
@@ -2758,7 +2767,7 @@ export const Editor = () => {
               onChangeStyle={changeStyle}
               onSetParent={parent => active && apply(setParent(currentDocument(), active.id, parent, timeRef.current))}
               constraintHandlers={constraintHandlers(active?.id ?? '')}
-              rig={active && renderRigPanes(active)}
+              rig={active && !active.ellipsoid && renderRigPanes(active)}
             />
             )}
             </div>
@@ -2882,6 +2891,7 @@ export const Editor = () => {
               ))}
               {document.mode === 'object' && (
                 <>
+                  <button role='menuitem' onClick={addEllipsoidObject} className='slender-menu-item'><EllipsoidIcon />Ellipsoid</button>
                   <button role='menuitem' onClick={addCamera} className='slender-menu-item'><CameraIcon />Camera</button>
                   <button role='menuitem' onClick={addArmatureObject} className='slender-menu-item'><BoneIcon />Armature</button>
                 </>

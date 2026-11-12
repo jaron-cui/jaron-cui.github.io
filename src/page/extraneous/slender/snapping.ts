@@ -4,8 +4,8 @@ import {
 } from './document';
 import { selectionCenter } from './editing';
 import { commitEdit } from './keyframes';
-import { applyMatrix, invertMatrix, matrixOrigin } from './matrix';
-import { Vec3 } from './model';
+import { applyMatrix, invertMatrix, matrixOrigin } from '../../../lib/vrender/matrix';
+import { Vec3 } from '../../../lib/vrender/model';
 
 // The grid the overlay draws, which snapping lines up with.
 export const GRID_SPACING = 100;

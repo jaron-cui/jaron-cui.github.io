@@ -1,6 +1,6 @@
 import { Animated, BezierEase, CubicEase, Ease, Key, sampleTrack, Track, track } from './animation';
-import { applyMatrix, Matrix, nearestQuaternion, rotationAs } from './matrix';
-import { Rotation, Vec3 } from './model';
+import { applyMatrix, Matrix, nearestQuaternion, rotationAs } from '../../../lib/vrender/matrix';
+import { Rotation, Vec3 } from '../../../lib/vrender/model';
 import { Selection } from './editing';
 
 // Each coordinate of a vertex is constant or has its own track, with key times of its own. Only a

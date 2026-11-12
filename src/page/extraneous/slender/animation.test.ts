@@ -1,6 +1,6 @@
 import { Animated, AnimatedScene, evaluateScene, sampleTrack, track } from './animation';
-import { toPath } from './geometry';
-import { Face, Fixed, fixed } from './model';
+import { toPath } from '../../../lib/vrender/geometry';
+import { Face, Fixed, fixed } from '../../../lib/vrender/model';
 
 describe('sampleTrack', () => {
   const linear = track({ time: 1, value: 10 }, { time: 3, value: 20 });
@@ -124,5 +124,17 @@ describe('toPath', () => {
     expect(pill).toHaveLength(8);
     expect(pill[2].point).toEqual({ x: 5, y: 0 });
     expect(pill[3].point).toEqual({ x: 5, y: 0 });
+  });
+});
+
+describe('bounce ease', () => {
+  it('starts and ends on its keys, and overshoots the end in between', () => {
+    const t = track({ time: 0, value: 0, ease: 'bounce' }, { time: 1, value: 10 });
+    expect(sampleTrack(t, 0)).toBe(0);
+    expect(sampleTrack(t, 1)).toBe(10);
+    const samples = Array.from({ length: 99 }, (_, i) => sampleTrack(t, (i + 1) / 100));
+    expect(Math.max(...samples)).toBeGreaterThan(10);
+    expect(Math.min(...samples)).toBeGreaterThanOrEqual(0);
+    expect(Math.abs(sampleTrack(t, 0.95) - 10)).toBeLessThan(0.1);
   });
 });

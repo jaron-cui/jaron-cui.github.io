@@ -1,7 +1,7 @@
 import { Bone } from './armature';
 import { Selection } from './editing';
-import { rotationLike } from './matrix';
-import { Transform, Vec3 } from './model';
+import { rotationLike } from '../../../lib/vrender/matrix';
+import { Transform, Vec3 } from '../../../lib/vrender/model';
 import { flippedName } from './modifiers';
 
 // How far apart two joints can be and still count as each other's reflection, or a joint as on the

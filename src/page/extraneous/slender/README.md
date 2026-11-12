@@ -18,8 +18,8 @@ EditorDocument --worldMatrices(time)--> matrices --toScene--> Scene
 | --- | --- |
 | `model.ts` | A scene at one instant: plain data, no animation. |
 | `animation.ts` | Tracks, easing, and `evaluateScene`. |
-| `geometry.ts`, `primitives.ts` | Rect and ellipse to paths; starter meshes. |
-| `matrix.ts`, `project.ts` | 3D transforms, perspective, near clipping, curve flattening, depth sorting. |
+| `geometry.ts`, `primitives.ts` | Rect and ellipse to paths; starter meshes, and the ellipsoid's picking stand-in. |
+| `matrix.ts`, `project.ts` | 3D transforms, perspective, near clipping, curve flattening, exact ellipsoid outlines, depth sorting. |
 | `render.ts` | Draws projected items with Canvas 2D. |
 | `document.ts` | The editor's document: objects, folders, parents, world matrices, picking, occlusion. |
 | `projectFile.ts`, `storage.ts` | The saved file format; IndexedDB autosave, tab tracking, and file access. |

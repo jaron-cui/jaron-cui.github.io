@@ -1,5 +1,5 @@
-import { applyMatrix, Matrix, matrixOrigin, multiply } from './matrix';
-import { Vec3 } from './model';
+import { applyMatrix, Matrix, matrixOrigin, multiply } from '../../../lib/vrender/matrix';
+import { Vec3 } from '../../../lib/vrender/model';
 
 const MAX_ITERATIONS = 32;
 const TOLERANCE = 1e-5;

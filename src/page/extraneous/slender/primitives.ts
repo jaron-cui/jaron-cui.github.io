@@ -1,4 +1,4 @@
-import { Edge, Face, Vec3 } from './model';
+import { Edge, EllipsoidShape, Face, Vec3 } from '../../../lib/vrender/model';
 
 export type MeshData = { vertices: Vec3[]; faces: Face[]; edges: Edge[] };
 
@@ -46,6 +46,40 @@ export function circleMesh(radius: number, steps: number): MeshData {
     edges.push([i, (i + 1) % steps]);
   }
   return { vertices, faces: [], edges };
+}
+
+// A low-poly stand-in for an ellipsoid, for picking, box select, and hiding things behind it. The
+// ellipsoid itself draws from its exact outline. The upper half is swept up by length and the
+// lower half down, with a band between them.
+export function ellipsoidMesh({ radii, length }: EllipsoidShape, segments = 16, halfRings = 4): MeshData {
+  const vertices: Vec3[] = [{ x: 0, y: 0, z: radii.z + length }];
+  const rings: number[] = [];
+  for (let i = 1; i <= halfRings; i++) {
+    rings.push((i / halfRings) * (Math.PI / 2));
+  }
+  const polar = [...rings.map(angle => ({ angle, offset: length })), ...rings.map(angle => ({ angle: Math.PI - angle, offset: -length })).reverse()];
+  for (const { angle, offset } of polar) {
+    for (let j = 0; j < segments; j++) {
+      const azimuth = (j / segments) * FULL_TURN;
+      vertices.push({
+        x: radii.x * Math.sin(angle) * Math.cos(azimuth),
+        y: radii.y * Math.sin(angle) * Math.sin(azimuth),
+        z: radii.z * Math.cos(angle) + offset,
+      });
+    }
+  }
+  const bottom = vertices.length;
+  vertices.push({ x: 0, y: 0, z: -radii.z - length });
+  const ring = (r: number, j: number) => 1 + r * segments + (j % segments);
+  const faces: Face[] = [];
+  for (let j = 0; j < segments; j++) {
+    faces.push([0, ring(0, j), ring(0, j + 1)]);
+    for (let r = 0; r + 1 < polar.length; r++) {
+      faces.push([ring(r, j), ring(r + 1, j), ring(r + 1, j + 1)], [ring(r, j), ring(r + 1, j + 1), ring(r, j + 1)]);
+    }
+    faces.push([bottom, ring(polar.length - 1, j + 1), ring(polar.length - 1, j)]);
+  }
+  return { vertices, faces, edges: [] };
 }
 
 // The wire shape that shows where a camera is: a pyramid opening toward its local +y, its

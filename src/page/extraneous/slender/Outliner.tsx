@@ -1,8 +1,9 @@
+import type { JSX } from 'react';
 import { Fragment, PointerEvent as ReactPointerEvent, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Eye, EyeSlash, FolderFill, FolderPlus, X } from 'react-bootstrap-icons';
 import { Bone } from './armature';
 import { EditorDocument, Folder, OutlinerItem, SceneObject } from './document';
-import { BoneIcon, CameraIcon, EditModeIcon, MeshIcon, PoseModeIcon, SelectableIcon } from './icons';
+import { BoneIcon, CameraIcon, EditModeIcon, EllipsoidIcon, MeshIcon, PoseModeIcon, SelectableIcon } from './icons';
 
 const INDENT = 14;
 const DRAG_THRESHOLD = 5;
@@ -142,7 +143,7 @@ export const Outliner = ({
   };
 
   const renderObject = (object: SceneObject, depth: number) => {
-    const { id, name, vertices, camera, bones, parent, visible } = object;
+    const { id, name, vertices, camera, bones, ellipsoid, parent, visible } = object;
     const isSelected = document.selectedObjects.includes(id);
     const isActive = document.activeObject === id;
     const parentName = document.objects.find(other => other.id === parent)?.name
@@ -175,8 +176,8 @@ export const Outliner = ({
         {bones && collapseButton(id, name)}
         {renaming === id ? renameInput(id, name, onRenameObject) : (
           <>
-            <span title={camera ? 'Camera' : bones ? `Armature, ${bones.length} bones` : `Mesh, ${vertices.length} vertices`} style={{ color: camera ? '#8fd18f' : bones ? '#8fc8e8' : '#e0a060' }}>
-              {camera ? <CameraIcon /> : bones ? (isActive && document.mode === 'pose' ? <PoseModeIcon /> : <BoneIcon />) : isActive && document.mode === 'edit' ? <EditModeIcon /> : <MeshIcon />}
+            <span title={camera ? 'Camera' : ellipsoid ? 'Ellipsoid' : bones ? `Armature, ${bones.length} bones` : `Mesh, ${vertices.length} vertices`} style={{ color: camera ? '#8fd18f' : bones ? '#8fc8e8' : '#e0a060' }}>
+              {camera ? <CameraIcon /> : ellipsoid ? <EllipsoidIcon /> : bones ? (isActive && document.mode === 'pose' ? <PoseModeIcon /> : <BoneIcon />) : isActive && document.mode === 'edit' ? <EditModeIcon /> : <MeshIcon />}
             </span>
             <span data-testid='item-name' style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
             {parentName && <span title={`Parent: ${parentName}`} style={{ opacity: 0.5, fontSize: 11, whiteSpace: 'nowrap' }}>↳ {parentName}</span>}

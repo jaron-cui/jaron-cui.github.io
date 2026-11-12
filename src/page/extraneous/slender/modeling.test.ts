@@ -4,11 +4,11 @@ import {
 } from './document';
 import { Ease, sampleTrack, track } from './animation';
 import { extrudeSelection, regionNormal, rotatedAroundAxis, scaledAbout, subdivideSelection, translatedAlongAxis, viewRay, wireframeEdges, worldRotation } from './editing';
-import { frameTimes, svgAnimation, svgFrame } from './exporting';
+import { frameTimes, svgAnimation, svgFrame } from '../../../lib/vrender/exporting';
 import { midpointVertex, poseAt, segmentHandles, setCoordinateEase, writeKeys } from './keyframes';
-import { Camera, Vec3 } from './model';
+import { Camera, Vec3 } from '../../../lib/vrender/model';
 import { cubeMesh, MeshData, planeMesh } from './primitives';
-import { projectPoint, projectScene } from './project';
+import { projectPoint, projectScene } from '../../../lib/vrender/project';
 import { groupsAfterSubdivide } from './rigging';
 import { applySnap } from './snapping';
 import { panView, rulerTicks, zoomView } from './timelineView';

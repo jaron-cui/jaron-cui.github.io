@@ -1,8 +1,8 @@
 import { weightColor } from './armature';
 import { Axis, midpoint, Occlusion, SelectMode, Selection, wireframeEdges } from './editing';
-import { applyMatrix, viewMatrix } from './matrix';
-import { Camera, Edge, Face, Vec2, Vec3 } from './model';
-import { projectPoint, projectSegment } from './project';
+import { applyMatrix, viewMatrix } from '../../../lib/vrender/matrix';
+import { Camera, Edge, Face, Vec2, Vec3 } from '../../../lib/vrender/model';
+import { projectPoint, projectSegment } from '../../../lib/vrender/project';
 import { GRID_SPACING } from './snapping';
 
 const GRID_HALF_LINES = 6;

@@ -1,5 +1,5 @@
 import { AnimatedVertex, keyState } from './keyframes';
-import { Rotation, Vec3 } from './model';
+import { Rotation, Vec3 } from '../../../lib/vrender/model';
 import { KEY_STATE_COLORS, NumberField } from './NumberField';
 
 const AXES = ['x', 'y', 'z'] as const;
