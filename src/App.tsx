@@ -21,7 +21,9 @@ import { ConnectFour } from './page/extraneous/connect-four/view';
 import { Slender } from './page/extraneous/slender/Slender';
 import { Editor } from './page/extraneous/slender/Editor';
 
-// Tools load on first visit, keeping them out of the main bundle.
+// Heavy demos load on first visit (three.js, MuJoCo WASM and the model stay out of the main bundle).
+const RatPage = lazy(() => import('./page/extraneous/rat-ncap/RatPage'));
+const Rat2Page = lazy(() => import('./page/extraneous/rat-ncap/Rat2Page'));
 const GearTool = lazy(() => import('./page/extraneous/gears/GearTool'));
 
 const paths = [
@@ -42,11 +44,13 @@ const paths = [
   ['/#/connect-four', () => <ConnectFour/>],
   ['/#/slender', () => <Editor/>],
   ['/#/slender/demo', () => <Slender/>],
+  ['/#/rat', () => <RatPage/>],
+  ['/#/rat2', () => <Rat2Page/>],
   ['/#/gears', () => <GearTool/>],
 ]
 
 // Full-screen pages that render without the site navigation bar.
-const fullScreenPrefixes = ['/#/slender'];
+const fullScreenPrefixes = ['/#/slender', '/#/rat'];
 
 function App() {
   const { pathname, hash } = useLocation();

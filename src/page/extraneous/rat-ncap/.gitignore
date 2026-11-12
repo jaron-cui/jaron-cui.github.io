@@ -1,0 +1,6 @@
+node_modules/
+# Parity-test goldens and the duplicate test bundle live only on the cluster (see README).
+data/*_trace.json
+data/1_4_flxext/
+__pycache__/
+dist/

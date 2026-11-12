@@ -1,0 +1,47 @@
+/* Scoped under .rat-app: the site loads this stylesheet globally once the page has been visited. */
+.rat-app {
+  position: fixed; inset: 0; z-index: 1; display: flex;
+  font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1d2330; background: #e9eef3;
+}
+.rat-app * { box-sizing: border-box; }
+.rat-app .viewport { flex: 1; min-width: 0; position: relative; overflow: hidden; }
+.rat-app .viewport > canvas { display: block; }
+.rat-app .panel { width: 300px; padding: 16px 18px; background: #fff; border-left: 1px solid #d5dbe2; overflow-y: auto; }
+.rat-app h1, .rat-app h2, .rat-app h3 { font-family: inherit; font-weight: 600; line-height: 1.3; }
+.rat-app h1 { font-size: 18px; margin: 0 0 2px; }
+.rat-app .subtitle { margin: 0 0 16px; color: #5b6575; font-size: 12px; }
+.rat-app .slider { display: block; margin-bottom: 8px; }
+.rat-app .slider span { display: block; margin-bottom: 6px; }
+.rat-app .slider input { width: 100%; }
+.rat-app .checkbox { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #5b6575; margin-bottom: 14px; }
+.rat-app .buttons { display: flex; gap: 8px; margin-bottom: 14px; }
+.rat-app button { flex: 1; padding: 7px 10px; border: 1px solid #b9c2cd; border-radius: 6px; background: #f6f8fa; cursor: pointer; font: inherit; color: inherit; }
+.rat-app button:hover:not(:disabled) { background: #eaeef2; }
+.rat-app button:disabled { opacity: 0.5; cursor: default; }
+.rat-app .stats { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 14px; font-variant-numeric: tabular-nums; }
+.rat-app .stats dt { color: #5b6575; font-weight: normal; }
+.rat-app .stats dd { margin: 0; text-align: right; }
+.rat-app .good { color: #1a7f37; }
+.rat-app .bad { color: #c62828; }
+.rat-app .status { margin: 0 0 14px; color: #5b6575; }
+.rat-app .status.error { color: #c62828; white-space: pre-wrap; font-size: 11px; }
+.rat-app .hint { color: #8a93a1; font-size: 12px; }
+@media (max-width: 700px) {
+  .rat-app { flex-direction: column; }
+  .rat-app .panel { width: auto; border-left: 0; border-top: 1px solid #d5dbe2; max-height: 45%; }
+}
+
+.rat-app .parameters { border-top: 1px solid #e3e8ee; padding-top: 12px; margin-bottom: 12px; }
+.rat-app .parameters-header { display: flex; align-items: center; justify-content: space-between; }
+.rat-app h2 { font-size: 15px; margin: 0; }
+.rat-app h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #8a93a1; margin: 10px 0 4px; }
+.rat-app button.small { flex: 0; padding: 3px 10px; font-size: 12px; }
+.rat-app .parameter-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow-y: auto; }
+.rat-app .parameter-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 3px; }
+.rat-app button.parameter { flex: 1; display: flex; justify-content: space-between; text-align: left; padding: 4px 8px; font-size: 13px; background: #fff; }
+.rat-app .parameter-list li.active button.parameter { background: #e6f0fb; border-color: #5b8fd6; }
+.rat-app .parameter-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rat-app .parameter-status { color: #3b6fb6; margin-left: 6px; }
+.rat-app button.remove { flex: 0; padding: 2px 8px; color: #8a93a1; }
+.rat-app .parameter-error { width: 100%; color: #c62828; font-size: 11px; white-space: pre-wrap; }
+.rat-app code { font-size: 11px; background: #f1f3f6; color: inherit; padding: 0 3px; border-radius: 3px; }
