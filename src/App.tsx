@@ -1,4 +1,6 @@
+import type { JSX } from 'react';
 import './App.css';
+import { lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import Home from './page/Home';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -19,6 +21,9 @@ import { ConnectFour } from './page/extraneous/connect-four/view';
 import { Slender } from './page/extraneous/slender/Slender';
 import { Editor } from './page/extraneous/slender/Editor';
 
+// Tools load on first visit, keeping them out of the main bundle.
+const GearTool = lazy(() => import('./page/extraneous/gears/GearTool'));
+
 const paths = [
   ['/', () => <Home />],
   ['/#/projects', () => <Projects />],
@@ -36,7 +41,8 @@ const paths = [
   ['/#/chess', () => <Chess/>],
   ['/#/connect-four', () => <ConnectFour/>],
   ['/#/slender', () => <Editor/>],
-  ['/#/slender/demo', () => <Slender/>]
+  ['/#/slender/demo', () => <Slender/>],
+  ['/#/gears', () => <GearTool/>],
 ]
 
 // Full-screen pages that render without the site navigation bar.
@@ -62,7 +68,7 @@ function App() {
     <>
       {!fullScreenPrefixes.some(prefix => currentPath.startsWith(prefix)) && <Navigation currentPath={currentPath}/>}
       <div>
-        {getPage()}
+        <Suspense fallback={null}>{getPage()}</Suspense>
       </div>
     </>
   );
