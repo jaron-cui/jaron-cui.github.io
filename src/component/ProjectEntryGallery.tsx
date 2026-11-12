@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { Tooltip } from "@mui/material";
 import { useState, useRef, useEffect, useReducer } from "react";
 import { Media } from "../util/types";

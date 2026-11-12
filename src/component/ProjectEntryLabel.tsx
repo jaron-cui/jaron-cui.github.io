@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { Button } from "@mui/material";
 import { BUTTON_STYLE, CENTERED_VERTICAL, DEFAULT_FONT, TRUNCATE_TEXT } from "../util/styles";
 import { ProjectInfo, ProjectStatus } from "../util/types";

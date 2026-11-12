@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 export type LegacyProjectInfo = {
   legacy: true;
   id: string;
