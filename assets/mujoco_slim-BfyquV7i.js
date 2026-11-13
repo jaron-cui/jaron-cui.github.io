@@ -1,0 +1,1 @@
+var e=`/assets/mujoco_slim-9bB31xhl.wasm`;export{e as default};
