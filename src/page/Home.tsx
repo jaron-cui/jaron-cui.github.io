@@ -1,8 +1,13 @@
 import { Button } from '@mui/material';
 import { BUTTON_STYLE, CENTERED_VERTICAL, DEFAULT_FONT, DEFAULT_MARGIN } from '../util/styles';
 import { Col, Collapse, Container, Dropdown, Row } from "react-bootstrap";
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { dateToString, formatDateString } from '../util/util';
+
+// The live rat demo loads MuJoCo and the trained model, so it comes in after the page.
+const RatDemo = lazy(() => import('./extraneous/rat-ncap/RatDemo'));
+// An interactive Slender scene: drag the view, edit a property's keyframes.
+const SlenderDemo = lazy(() => import('./extraneous/slender/SlenderDemo'));
 
 const EXPERIENCES: ExperienceProps[] = [
   {
@@ -62,6 +67,9 @@ export default function Home() {
             }}/>
           </Col>
         </Row>
+        <Suspense fallback={<div style={{ height: 312, marginBottom: 24 }}/>}>
+          <RatDemo/>
+        </Suspense>
         <Row>
           <Col>
             <h2>Neural Circuit Architectural Priors</h2>
@@ -101,6 +109,9 @@ export default function Home() {
             </p>
           </Col>
         </Row>
+        <Suspense fallback={<div style={{ height: 352, marginBottom: 24 }}/>}>
+          <SlenderDemo/>
+        </Suspense>
         <Row style={{paddingBottom: '40px'}}>
           <Col>
             <h2>Recent Doings</h2>
