@@ -11,6 +11,7 @@ the geometry is exact rather than approximate.
 | `GearTool.tsx` | The page: its intro, links to the sections, and the sections in order |
 | `drawing.tsx` | Shared by the sections: layout, fields, drawing sheets, grid, dimension lines and labels, the dimension table |
 | `profile.ts`, `SpurSection.tsx` | Spur gears: the generator (also used by every other section) and its section |
+| `bevel.ts`, `BevelSection.tsx` | Straight bevel pairs |
 
 Each generator has a `.test.ts` that checks it against textbook values.
 
@@ -41,6 +42,23 @@ Each generator has a `.test.ts` that checks it against textbook values.
   and flagged as pointed.
 - **`meshOf` spaces a pair (not shown on the page yet) using the working pressure angle,** solved from
   inv αw = inv α + 2 tan α (x₁ + x₂)/(N₁ + N₂), so shifted pairs sit backlash-free apart.
+
+## Bevel gears
+
+- **The cones are exact.** Pitch angles come from tan δ₁ = sin Σ / (N₂/N₁ + cos Σ), and both gears
+  share the cone distance R = d₁ / (2 sin δ₁). The tip and root cones run to the apex, so the small
+  end is the large end scaled by (R − b) / R.
+- **The tooth form is Tredgold's approximation.** The back cone, unrolled, is a spur gear of N / cos δ
+  teeth (not a whole number, which is fine: only one tooth's flank is used). The large end's tooth is
+  that virtual gear's tooth, generated as above.
+- **The view along the axis wraps the virtual tooth back onto the cone:** a distance along the back
+  cone projects onto the axis plane by cos δ, and the virtual pitch angle scales by 1 / cos δ.
+- **The blank is a simple one:** a back face a quarter of the face width behind the large end, then
+  straight to the bore. The section view puts dimensions on each gear's mirrored half, which is free of
+  the mesh.
+- **Face width is warned past R / 3,** the usual limit.
+- **Export is the view along the axis** (the large and small ends' outlines and the bore), which suits
+  a drawing more than a cut; a printable bevel gear needs the 3D export to come.
 
 ## Not yet
 
