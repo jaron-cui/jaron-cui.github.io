@@ -12,6 +12,7 @@ the geometry is exact rather than approximate.
 | `drawing.tsx` | Shared by the sections: layout, fields, drawing sheets, grid, dimension lines and labels, the dimension table |
 | `profile.ts`, `SpurSection.tsx` | Spur gears: the generator (also used by every other section) and its section |
 | `bevel.ts`, `BevelSection.tsx` | Straight bevel pairs |
+| `rack.ts`, `RackSection.tsx` | Racks with their pinions |
 
 Each generator has a `.test.ts` that checks it against textbook values.
 
@@ -59,6 +60,17 @@ Each generator has a `.test.ts` that checks it against textbook values.
 - **Face width is warned past R / 3,** the usual limit.
 - **Export is the view along the axis** (the large and small ends' outlines and the bore), which suits
   a drawing more than a cut; a printable bevel gear needs the 3D export to come.
+
+## Rack and pinion
+
+- **The rack is the basic rack itself:** straight flanks at the pressure angle, a circular pitch
+  apart, p/2 − j thick on the pitch line, with a fillet of ρ·m in each root (clamped to what fits the
+  space's floor).
+- **A tooth space sits at x = 0, under the pinion's tooth 0.** The rack ends mid-space, half a space
+  past its first and last teeth.
+- **The pinion is a spur gear from `profile.ts`.** Its axis sits m·N/2 + x·m above the pitch line, and
+  one turn moves the rack π·m·N. The drawing dimensions the heights you build to: pitch line to axis,
+  and rack back to axis.
 
 ## Not yet
 

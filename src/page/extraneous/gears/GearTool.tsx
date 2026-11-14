@@ -5,10 +5,12 @@ import { DEFAULT_FONT, DEFAULT_MARGIN } from '../../../util/styles';
 import { MUTED } from './drawing';
 import SpurSection from './SpurSection';
 import BevelSection from './BevelSection';
+import RackSection from './RackSection';
 
 const SECTIONS = [
   { id: 'spur', title: 'Spur gear', Section: SpurSection },
   { id: 'bevel', title: 'Bevel gears', Section: BevelSection },
+  { id: 'rack', title: 'Rack and pinion', Section: RackSection },
 ];
 
 export default function GearTool(): JSX.Element {
