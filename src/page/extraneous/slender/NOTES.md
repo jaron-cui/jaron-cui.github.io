@@ -53,6 +53,20 @@ Nothing is queued. All the owner's requests so far are done. Ask what comes next
 - File, Import SVG… (object mode). Each shape becomes an object in a stack, so the drawing keeps SVG's painting order from any angle; see README. Checked in the browser with a test drawing: rounded rect, even-odd and nonzero holes, cubic heart, rotated scaled ellipse with stroke, stroked polyline, skipped text.
 - Not handled: text, images, `<use>`, CSS classes and `<style>`, gradients (gray), opacity, markers, clip paths. The bridge into a hole shows as a line in edit mode's wire.
 
+## Rendering speed (2026-11-12)
+
+Phone-like benchmark: a 390 × 520 CSS-pixel canvas at device pixel ratio 3, CPU throttled 4× in headless Edge (software canvas), median `renderScene` time per frame:
+
+| Scene | Before | After outline loops |
+|---|---|---|
+| Default cube | 4 ms | 1 ms |
+| ball.slender | 16 ms | 5 ms |
+| Imported SVG test drawing | 22 ms | 6 ms |
+| 4,000-triangle sphere | 360–450 ms | 6 ms |
+| gear-slip-ring (1,300 marks) | 180 ms | 63 ms |
+
+What's left is mostly rasterizing thick border strokes and marks; join and cap styles made no difference, and halving the pixel ratio saves about a third. The benchmark harness lived in a temporary `src/zz-bench.ts` and isn't kept.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.

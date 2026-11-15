@@ -102,3 +102,53 @@ export function allTriangles(faces: Face[], vertices: Vec3[]): Triangle[] {
   flatCache.set(faces, result);
   return result;
 }
+
+// A mesh's triangles and the edges between them, for drawing its outline: each edge once (a < b),
+// and for each triangle side, which edge it is and whether the triangle runs along it a → b (+1) or
+// b → a (−1). Also how many triangle corners each vertex has, for the mesh's average depth.
+export type EdgeTopology = {
+  triangles: Int32Array; // three vertex indices per triangle
+  edgeA: Int32Array;
+  edgeB: Int32Array;
+  sides: Int32Array; // three edge indices per triangle
+  directions: Int8Array; // three per triangle
+  corners: Int32Array; // per vertex
+};
+
+const topologyCache = new WeakMap<Face[], EdgeTopology>();
+
+export function edgeTopology(faces: Face[], vertices: Vec3[]): EdgeTopology {
+  const known = topologyCache.get(faces);
+  if (known && known.corners.length === vertices.length) return known;
+  const list = allTriangles(faces, vertices);
+  const n = vertices.length;
+  const triangles = new Int32Array(list.length * 3);
+  const sides = new Int32Array(list.length * 3);
+  const directions = new Int8Array(list.length * 3);
+  const corners = new Int32Array(n);
+  const index = new Map<number, number>();
+  const edgeA: number[] = [];
+  const edgeB: number[] = [];
+  list.forEach((triangle, t) => {
+    for (let k = 0; k < 3; k++) {
+      const a = triangle[k];
+      const b = triangle[(k + 1) % 3];
+      triangles[t * 3 + k] = a;
+      corners[a]++;
+      const [lo, hi] = a < b ? [a, b] : [b, a];
+      const key = lo * n + hi;
+      let e = index.get(key);
+      if (e === undefined) {
+        e = edgeA.length;
+        index.set(key, e);
+        edgeA.push(lo);
+        edgeB.push(hi);
+      }
+      sides[t * 3 + k] = e;
+      directions[t * 3 + k] = a < b ? 1 : -1;
+    }
+  });
+  const result = { triangles, edgeA: Int32Array.from(edgeA), edgeB: Int32Array.from(edgeB), sides, directions, corners };
+  topologyCache.set(faces, result);
+  return result;
+}

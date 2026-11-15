@@ -247,7 +247,9 @@ describe('marked edges', () => {
     // The front face's own diagonal lies in it, so the face never hides it.
     const diagonal = meshWith([[at(-10, -10, -10), at(10, 10, -10)]]);
     expect(diagonal.marks).toHaveLength(1);
-    expect(diagonal.marks![0].length).toBeGreaterThan(20);
+    // A straight run is kept as its two ends, which reach the face's corners: 20 × 20 at depth 90.
+    const [p, q] = diagonal.marks![0];
+    expect(Math.hypot(q.x - p.x, q.y - p.y)).toBeCloseTo((Math.hypot(20, 20) * 100) / 90);
   });
 });
 

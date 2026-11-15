@@ -1,7 +1,7 @@
 import { toPath } from './geometry';
 import { applyMatrix, averageScale, Matrix, multiply, transformMatrix, viewMatrix } from './matrix';
 import { Camera, Color, EllipsoidNode, Face, MeshNode, PathGeometry, Rgb, Scene, SceneNode, ShapeNode, Stack, Vec2, Vec3 } from './model';
-import { allTriangles } from './triangulate';
+import { allTriangles, edgeTopology } from './triangulate';
 
 // Nothing closer to the camera than this is drawn. Projection divides by depth, so geometry must
 // be cut off before depth reaches zero.
@@ -365,29 +365,106 @@ function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[
     ts.push(0);
     vs.push(shown(0));
     refine(0, vs[0], 1, shown(1));
-    let current: Vec2[] = [];
-    for (let k = 0; k < ts.length; k++) {
-      if (vs[k]) {
-        current.push({ x: ax + (bx - ax) * ts[k], y: ay + (by - ay) * ts[k] });
-      } else {
-        if (current.length > 1) runs.push(current);
-        current = [];
+    // A marked edge is straight on screen, so a visible stretch needs only its two ends.
+    let first = -1;
+    for (let k = 0; k <= ts.length; k++) {
+      if (k < ts.length && vs[k]) {
+        if (first < 0) first = k;
+      } else if (first >= 0) {
+        if (k - 1 > first) {
+          const [t0, t1] = [ts[first], ts[k - 1]];
+          runs.push([{ x: ax + (bx - ax) * t0, y: ay + (by - ay) * t0 }, { x: ax + (bx - ax) * t1, y: ay + (by - ay) * t1 }]);
+        }
+        first = -1;
       }
     }
-    if (current.length > 1) runs.push(current);
   }
   return runs;
 }
 
-function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshItem | null {
-  const vertices = node.vertices.map(({ x, y, z }) => applyMatrix(matrix, x, y, z));
-  const polygons: Vec2[][] = [];
+// A mesh's outline as closed loops whose nonzero fill covers exactly what its triangles cover.
+// Each projected triangle is wound positively on screen, so it adds +1 inside itself. An edge two
+// triangles share from opposite sides on screen is then run both ways and cancels; what's left are
+// the silhouette, fold, and open edges, which chain into loops with the same winding everywhere, so
+// they fill the same area. Stroking them draws only the outline that shows, where stroking every
+// triangle drew it too but painted the rest over. Null if any vertex is behind the near plane, which
+// needs clipping triangle by triangle.
+function outlineLoops(node: MeshNode, vertices: Vec3[], focalLength: number): { loops: Vec2[][]; depthSum: number; depthCount: number } | null {
+  const n = vertices.length;
+  const sx = new Float64Array(n);
+  const sy = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const { x, y, z } = vertices[i];
+    if (z < NEAR_DEPTH) return null;
+    sx[i] = (focalLength * x) / z;
+    sy[i] = (focalLength * y) / z;
+  }
+  const { triangles, edgeA, edgeB, sides, directions, corners } = edgeTopology(node.faces.value, node.vertices);
+  const count = new Int32Array(edgeA.length);
+  for (let t = 0; t < triangles.length; t += 3) {
+    const a = triangles[t], b = triangles[t + 1], c = triangles[t + 2];
+    const area = (sx[b] - sx[a]) * (sy[c] - sy[a]) - (sx[c] - sx[a]) * (sy[b] - sy[a]);
+    if (area === 0) continue;
+    const sign = area > 0 ? 1 : -1;
+    count[sides[t]] += sign * directions[t];
+    count[sides[t + 1]] += sign * directions[t + 1];
+    count[sides[t + 2]] += sign * directions[t + 2];
+  }
+  // The edges left over, directed, then sorted by where they start.
+  const from: number[] = [];
+  const to: number[] = [];
+  for (let e = 0; e < count.length; e++) {
+    for (let k = count[e]; k > 0; k--) { from.push(edgeA[e]); to.push(edgeB[e]); }
+    for (let k = count[e]; k < 0; k++) { from.push(edgeB[e]); to.push(edgeA[e]); }
+  }
+  const starts = new Int32Array(n + 1);
+  for (const v of from) starts[v + 1]++;
+  for (let v = 0; v < n; v++) starts[v + 1] += starts[v];
+  const cursor = starts.slice(0, n);
+  const order = new Int32Array(from.length);
+  from.forEach((v, i) => { order[cursor[v]++] = i; });
+  cursor.set(starts.subarray(0, n));
+  // Every vertex has as many edges in as out, so walking unused edges always returns to the start.
+  const used = new Uint8Array(from.length);
+  const loops: Vec2[][] = [];
+  for (let i = 0; i < from.length; i++) {
+    if (used[i]) continue;
+    const loop: Vec2[] = [{ x: sx[from[i]], y: sy[from[i]] }];
+    let current = i;
+    for (;;) {
+      used[current] = 1;
+      const v = to[current];
+      let next = -1;
+      while (cursor[v] < starts[v + 1]) {
+        const candidate = order[cursor[v]++];
+        if (!used[candidate]) { next = candidate; break; }
+      }
+      if (next < 0) break;
+      loop.push({ x: sx[v], y: sy[v] });
+      current = next;
+    }
+    loops.push(loop);
+  }
   let depthSum = 0;
   let depthCount = 0;
+  for (let i = 0; i < n; i++) {
+    depthSum += corners[i] * vertices[i].z;
+    depthCount += corners[i];
+  }
+  return { loops, depthSum, depthCount };
+}
+
+function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshItem | null {
+  const vertices = node.vertices.map(({ x, y, z }) => applyMatrix(matrix, x, y, z));
+  const outline = outlineLoops(node, vertices, focalLength);
+  const polygons: Vec2[][] = outline ? outline.loops : [];
+  // Depth weighs every triangle corner, then every line end, as before.
+  let depthSum = outline?.depthSum ?? 0;
+  let depthCount = outline?.depthCount ?? 0;
   // Faces draw as their triangles: a projected triangle can't fold over itself, so every piece can
   // be wound the same way and the nonzero fill covers their union. A larger face, a curved one most
   // of all, can fold over seen nearly edge-on, and its reversed part would cancel what's behind it.
-  for (const face of allTriangles(node.faces.value, node.vertices)) {
+  for (const face of outline ? [] : allTriangles(node.faces.value, node.vertices)) {
     const clipped = clipPolygon(face.map(i => vertices[i]));
     if (clipped.length === 0) {
       continue;
