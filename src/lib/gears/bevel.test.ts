@@ -1,5 +1,5 @@
 import { DEFAULT_BEVEL, bevelGeometry, largeEndThickness, pitchAngles } from './bevel';
-import { rad } from './profile';
+import { rad } from './spur';
 
 describe('bevel gears', () => {
   it('splits a right angle by the tooth ratio', () => {

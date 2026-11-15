@@ -8,8 +8,8 @@ import {
   GeneratorSection, Grid, Line, MUTED, NumberField, PITCH, Part, ScaleBar, Sheet, SiteButton, Sym, fitView, fmt, polar, toScreen, turnUp, usePersistent,
 } from './drawing';
 import type { DimensionRow, Size } from './drawing';
-import { DEFAULT_GEAR, halfThicknessAt, maxRootFillet, pitchThickness, rad, spurProfile, svgFile } from './profile';
-import type { SpurGear, SpurProfile, Vec2 } from './profile';
+import { DEFAULT_GEAR, halfThicknessAt, maxRootFillet, pitchThickness, rad, spurProfile, svgFile } from '../../../lib/gears/spur';
+import type { SpurGear, SpurProfile, Vec2 } from '../../../lib/gears/spur';
 
 export default function SpurSection() {
   const [gear, set, reset] = usePersistent<SpurGear>('gears-spur', DEFAULT_GEAR);

@@ -2,8 +2,8 @@
 // Tredgold's approximation: the back cone, unrolled, is a spur gear of N / cos δ teeth, so the tooth is
 // that virtual gear's involute tooth, wrapped back onto the cone. Teeth taper toward the apex, so the
 // small end is the large end scaled by (R − b) / R. Units are millimeters.
-import { gearCircles, halfThicknessAt, rad, spurProfile } from './profile';
-import type { SpurGear, ToothFlank, Vec2 } from './profile';
+import { gearCircles, halfThicknessAt, rad, spurProfile } from './spur';
+import type { SpurGear, ToothFlank, Vec2 } from './spur';
 
 export type BevelPair = {
   teeth: [number, number];

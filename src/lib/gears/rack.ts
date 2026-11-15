@@ -1,9 +1,9 @@
 // Racks and their pinions. A rack is the basic rack itself: straight flanks at the pressure angle,
-// teeth a circular pitch apart, a fillet at each root. The pinion is a spur gear (see profile.ts) whose
+// teeth a circular pitch apart, a fillet at each root. The pinion is a spur gear (see spur.ts) whose
 // pitch circle rolls on the rack's pitch line. Units are millimeters; the rack's pitch line is y = 0
 // and its teeth point up.
-import { DEFAULT_GEAR, gearCircles, rad, spurProfile } from './profile';
-import type { SpurGear, SpurProfile, Vec2 } from './profile';
+import { DEFAULT_GEAR, gearCircles, rad, spurProfile } from './spur';
+import type { SpurGear, SpurProfile, Vec2 } from './spur';
 
 export type RackPair = {
   module: number;

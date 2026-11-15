@@ -1,4 +1,4 @@
-import { halfThicknessAt, spurProfile, DEFAULT_GEAR } from './profile';
+import { halfThicknessAt, spurProfile, DEFAULT_GEAR } from './spur';
 import { DEFAULT_RING, ringGear, ringMesh } from './ring';
 
 describe('ring gear', () => {

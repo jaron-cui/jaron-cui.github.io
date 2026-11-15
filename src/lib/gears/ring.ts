@@ -3,8 +3,8 @@
 // same teeth: its "addendum" is the ring's dedendum (reaching outward), its "dedendum" the ring's
 // addendum (reaching inward), and its teeth thicker by the backlash, since they are the ring's
 // spaces. Units are millimeters.
-import { DEFAULT_GEAR, gearCircles, spurProfile } from './profile';
-import type { SpurGear, SpurProfile, Vec2 } from './profile';
+import { DEFAULT_GEAR, gearCircles, spurProfile } from './spur';
+import type { SpurGear, SpurProfile, Vec2 } from './spur';
 
 export type RingPair = {
   module: number;

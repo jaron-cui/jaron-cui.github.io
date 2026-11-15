@@ -6,10 +6,10 @@ import {
   NumberField, PITCH, Part, ScaleBar, Sheet, SiteButton, Sym, fitView, fmt, toScreen, usePersistent,
 } from './drawing';
 import type { DimensionRow, Size } from './drawing';
-import { pitchThickness, svgFile } from './profile';
-import type { Vec2 } from './profile';
-import { DEFAULT_RACK, maxRackFillet, pinionOf, rackMesh, rackSvg } from './rack';
-import type { RackMesh, RackPair } from './rack';
+import { pitchThickness, svgFile } from '../../../lib/gears/spur';
+import type { Vec2 } from '../../../lib/gears/spur';
+import { DEFAULT_RACK, maxRackFillet, pinionOf, rackMesh, rackSvg } from '../../../lib/gears/rack';
+import type { RackMesh, RackPair } from '../../../lib/gears/rack';
 import { ToothFormFields } from './SpurSection';
 
 export default function RackSection() {

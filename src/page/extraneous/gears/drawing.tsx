@@ -8,7 +8,7 @@ import { Col, Row, Table } from 'react-bootstrap';
 import { Download } from 'react-bootstrap-icons';
 import { downloadFile } from '../../../lib/psave/files';
 import { BUTTON_STYLE, DEFAULT_FONT } from '../../../util/styles';
-import type { Vec2 } from './profile';
+import type { Vec2 } from '../../../lib/gears/spur';
 
 export const INK = '#222222';
 export const MUTED = '#777777';

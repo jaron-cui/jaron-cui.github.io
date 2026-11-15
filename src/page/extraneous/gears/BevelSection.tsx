@@ -7,9 +7,9 @@ import {
   MUTED, NumberField, PITCH, Part, ScaleBar, Sheet, SiteButton, Sym, boxOf, fitView, fmt, toScreen, turnUp, usePersistent,
 } from './drawing';
 import type { DimensionRow, Size } from './drawing';
-import { DEFAULT_BEVEL, bevelFrontSvg, bevelGeometry, largeEndThickness } from './bevel';
-import type { AxialPoint, BevelGear, BevelGeometry, BevelPair } from './bevel';
-import type { Vec2 } from './profile';
+import { DEFAULT_BEVEL, bevelFrontSvg, bevelGeometry, largeEndThickness } from '../../../lib/gears/bevel';
+import type { AxialPoint, BevelGear, BevelGeometry, BevelPair } from '../../../lib/gears/bevel';
+import type { Vec2 } from '../../../lib/gears/spur';
 import { ToothFormFields } from './SpurSection';
 
 const NAMES = ['Pinion', 'Gear'] as const;

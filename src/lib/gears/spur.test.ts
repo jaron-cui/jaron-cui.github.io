@@ -1,5 +1,5 @@
-import { DEFAULT_GEAR, gearCircles, halfThicknessAt, involute, meshOf, pitchThickness, rad, spurProfile } from './profile';
-import type { SpurGear } from './profile';
+import { DEFAULT_GEAR, gearCircles, halfThicknessAt, involute, meshOf, pitchThickness, rad, spurProfile } from './spur';
+import type { SpurGear } from './spur';
 
 const gear = (overrides: Partial<SpurGear>): SpurGear => ({ ...DEFAULT_GEAR, ...overrides });
 

@@ -5,9 +5,9 @@ import {
   NumberField, PITCH, Part, ScaleBar, Sheet, SiteButton, Sym, fitView, fmt, polar, toScreen, turnUp, usePersistent,
 } from './drawing';
 import type { DimensionRow, Size } from './drawing';
-import { svgFile } from './profile';
-import { DEFAULT_RING, MIN_TEETH_DIFFERENCE, ringMesh, ringSvg } from './ring';
-import type { RingMesh, RingPair } from './ring';
+import { svgFile } from '../../../lib/gears/spur';
+import { DEFAULT_RING, MIN_TEETH_DIFFERENCE, ringMesh, ringSvg } from '../../../lib/gears/ring';
+import type { RingMesh, RingPair } from '../../../lib/gears/ring';
 import { ToothFormFields } from './SpurSection';
 
 export default function RingSection() {
