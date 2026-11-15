@@ -1,4 +1,4 @@
-import{a as e}from"./rolldown-runtime-BWaJ3C7D.js";import{n as t,t as n}from"./jsx-runtime-DApVmHJR.js";import{b as r,y as i}from"./index-CxwCIuUZ.js";import{b as a,r as o,y as s}from"./render-B53LHKNr.js";import{Q as c,b as l,dt as u}from"./document-CgU-tkZf.js";import{M as d,n as f}from"./projectFile-Dots8_oX.js";var p=e(t(),1),m=`{
+import{a as e}from"./rolldown-runtime-BWaJ3C7D.js";import{n as t,t as n}from"./jsx-runtime-DApVmHJR.js";import{b as r,y as i}from"./index-ByBfSqB9.js";import{b as a,r as o,y as s}from"./render-B53LHKNr.js";import{Q as c,b as l,dt as u}from"./document-CgU-tkZf.js";import{M as d,n as f}from"./projectFile-Dots8_oX.js";var p=e(t(),1),m=`{
  "format": "slender",
  "version": 1,
  "document": {
