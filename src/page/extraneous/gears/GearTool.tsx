@@ -6,11 +6,13 @@ import { MUTED } from './drawing';
 import SpurSection from './SpurSection';
 import BevelSection from './BevelSection';
 import RackSection from './RackSection';
+import RingSection from './RingSection';
 
 const SECTIONS = [
   { id: 'spur', title: 'Spur gear', Section: SpurSection },
   { id: 'bevel', title: 'Bevel gears', Section: BevelSection },
   { id: 'rack', title: 'Rack and pinion', Section: RackSection },
+  { id: 'ring', title: 'Ring gear', Section: RingSection },
 ];
 
 export default function GearTool(): JSX.Element {

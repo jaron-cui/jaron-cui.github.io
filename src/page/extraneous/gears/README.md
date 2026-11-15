@@ -13,6 +13,7 @@ the geometry is exact rather than approximate.
 | `profile.ts`, `SpurSection.tsx` | Spur gears: the generator (also used by every other section) and its section |
 | `bevel.ts`, `BevelSection.tsx` | Straight bevel pairs |
 | `rack.ts`, `RackSection.tsx` | Racks with their pinions |
+| `ring.ts`, `RingSection.tsx` | Ring (internal) gears with their pinions |
 
 Each generator has a `.test.ts` that checks it against textbook values.
 
@@ -71,6 +72,17 @@ Each generator has a `.test.ts` that checks it against textbook values.
 - **The pinion is a spur gear from `profile.ts`.** Its axis sits m·N/2 + x·m above the pitch line, and
   one turn moves the rack π·m·N. The drawing dimensions the heights you build to: pitch line to axis,
   and rack back to axis.
+
+## Ring gears
+
+- **A ring's tooth space is an external gear's tooth.** So the ring is generated as the complement of
+  an external gear with the same teeth: its addendum is the ring's dedendum (reaching out), its
+  dedendum is the ring's addendum (reaching in), its backlash is negative (its teeth are the ring's
+  spaces, widened by j), and it has no root fillet (that would round the ring's tooth tips).
+- **The pinion sits m (N_r − N_p) / 2 from the ring's center** and turns the same way, N_r / N_p times
+  per ring turn.
+- **Fewer than about 12 teeth' difference is warned about,** where standard 20° teeth start to foul at
+  the tips. That's a rule of thumb, not a computed interference check.
 
 ## Not yet
 
