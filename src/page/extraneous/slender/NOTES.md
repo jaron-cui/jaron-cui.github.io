@@ -48,6 +48,11 @@ Nothing is queued. All the owner's requests so far are done. Ask what comes next
 - Lines can be quadratic, cubic, or SVG elliptical arcs (`curves.ts`), set from Ctrl+E. They're the groundwork for SVG import.
 - Unverified: curves through the Mirror modifier and Apply were unit tested only. A mirrored mesh with curves rebuilds its tessellation and triangles every frame (the mirror makes new arrays each time); fine for small meshes, unmeasured for large ones.
 
+## SVG import (2026-11-12)
+
+- File, Import SVG… (object mode). Each shape becomes an object in a stack, so the drawing keeps SVG's painting order from any angle; see README. Checked in the browser with a test drawing: rounded rect, even-odd and nonzero holes, cubic heart, rotated scaled ellipse with stroke, stroked polyline, skipped text.
+- Not handled: text, images, `<use>`, CSS classes and `<style>`, gradients (gray), opacity, markers, clip paths. The bridge into a hole shows as a line in edit mode's wire.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.

@@ -250,3 +250,21 @@ describe('marked edges', () => {
     expect(diagonal.marks![0].length).toBeGreaterThan(20);
   });
 });
+
+describe('stacks', () => {
+  // Two squares in the z = 0 plane, the second nearer the camera's side, and so drawn last by depth.
+  const square = (x: number, z: number) => triangles(
+    [{ x: x - 5, y: -5, z }, { x: x + 5, y: -5, z }, { x: x + 5, y: 5, z }, { x: x - 5, y: 5, z }], [[0, 1, 2, 3]],
+  );
+  const tilted: Camera = { ...CAMERA, position: { x: 0, y: 0, z: -100 } };
+  it('draws a stack in index order whatever the depths, at the stack\'s place', () => {
+    const far = { ...square(0, 10), name: 'far', fill: { r: 1, g: 0, b: 0 }, stack: fixed({ id: 'drawing', index: 1 }) };
+    const near = { ...square(0, -10), name: 'near', fill: { r: 0, g: 0, b: 1 }, stack: fixed({ id: 'drawing', index: 0 }) };
+    const items = projectScene(sceneOf([far, near], tilted), 0.25) as MeshItem[];
+    // Index 0 first, though it's nearer.
+    expect(items.map(i => i.fill.b)).toEqual([1, 0]);
+    // Without stacks, depth decides.
+    const plain = projectScene(sceneOf([{ ...far, stack: undefined }, { ...near, stack: undefined }], tilted), 0.25) as MeshItem[];
+    expect(plain.map(i => i.fill.b)).toEqual([0, 1]);
+  });
+});

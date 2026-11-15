@@ -1,6 +1,6 @@
 import { toPath } from './geometry';
 import { applyMatrix, averageScale, Matrix, multiply, transformMatrix, viewMatrix } from './matrix';
-import { Camera, Color, EllipsoidNode, Face, MeshNode, PathGeometry, Rgb, Scene, SceneNode, ShapeNode, Vec2, Vec3 } from './model';
+import { Camera, Color, EllipsoidNode, Face, MeshNode, PathGeometry, Rgb, Scene, SceneNode, ShapeNode, Stack, Vec2, Vec3 } from './model';
 import { allTriangles } from './triangulate';
 
 // Nothing closer to the camera than this is drawn. Projection divides by depth, so geometry must
@@ -52,7 +52,7 @@ export type EllipsoidItem = {
   highlight?: Rgb;
 };
 
-export type DrawItem = ShapeItem | MeshItem | EllipsoidItem;
+export type DrawItem = (ShapeItem | MeshItem | EllipsoidItem) & { stack?: Stack };
 
 function project({ x, y, z }: Vec3, focalLength: number): Vec2 {
   return { x: focalLength * x / z, y: focalLength * y / z };
@@ -598,10 +598,28 @@ export function projectScene({ camera, nodes }: Scene, tolerance: number): DrawI
         ? projectEllipsoid(node, matrix, camera.focalLength)
         : projectMesh(node, matrix, camera.focalLength);
     if (item) {
-      items.push(item);
+      items.push(node.stack ? { ...item, stack: node.stack.value } : item);
     }
   };
   const view = viewMatrix(camera);
   nodes.forEach(node => visit(node, view));
-  return items.sort((a, b) => b.depth - a.depth);
+  // A stack sorts as one item, at its members' average depth, and its members by index.
+  const stacks = new Map<string, { sum: number; count: number }>();
+  for (const item of items) {
+    if (item.stack) {
+      const entry = stacks.get(item.stack.id) ?? { sum: 0, count: 0 };
+      entry.sum += item.depth;
+      entry.count++;
+      stacks.set(item.stack.id, entry);
+    }
+  }
+  const depthOf = (item: DrawItem) => {
+    const entry = item.stack && stacks.get(item.stack.id);
+    return entry ? entry.sum / entry.count : item.depth;
+  };
+  return items.sort((a, b) => {
+    const order = depthOf(b) - depthOf(a);
+    if (order !== 0 || !a.stack || !b.stack || a.stack.id !== b.stack.id) return order;
+    return a.stack.index - b.stack.index;
+  });
 }

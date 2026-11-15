@@ -13,7 +13,8 @@ export type FileHandle = {
 };
 
 // A kind of project file, as the pickers describe it, e.g. { description: 'Slender project', extension: '.slender' }.
-export type FileType = { description: string; extension: string };
+// mime is the type the file picker filters by; projects are JSON unless it says otherwise.
+export type FileType = { description: string; extension: string; mime?: string };
 
 export type OpenedFile = { name: string; text: string; handle: FileHandle | null };
 
@@ -27,8 +28,8 @@ function pickerWindow(): PickerWindow {
   return window as unknown as PickerWindow;
 }
 
-function pickerTypes({ description, extension }: FileType): PickerOptions['types'] {
-  return [{ description, accept: { 'application/json': [extension] } }];
+function pickerTypes({ description, extension, mime }: FileType): PickerOptions['types'] {
+  return [{ description, accept: { [mime ?? 'application/json']: [extension] } }];
 }
 
 // The user dismissing a picker is not a failure.

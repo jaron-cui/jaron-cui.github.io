@@ -60,6 +60,7 @@ export type MeshNode = {
   worldMatrix?: Fixed<number[]>;
   // A selection outline, drawn around the outside of the silhouette, border included.
   highlight?: Fixed<Rgb>;
+  stack?: Fixed<Stack>;
   // Lines drawn over the fill in the border's color, where the mesh's own faces do not hide them,
   // to show creases and contours inside the silhouette. Each is a vertex pair, a face side or a line.
   marked?: Fixed<Edge[]>;
@@ -80,11 +81,17 @@ export type EllipsoidNode = EllipsoidShape & {
   // As on a mesh: replaces the transform when given.
   worldMatrix?: Fixed<number[]>;
   highlight?: Fixed<Rgb>;
+  stack?: Fixed<Stack>;
   fill: Rgb;
   border: Stroke | null;
 };
 
-export type ShapeNode = { kind: 'shape'; name: string; transform: Transform; geometry: Geometry; style: Style };
+// Items are drawn far to near, each at its average depth. Items in the same stack instead draw
+// together, at their stack's average depth, in order of index: a flat drawing's layers, say, which
+// must keep their painting order from any angle.
+export type Stack = { id: string; index: number };
+
+export type ShapeNode = { kind: 'shape'; name: string; transform: Transform; geometry: Geometry; style: Style; stack?: Fixed<Stack> };
 export type GroupNode = { kind: 'group'; name: string; transform: Transform; children: SceneNode[] };
 export type SceneNode = ShapeNode | MeshNode | EllipsoidNode | GroupNode;
 

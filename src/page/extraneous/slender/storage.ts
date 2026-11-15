@@ -177,6 +177,13 @@ export function pickFileToOpen(): Promise<psave.OpenedFile | null> {
   return psave.pickFileToOpen(FILE_TYPE);
 }
 
+const SVG_TYPE: psave.FileType = { description: 'SVG drawing', extension: '.svg', mime: 'image/svg+xml' };
+
+// Asks for an SVG drawing to import.
+export function pickSvgToImport(): Promise<psave.OpenedFile | null> {
+  return psave.pickFileToOpen(SVG_TYPE);
+}
+
 export function pickFileToSave(suggestedName: string): Promise<FileHandle | null> {
   return psave.pickFileToSave(FILE_TYPE, suggestedName);
 }

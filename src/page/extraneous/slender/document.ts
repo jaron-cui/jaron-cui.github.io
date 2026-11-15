@@ -42,6 +42,9 @@ export type SceneObject = {
   // Lines that bend, each against the vertex pair it joins (see curves.ts). Missing in files from
   // before there were any.
   curves?: EdgeCurve[];
+  // Draws together with the other objects in the same stack, in index order, whatever their depths:
+  // an imported drawing's layers keep SVG's painting order. Missing on most objects.
+  stack?: { id: string; index: number };
   fill: Rgb;
   border: { color: Rgb; width: number };
   selectedVertices: Selection;
@@ -637,6 +640,7 @@ export function toScene(document: EditorDocument, camera: Camera, time: number, 
         worldMatrix: fixed(matrices.get(object.id)!),
         fill: object.fill,
         border: { color: { ...object.border.color, a: 1 }, width: object.border.width },
+        ...(object.stack ? { stack: fixed(object.stack) } : {}),
         ...(highlight && document.mode === 'object' && document.selectedObjects.includes(object.id)
           ? { highlight: fixed(object.id === document.activeObject ? ACTIVE_OUTLINE : SELECTED_OUTLINE) }
           : {}),

@@ -45,9 +45,10 @@ import {
   PaintTool, paintWeights, parentBones, ParentKind, parentSelected, removeFromGroup, removeVertexGroup, renameBone, renameVertexGroup, selectedBonesOf, setBoneParent, symmetrizeBones,
 } from './rigging';
 import { marksAfterCopy, marksAfterDelete, marksAfterSubdivide, marksOnMesh, selectedLines, setMarked } from './marks';
+import { addImportedMeshes, importSvg } from './svgImport';
 import { CurveShape, curveAt, curveBetween, curvesAfterCopy, curvesAfterDelete, curvesAfterSubdivide, curvesOnMesh, reversed, setCurve, transformCurves } from './curves';
 import {
-  canWriteFiles, currentTabId, deleteSession, downloadFile, FileHandle, forgetRecent, latestAbandonedSession, loadSession, pickFileToOpen, pickFileToSave, ProjectFile,
+  canWriteFiles, currentTabId, deleteSession, downloadFile, FileHandle, forgetRecent, latestAbandonedSession, loadSession, pickFileToOpen, pickFileToSave, pickSvgToImport, ProjectFile,
   pruneSessions, readHandle, RecentFile, rememberRecent, recentFiles, SessionRecord, writeHandle, writeSession,
 } from './storage';
 import { KeyEdit } from './CurvesEditor';
@@ -809,6 +810,32 @@ export const Editor = () => {
     const times = frameTimes(document.frameStart, document.frameEnd, document.frameRate);
     const baseName = (fileRef.current?.name ?? UNTITLED).replace(new RegExp(`\\${FILE_EXTENSION}$`), '');
     return { document, size, sceneAt, times, baseName, viewSource: chosen ? chosen.name : 'the viewport' };
+  };
+
+  // File, Import SVG: each shape becomes an object, in a folder named after the file, at the cursor.
+  const importSvgFile = async () => {
+    setMenu(null);
+    if (currentDocument().mode !== 'object') {
+      setMessage('Import SVG works in object mode.');
+      return;
+    }
+    try {
+      const chosen = await pickSvgToImport();
+      if (!chosen) {
+        return;
+      }
+      const { meshes, skipped } = importSvg(chosen.text);
+      const left = Array.from(skipped, ([tag, count]) => `${count} ${tag}`).join(', ');
+      if (meshes.length === 0) {
+        setMessage(`Found no shapes to import in ${chosen.name}${left ? ` (skipped ${left})` : ''}.`);
+        return;
+      }
+      const name = chosen.name.replace(/\.svg$/i, '');
+      apply(addImportedMeshes(currentDocument(), name, meshes, cursorRef.current));
+      setMessage(`Imported ${meshes.length} ${meshes.length === 1 ? 'shape' : 'shapes'} from ${chosen.name}${left ? `. Skipped what Slender can't show: ${left}` : ''}.`);
+    } catch (error) {
+      failed('import that SVG', error);
+    }
   };
 
   const exportFrameSvg = () => {
@@ -3005,6 +3032,7 @@ export const Editor = () => {
               ))}
               <button role='menuitem' onClick={() => saveFile(false)} className='slender-menu-item'>Save</button>
               <button role='menuitem' onClick={() => saveFile(true)} className='slender-menu-item'>Save As…</button>
+              <button role='menuitem' onClick={importSvgFile} className='slender-menu-item'>Import SVG…</button>
               <button role='menuitem' onClick={exportFrameSvg} className='slender-menu-item'>Export Frame (SVG)</button>
               <button role='menuitem' onClick={exportAnimationSvg} className='slender-menu-item'>Export Animation (SVG)</button>
               <button role='menuitem' onClick={exportVideo} className='slender-menu-item'>Export Video (WebM)</button>
