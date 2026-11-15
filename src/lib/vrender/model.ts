@@ -37,8 +37,10 @@ export type Rotation = Vec3 & { w?: number };
 // Applied in the order scale, rotate, translate.
 export type Transform = { position: Vec3; rotation: Rotation; scale: Vec3 };
 
-// Three indices into a mesh's vertices. Winding does not matter.
-export type Face = [number, number, number];
+// A loop of three or more indices into a mesh's vertices: a triangle, a quad, or any n-sided face.
+// Winding does not matter. A face with a hole is one loop with a zero-width cut out to the hole and
+// back, so the cut's ends appear twice. See triangulate.ts for its triangles.
+export type Face = number[];
 
 // Two indices into a mesh's vertices. Only lines that stand alone are listed; the sides of faces
 // are implied by the faces.

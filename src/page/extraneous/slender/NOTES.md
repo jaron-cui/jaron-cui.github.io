@@ -42,6 +42,12 @@ Nothing is queued. All the owner's requests so far are done. Ask what comes next
 - The renderer side is `marked` on `MeshNode` and `marks` on `MeshItem` in `src/lib/vrender`, and SVG export draws them too. Visibility samples each edge 24 times against the mesh's triangles, so very large meshes with many marks will cost more; nothing is measured.
 - Unverified: marks through a Mirror modifier and through Apply were only unit tested, not looked at.
 
+## N-sided faces and curved lines (2026-11-12)
+
+- Faces are any loop (`Face = number[]` in vrender). F makes one face; extrusion makes quad walls; subdividing a face with more than three sides takes the new vertices into its loop (triangles still split as before). The status bar counts faces.
+- Lines can be quadratic, cubic, or SVG elliptical arcs (`curves.ts`), set from Ctrl+E. They're the groundwork for SVG import.
+- Unverified: curves through the Mirror modifier and Apply were unit tested only. A mirrored mesh with curves rebuilds its tessellation and triangles every frame (the mirror makes new arrays each time); fine for small meshes, unmeasured for large ones.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.

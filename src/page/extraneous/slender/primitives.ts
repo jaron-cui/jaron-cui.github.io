@@ -1,7 +1,9 @@
+import type { EdgeCurve } from './curves';
 import { Edge, EllipsoidShape, Face, Vec3 } from '../../../lib/vrender/model';
 
-// marked: lines drawn along with the outline (see marks.ts). Only rendering and the mirror use it.
-export type MeshData = { vertices: Vec3[]; faces: Face[]; edges: Edge[]; marked?: Edge[] };
+// marked: lines drawn along with the outline (see marks.ts). curves: lines that bend (see curves.ts).
+// Only rendering, picking, and the mirror use either.
+export type MeshData = { vertices: Vec3[]; faces: Face[]; edges: Edge[]; marked?: Edge[]; curves?: EdgeCurve[] };
 
 const FULL_TURN = Math.PI * 2;
 

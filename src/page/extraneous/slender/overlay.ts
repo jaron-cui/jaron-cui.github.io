@@ -1,4 +1,6 @@
 import { weightColor } from './armature';
+import { allTriangles } from '../../../lib/vrender/triangulate';
+import { EdgeCurve, linePoints, tessellated } from './curves';
 import { Axis, midpoint, Occlusion, SelectMode, Selection, wireframeEdges } from './editing';
 import { applyMatrix, viewMatrix } from '../../../lib/vrender/matrix';
 import { Camera, Edge, Face, Vec2, Vec3 } from '../../../lib/vrender/model';
@@ -14,6 +16,7 @@ const EDIT_UNSELECTED = '#000000';
 const EDIT_SELECTED = '#ffa030';
 // Blender's color for Freestyle edge marks.
 const EDIT_MARKED = '#7fff7f';
+const EDIT_HANDLE = 'rgba(255, 255, 255, 0.55)';
 const EDIT_FACE_FILL = 'rgba(255, 160, 48, 0.5)';
 const BONE_RING_POSITION = 0.1;
 const BONE_RING_RADIUS = 0.08;
@@ -44,7 +47,8 @@ export type OverlayContent = {
   // With X-Ray off, what the camera cannot see in edit mode is left out.
   occluded?: Occlusion;
   // The active object in edit mode, in world space.
-  editing: { vertices: Vec3[]; faces: Face[]; edges: Edge[]; marked?: Edge[]; selection: Selection; selectMode: SelectMode } | null;
+  // Vertices are in world space, and so are the curves' handles.
+  editing: { vertices: Vec3[]; faces: Face[]; edges: Edge[]; marked?: Edge[]; curves?: EdgeCurve[]; selection: Selection; selectMode: SelectMode } | null;
   // The selected objects in object mode, in world space.
   selected: { vertices: Vec3[]; faces: Face[]; edges: Edge[]; origin: Vec3; active: boolean }[];
   // Camera objects, which have no rendered form of their own, in world space.
@@ -68,6 +72,18 @@ function linePath(ctx: CanvasRenderingContext2D, camera: Camera, a: Vec3, b: Vec
     ctx.moveTo(segment[0].x, segment[0].y);
     ctx.lineTo(segment[1].x, segment[1].y);
   }
+}
+
+// A line through points, piece by piece, as a curve is drawn.
+function polylinePath(ctx: CanvasRenderingContext2D, camera: Camera, points: Vec3[]) {
+  for (let i = 0; i + 1 < points.length; i++) {
+    linePath(ctx, camera, points[i], points[i + 1]);
+  }
+}
+
+// Hidden or not by the point halfway along it.
+function middleOf(points: Vec3[]): Vec3 {
+  return points.length > 2 ? points[Math.floor(points.length / 2)] : midpoint(points[0], points[1]);
 }
 
 function strokeWire(ctx: CanvasRenderingContext2D, camera: Camera, vertices: Vec3[], faces: Face[], edges: Edge[], occluded?: Occlusion) {
@@ -237,7 +253,8 @@ function drawWeights(ctx: CanvasRenderingContext2D, camera: Camera, { vertices, 
   const view = viewMatrix(camera);
   const depths = vertices.map(({ x, y, z }) => applyMatrix(view, x, y, z).z);
   const points = vertices.map(vertex => projectPoint(camera, vertex));
-  const order = faces
+  // Weights blend across triangles, so larger faces are drawn as theirs.
+  const order = allTriangles(faces, vertices)
     .filter(face => face.every(i => points[i]))
     .map(face => ({ face, depth: (depths[face[0]] + depths[face[1]] + depths[face[2]]) / 3 }))
     .sort((a, b) => b.depth - a.depth);
@@ -310,8 +327,12 @@ function drawGuides(
     ctx.fillStyle = EDIT_FACE_FILL;
     for (const face of editing.faces) {
       const points = face.map(i => projectPoint(camera, editing.vertices[i]));
-      const [a, b, c] = face.map(i => editing.vertices[i]);
-      const center = { x: (a.x + b.x + c.x) / 3, y: (a.y + b.y + c.y) / 3, z: (a.z + b.z + c.z) / 3 };
+      const corners = face.map(i => editing.vertices[i]);
+      const center = {
+        x: corners.reduce((sum, p) => sum + p.x, 0) / corners.length,
+        y: corners.reduce((sum, p) => sum + p.y, 0) / corners.length,
+        z: corners.reduce((sum, p) => sum + p.z, 0) / corners.length,
+      };
       if (face.every(i => editing.selection.has(i)) && points.every(point => point) && !occluded?.(center)) {
         ctx.beginPath();
         points.forEach((point, i) => (i === 0 ? ctx.moveTo(point!.x, point!.y) : ctx.lineTo(point!.x, point!.y)));
@@ -323,7 +344,8 @@ function drawGuides(
 
   if (editing) {
     ctx.strokeStyle = EDIT_UNSELECTED;
-    strokeWire(ctx, camera, editing.vertices, editing.faces, editing.edges, occluded);
+    const wire = tessellated(editing);
+    strokeWire(ctx, camera, wire.vertices, wire.faces, wire.edges, occluded);
   }
 
   // Marked lines, under the selection's color so a selected one still reads as selected.
@@ -332,8 +354,9 @@ function drawGuides(
     ctx.lineWidth = 2;
     ctx.beginPath();
     editing.marked.forEach(([a, b]) => {
-      if (!occluded?.(midpoint(editing.vertices[a], editing.vertices[b]))) {
-        linePath(ctx, camera, editing.vertices[a], editing.vertices[b]);
+      const points = linePoints(editing.curves, editing.vertices, a, b);
+      if (!occluded?.(middleOf(points))) {
+        polylinePath(ctx, camera, points);
       }
     });
     ctx.stroke();
@@ -345,12 +368,33 @@ function drawGuides(
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     wireframeEdges(editing).forEach(([a, b]) => {
-      if (editing.selection.has(a) && editing.selection.has(b) && !occluded?.(midpoint(editing.vertices[a], editing.vertices[b]))) {
-        linePath(ctx, camera, editing.vertices[a], editing.vertices[b]);
+      const points = linePoints(editing.curves, editing.vertices, a, b);
+      if (editing.selection.has(a) && editing.selection.has(b) && !occluded?.(middleOf(points))) {
+        polylinePath(ctx, camera, points);
       }
     });
     ctx.stroke();
     ctx.lineWidth = 1;
+  }
+
+  // A selected curve's handles: from each end to its control point, as in Blender.
+  if (editing?.curves?.length) {
+    ctx.strokeStyle = EDIT_HANDLE;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    for (const { a, b, shape } of editing.curves) {
+      if (!editing.selection.has(a) || !editing.selection.has(b) || shape.kind === 'arc') continue;
+      const [pa, pb] = [editing.vertices[a], editing.vertices[b]];
+      if (shape.kind === 'cubic') {
+        linePath(ctx, camera, pa, { x: pa.x + shape.out.x, y: pa.y + shape.out.y, z: pa.z + shape.out.z });
+        linePath(ctx, camera, pb, { x: pb.x + shape.in.x, y: pb.y + shape.in.y, z: pb.z + shape.in.z });
+      } else {
+        const c = { x: (pa.x + pb.x) / 2 + shape.control.x, y: (pa.y + pb.y) / 2 + shape.control.y, z: (pa.z + pb.z) / 2 + shape.control.z };
+        polylinePath(ctx, camera, [pa, c, pb]);
+      }
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   if (editing?.selectMode === 'vertex') {

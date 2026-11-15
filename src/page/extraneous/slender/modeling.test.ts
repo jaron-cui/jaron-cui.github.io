@@ -50,7 +50,8 @@ describe('extruding', () => {
     const line: MeshData = { vertices: [{ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }], faces: [], edges: [[0, 1]] };
     const result = extrudeSelection(line, new Set([0, 1]));
     expect(result.mesh.vertices).toHaveLength(4);
-    expect(result.mesh.faces).toHaveLength(2);
+    // One quad wall.
+    expect(result.mesh.faces).toEqual([[0, 1, 3, 2]]);
     expect(result.selection).toEqual(new Set([2, 3]));
   });
 
@@ -58,7 +59,7 @@ describe('extruding', () => {
     const plane = planeMesh(50);
     const result = extrudeSelection(plane, new Set([0, 1]));
     expect(result.mesh.vertices).toHaveLength(6);
-    expect(result.mesh.faces).toHaveLength(4);
+    expect(result.mesh.faces).toHaveLength(3);
     expect(result.mesh.faces.slice(0, 2)).toEqual(plane.faces);
     expect(result.mesh.edges).toEqual([]);
   });
@@ -67,29 +68,29 @@ describe('extruding', () => {
     const path: MeshData = { vertices: [{ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }, { x: 20, y: 0, z: 0 }], faces: [], edges: [[0, 1], [1, 2]] };
     const result = extrudeSelection(path, new Set([0, 1, 2]));
     expect(result.mesh.vertices).toHaveLength(6);
-    expect(result.mesh.faces).toHaveLength(4);
+    expect(result.mesh.faces).toHaveLength(2);
   });
 
   it('keeps a lone face as the far side, as with a plane', () => {
     const triangle: MeshData = { vertices: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }], faces: [[0, 1, 2]], edges: [] };
     const result = extrudeSelection(triangle, new Set([0, 1, 2]));
     expect(result.mesh.vertices).toHaveLength(6);
-    // The original, the lifted copy, and two triangles per side.
-    expect(result.mesh.faces).toHaveLength(8);
+    // The original, the lifted copy, and a quad per side.
+    expect(result.mesh.faces).toHaveLength(5);
   });
 
   it('walls only the boundary of a region, not lines inside it', () => {
     const plane = planeMesh(50);
     const result = extrudeSelection(plane, new Set([0, 1, 2, 3]));
-    // Two kept, two lifted, and two triangles for each of the 4 outside lines. The diagonal gets none.
-    expect(result.mesh.faces).toHaveLength(12);
+    // Two kept, two lifted, and a quad for each of the 4 outside lines. The diagonal gets none.
+    expect(result.mesh.faces).toHaveLength(8);
   });
 
   it('lifts a region bordered by other faces, leaving no face behind', () => {
     const result = extrudeSelection(cube, cubeTop());
     expect(result.mesh.vertices).toHaveLength(12);
-    // The other 5 sides, the lifted top, and 4 new sides.
-    expect(result.mesh.faces).toHaveLength(10 + 2 + 8);
+    // The other 5 sides, the lifted top, and 4 new sides, one quad each.
+    expect(result.mesh.faces).toHaveLength(10 + 2 + 4);
     const old = cubeTop();
     expect(result.mesh.faces.slice(0, 12).filter(face => face.every(i => old.has(i)))).toEqual([]);
     Array.from(result.selection).forEach(i => expect(i).toBeGreaterThanOrEqual(8));
@@ -111,7 +112,7 @@ describe('extruding', () => {
 
   it('copes with an entirely selected closed mesh', () => {
     const result = extrudeSelection(cube, new Set(cube.vertices.map((_, i) => i)));
-    expect(result.mesh.faces).toHaveLength(24);
+    expect(result.mesh.faces).toHaveLength(12 + 12);
     expect(result.selection.size).toBe(8);
   });
 

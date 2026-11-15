@@ -13,10 +13,8 @@ function meshLines(faces: Face[], edges: Edge[]): Edge[] {
   const add = (a: number, b: number) => {
     if (a !== b && !seen.has(key(a, b))) seen.set(key(a, b), a < b ? [a, b] : [b, a]);
   };
-  for (const [a, b, c] of faces) {
-    add(a, b);
-    add(b, c);
-    add(c, a);
+  for (const face of faces) {
+    face.forEach((a, i) => add(a, face[(i + 1) % face.length]));
   }
   for (const [a, b] of edges) add(a, b);
   return Array.from(seen.values());

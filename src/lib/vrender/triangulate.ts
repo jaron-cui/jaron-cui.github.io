@@ -1,0 +1,104 @@
+// Triangles for n-sided faces, for what needs them: depth tests, picking, occlusion. Drawing doesn't;
+// canvas fills any simple polygon. A face is flattened onto its best-fit plane (Newell's normal) and
+// cut by ear clipping, which handles concave faces and faces with a hole bridged in by a zero-width
+// cut (the bridge's ends appear twice in the loop).
+import type { Face, Vec3 } from './model';
+
+export type Triangle = [number, number, number];
+
+// The face's normal by Newell's method: the sum of its sides' cross terms, which works for concave and
+// slightly bent faces alike. Not normalized; zero for a degenerate face.
+export function faceNormal(points: Vec3[]): Vec3 {
+  const n = { x: 0, y: 0, z: 0 };
+  points.forEach((p, i) => {
+    const q = points[(i + 1) % points.length];
+    n.x += (p.y - q.y) * (p.z + q.z);
+    n.y += (p.z - q.z) * (p.x + q.x);
+    n.z += (p.x - q.x) * (p.y + q.y);
+  });
+  return n;
+}
+
+// Ear clipping, in the plane square to the normal's largest axis. Returns triangles of indices into
+// `loop`. Ears are taken counterclockwise in that plane, and a candidate ear is refused if any other
+// vertex lies inside it, unless that vertex sits exactly on one of the ear's corners (as a bridge's
+// duplicated ends do).
+export function triangulateLoop(points: Vec3[]): Triangle[] {
+  const n = points.length;
+  if (n < 3) return [];
+  if (n === 3) return [[0, 1, 2]];
+  const normal = faceNormal(points);
+  const ax = Math.abs(normal.x), ay = Math.abs(normal.y), az = Math.abs(normal.z);
+  // Drop the dominant axis, keeping the winding counterclockwise when seen along the normal.
+  const flat = points.map(p => (az >= ax && az >= ay
+    ? { x: p.x, y: normal.z >= 0 ? p.y : -p.y }
+    : ax >= ay
+      ? { x: p.y, y: normal.x >= 0 ? p.z : -p.z }
+      : { x: p.z, y: normal.y >= 0 ? p.x : -p.x }));
+  const cross = (a: number, b: number, c: number) =>
+    (flat[b].x - flat[a].x) * (flat[c].y - flat[a].y) - (flat[b].y - flat[a].y) * (flat[c].x - flat[a].x);
+  const same = (i: number, j: number) => flat[i].x === flat[j].x && flat[i].y === flat[j].y;
+  const inside = (p: number, a: number, b: number, c: number) => {
+    if (same(p, a) || same(p, b) || same(p, c)) return false;
+    return cross(a, b, p) >= 0 && cross(b, c, p) >= 0 && cross(c, a, p) >= 0;
+  };
+  const remaining = Array.from({ length: n }, (_, i) => i);
+  const triangles: Triangle[] = [];
+  let guard = 0;
+  while (remaining.length > 3 && guard++ < n * n) {
+    let clipped = false;
+    for (let k = 0; k < remaining.length; k++) {
+      const a = remaining[(k + remaining.length - 1) % remaining.length];
+      const b = remaining[k];
+      const c = remaining[(k + 1) % remaining.length];
+      const turn = cross(a, b, c);
+      if (turn < 0) continue; // reflex
+      if (turn === 0) {
+        // A straight run, or a bridge folding back on itself: drop the middle vertex.
+        remaining.splice(k, 1);
+        clipped = true;
+        break;
+      }
+      if (remaining.some(p => p !== a && p !== b && p !== c && inside(p, a, b, c))) continue;
+      triangles.push([a, b, c]);
+      remaining.splice(k, 1);
+      clipped = true;
+      break;
+    }
+    if (!clipped) {
+      // Self-intersecting or otherwise unclippable: fan the rest so something still covers it.
+      for (let k = 1; k + 1 < remaining.length; k++) triangles.push([remaining[0], remaining[k], remaining[k + 1]]);
+      return triangles;
+    }
+  }
+  if (remaining.length === 3 && cross(remaining[0], remaining[1], remaining[2]) !== 0) {
+    triangles.push([remaining[0], remaining[1], remaining[2]]);
+  }
+  return triangles;
+}
+
+const cache = new WeakMap<Face[], Triangle[][]>();
+
+// Each face's triangles, as indices into the mesh's vertices. Cached per face list: meshes are
+// immutable, and an animated mesh keeps its face list, so its triangles are worked out once, from
+// the vertices given the first time.
+export function faceTriangles(faces: Face[], vertices: Vec3[]): Triangle[][] {
+  const known = cache.get(faces);
+  if (known) return known;
+  const result = faces.map(face => (face.length === 3
+    ? [[face[0], face[1], face[2]] as Triangle]
+    : triangulateLoop(face.map(i => vertices[i])).map(([a, b, c]): Triangle => [face[a], face[b], face[c]])));
+  cache.set(faces, result);
+  return result;
+}
+
+const flatCache = new WeakMap<Face[], Triangle[]>();
+
+// Every face's triangles in one list, cached the same way.
+export function allTriangles(faces: Face[], vertices: Vec3[]): Triangle[] {
+  const known = flatCache.get(faces);
+  if (known) return known;
+  const result = faceTriangles(faces, vertices).flat();
+  flatCache.set(faces, result);
+  return result;
+}

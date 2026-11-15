@@ -45,6 +45,7 @@ import {
   PaintTool, paintWeights, parentBones, ParentKind, parentSelected, removeFromGroup, removeVertexGroup, renameBone, renameVertexGroup, selectedBonesOf, setBoneParent, symmetrizeBones,
 } from './rigging';
 import { marksAfterCopy, marksAfterDelete, marksAfterSubdivide, marksOnMesh, selectedLines, setMarked } from './marks';
+import { CurveShape, curveAt, curveBetween, curvesAfterCopy, curvesAfterDelete, curvesAfterSubdivide, curvesOnMesh, reversed, setCurve, transformCurves } from './curves';
 import {
   canWriteFiles, currentTabId, deleteSession, downloadFile, FileHandle, forgetRecent, latestAbandonedSession, loadSession, pickFileToOpen, pickFileToSave, ProjectFile,
   pruneSessions, readHandle, RecentFile, rememberRecent, recentFiles, SessionRecord, writeHandle, writeSession,
@@ -221,6 +222,57 @@ function transformedPoints(
 
 function cursorAngle({ start, pivot }: TransformMode, point: Vec2): number {
   return Math.atan2(point.y - pivot.y, point.x - pivot.x) - Math.atan2(start.y - pivot.y, start.x - pivot.x);
+}
+
+// Moves vectors (a curve's handles and axes) by a matrix, leaving out its translation.
+function vectorMap(matrix: Matrix) {
+  const origin = matrixOrigin(matrix);
+  return (v: Vec3): Vec3 => {
+    const p = applyMatrix(matrix, v.x, v.y, v.z);
+    return { x: p.x - origin.x, y: p.y - origin.y, z: p.z - origin.z };
+  };
+}
+
+// The shape a line gets from the Edge menu: bent sideways in the view, by a quarter of its length,
+// so the change is plain to see. `side` is the direction to bend toward, square to the line.
+function defaultCurve(kind: CurveShape['kind'], a: Vec3, b: Vec3, side: Vec3): CurveShape {
+  const d = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+  const length = Math.hypot(d.x, d.y, d.z);
+  const bend = (k: number) => ({ x: side.x * length * k, y: side.y * length * k, z: side.z * length * k });
+  if (kind === 'quadratic') {
+    return { kind: 'quadratic', control: bend(0.5) };
+  }
+  if (kind === 'cubic') {
+    const third = (k: number) => ({ x: d.x * k, y: d.y * k, z: d.z * k });
+    const [along, out] = [third(1 / 3), bend(1 / 3)];
+    const back = third(-1 / 3);
+    return { kind: 'cubic', out: { x: along.x + out.x, y: along.y + out.y, z: along.z + out.z }, in: { x: back.x + out.x, y: back.y + out.y, z: back.z + out.z } };
+  }
+  // A circular arc that bows a quarter of the line's length: radius from the sagitta.
+  const sagitta = length / 4;
+  const radius = (length * length) / (8 * sagitta) + sagitta / 2;
+  const normal = { x: d.y * side.z - d.z * side.y, y: d.z * side.x - d.x * side.z, z: d.x * side.y - d.y * side.x };
+  const arc: CurveShape = { kind: 'arc', radii: { x: radius, y: radius }, axis: d, normal, large: false, sweep: true };
+  // Of the two small arcs, the one that bows toward `side`.
+  const middle = curveAt(arc, a, b, 0.5);
+  const toward = (middle.x - (a.x + b.x) / 2) * side.x + (middle.y - (a.y + b.y) / 2) * side.y + (middle.z - (a.z + b.z) / 2) * side.z;
+  return toward >= 0 ? arc : { ...arc, sweep: false };
+}
+
+// The same curve bent to the other side of its line: handles reflected across the line, or an arc's
+// sweep reversed.
+function flipped(shape: CurveShape, a: Vec3, b: Vec3): CurveShape {
+  if (shape.kind === 'arc') {
+    return { ...shape, sweep: !shape.sweep };
+  }
+  const d = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z };
+  const lengthSquared = d.x * d.x + d.y * d.y + d.z * d.z || 1;
+  // Keeps the part along the line and reverses the part across it.
+  const reflect = (v: Vec3): Vec3 => {
+    const k = (2 * (v.x * d.x + v.y * d.y + v.z * d.z)) / lengthSquared;
+    return { x: d.x * k - v.x, y: d.y * k - v.y, z: d.z * k - v.z };
+  };
+  return shape.kind === 'quadratic' ? { kind: 'quadratic', control: reflect(shape.control) } : { kind: 'cubic', out: reflect(shape.out), in: reflect(shape.in) };
 }
 
 // A typed angle means the same whichever way the view faces: clockwise on screen if free, as in
@@ -845,6 +897,55 @@ export const Editor = () => {
     setMessage(marked ? `Marked ${count} to draw with the outline.` : `Cleared ${count}.`);
   };
 
+  // Ctrl+E, Curve: makes the selected lines straight, or bends them as SVG can (quadratic, cubic, arc),
+  // or flips their bend to the other side. A new bend bows sideways in the current view.
+  const curveEdges = (kind: CurveShape['kind'] | 'flip' | null) => {
+    setMenu(null);
+    const document = currentDocument();
+    const object = activeObject();
+    if (document.mode !== 'edit' || !object || object.bones) {
+      return;
+    }
+    const lines = selectedLines(object.faces, object.edges, object.selectedVertices);
+    if (lines.length === 0) {
+      setMessage('Select at least one line, or two connected vertices, to curve.');
+      return;
+    }
+    const local = poseAt(object.vertices, timeRef.current);
+    // Sideways in the view, in the object's own space: square to the line and to the view direction.
+    const view = camera();
+    const toLocal = invertMatrix(worldMatrices(document, timeRef.current).get(object.id)!);
+    const eye = applyMatrix(toLocal, view.position.x, view.position.y, view.position.z);
+    let curves = object.curves ?? [];
+    let changed = 0;
+    for (const [a, b] of lines) {
+      const [pa, pb] = [local[a], local[b]];
+      if (kind === 'flip') {
+        const shape = curveBetween(curves, a, b);
+        if (!shape) continue;
+        curves = setCurve(curves, a, b, flipped(shape, pa, pb));
+      } else if (kind === null) {
+        curves = setCurve(curves, a, b, null);
+      } else {
+        const d = { x: pb.x - pa.x, y: pb.y - pa.y, z: pb.z - pa.z };
+        const mid = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2, z: (pa.z + pb.z) / 2 };
+        const look = { x: mid.x - eye.x, y: mid.y - eye.y, z: mid.z - eye.z };
+        const side = { x: d.y * look.z - d.z * look.y, y: d.z * look.x - d.x * look.z, z: d.x * look.y - d.y * look.x };
+        const length = Math.hypot(side.x, side.y, side.z) || 1;
+        curves = setCurve(curves, a, b, defaultCurve(kind, pa, pb, { x: side.x / length, y: side.y / length, z: side.z / length }));
+      }
+      changed++;
+    }
+    if (changed === 0) {
+      setMessage('None of the selected lines is curved.');
+      return;
+    }
+    apply(updateObject(document, object.id, current => ({ ...current, curves })));
+    const count = `${changed} ${changed === 1 ? 'line' : 'lines'}`;
+    const made = kind === 'arc' ? 'arcs' : `${kind} curves`;
+    setMessage(kind === null ? `Straightened ${count}.` : kind === 'flip' ? `Flipped ${count}.` : `Curved ${count}: ${made}.`);
+  };
+
   // Splits selected lines at their middles. New vertices follow their ends when those are animated.
   const subdivide = () => {
     setMenu(null);
@@ -860,10 +961,14 @@ export const Editor = () => {
     }
     apply(updateObject(document, object.id, current => ({
       ...current,
-      vertices: [...current.vertices, ...splits.map(([a, b]) => midpointVertex(current.vertices[a], current.vertices[b]))],
+      vertices: [...current.vertices, ...splits.map(([a, b]) => {
+        const shape = curveBetween(current.curves, a, b);
+        return midpointVertex(current.vertices[a], current.vertices[b], shape ? (p, q) => curveAt(shape, p, q, 0.5) : undefined);
+      })],
       faces,
       edges,
       markedEdges: marksAfterSubdivide(current.markedEdges ?? [], splits, current.vertices.length),
+      curves: curvesAfterSubdivide(current.curves ?? [], splits, current.vertices.length, poseAt(current.vertices, timeRef.current)),
       selectedVertices: selection,
       vertexGroups: groupsAfterSubdivide(current.vertexGroups, splits, current.vertices.length),
     })));
@@ -1576,6 +1681,7 @@ export const Editor = () => {
           faces: mesh.faces,
           edges: mesh.edges,
           markedEdges: marksAfterCopy(current.markedEdges ?? [], copiedFrom, current.vertices.length),
+          curves: curvesAfterCopy(current.curves ?? [], copiedFrom, current.vertices.length),
           selectedVertices: copies,
           vertexGroups: groupsAfterCopy(current.vertexGroups, copiedFrom, current.vertices.length),
         })), DUPLICATE_STEP);
@@ -1611,6 +1717,7 @@ export const Editor = () => {
           faces: mesh.faces,
           edges: mesh.edges,
           markedEdges: marksOnMesh(marksAfterDelete(marksAfterCopy(current.markedEdges ?? [], copiedFrom, current.vertices.length), kept), mesh.faces, mesh.edges),
+          curves: curvesOnMesh(curvesAfterDelete(curvesAfterCopy(current.curves ?? [], copiedFrom, current.vertices.length), kept), mesh.faces, mesh.edges),
           selectedVertices: selection,
           vertexGroups: groupsAfterDelete(groupsAfterCopy(current.vertexGroups, copiedFrom, current.vertices.length), kept),
         };
@@ -1683,6 +1790,7 @@ export const Editor = () => {
           faces: mesh.faces,
           edges: mesh.edges,
           markedEdges: marksOnMesh(marksAfterDelete(current.markedEdges ?? [], kept), mesh.faces, mesh.edges),
+          curves: curvesOnMesh(curvesAfterDelete(current.curves ?? [], kept), mesh.faces, mesh.edges),
           selectedVertices: new Set(),
           vertexGroups: groupsAfterDelete(current.vertexGroups, kept),
         })));
@@ -2086,7 +2194,8 @@ export const Editor = () => {
         });
       } else if (object) {
         const world = worldVertices(document, object, timeRef.current);
-        const picked = pickElement({ vertices: world, faces: object.faces, edges: object.edges }, camera(), point, PICK_RADIUS, selectModeRef.current, currentOcclusion(camera()));
+        const curves = transformCurves(object.curves, vectorMap(worldMatrices(document, timeRef.current).get(object.id)!));
+        const picked = pickElement({ vertices: world, faces: object.faces, edges: object.edges, curves }, camera(), point, PICK_RADIUS, selectModeRef.current, currentOcclusion(camera()));
         const next = new Set(additive ? object.selectedVertices : []);
         if (picked) {
           // Shift clicking something wholly selected deselects it.
@@ -2344,7 +2453,10 @@ export const Editor = () => {
         showOverlays: showOverlaysRef.current,
         occluded: document.mode === 'edit' && showOverlaysRef.current ? currentOcclusion(sceneCamera, transient) : undefined,
         editing: document.mode === 'edit' && active && !active.bones
-          ? { vertices: worldOf(active).vertices, faces: active.faces, edges: active.edges, marked: active.markedEdges ?? [], selection: active.selectedVertices, selectMode: selectModeRef.current }
+          ? {
+            vertices: worldOf(active).vertices, faces: active.faces, edges: active.edges, marked: active.markedEdges ?? [],
+            curves: transformCurves(active.curves, vectorMap(matrices.get(active.id)!)), selection: active.selectedVertices, selectMode: selectModeRef.current,
+          }
           : null,
         selected: document.mode === 'object'
           ? document.objects
@@ -2460,7 +2572,7 @@ export const Editor = () => {
     : document.mode === 'weight' && active
     ? `${active.name}: painting ${active.vertexGroups.find(group => group.id === active.activeGroup)?.name ?? 'no group'}`
     : document.mode === 'edit' && active
-    ? `${active.name}: ${active.selectedVertices.size}/${active.vertices.length} vertices selected, ${active.edges.length} lines, ${active.faces.length} triangles`
+    ? `${active.name}: ${active.selectedVertices.size}/${active.vertices.length} vertices selected, ${active.edges.length} lines, ${active.faces.length} faces`
     : `${document.selectedObjects.length}/${document.objects.length} objects selected`;
 
   const renderTransformPanel = () => {
@@ -2868,6 +2980,12 @@ export const Editor = () => {
               <div style={{ padding: '2px 8px', opacity: 0.6 }}>Edge</div>
               <button role='menuitem' onClick={() => markEdges(true)} className='slender-menu-item'>Mark Freestyle Edge</button>
               <button role='menuitem' onClick={() => markEdges(false)} className='slender-menu-item'>Clear Freestyle Edge</button>
+              <div style={{ padding: '2px 8px', opacity: 0.6, borderTop: '1px solid #4a5060', marginTop: 4 }}>Curve</div>
+              <button role='menuitem' onClick={() => curveEdges(null)} className='slender-menu-item'>Straight</button>
+              <button role='menuitem' onClick={() => curveEdges('quadratic')} className='slender-menu-item'>Quadratic</button>
+              <button role='menuitem' onClick={() => curveEdges('cubic')} className='slender-menu-item'>Cubic</button>
+              <button role='menuitem' onClick={() => curveEdges('arc')} className='slender-menu-item'>Arc</button>
+              <button role='menuitem' onClick={() => curveEdges('flip')} className='slender-menu-item'>Flip Curve</button>
             </>
           )}
           {menu.kind === 'separate' && (

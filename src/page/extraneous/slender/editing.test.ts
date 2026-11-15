@@ -272,15 +272,18 @@ describe('fillSelection', () => {
     expect(fillSelection(mesh, new Set([2, 1, 0]), FRONT).mesh).toBe(mesh);
   });
 
-  it('orders four vertices around the outline, so the triangles cover the square exactly', () => {
+  it('orders four vertices around the outline into one face that covers the square exactly', () => {
     // Selected in crossing order: 0 and 1 are opposite corners.
     const { mesh } = fillSelection(square, new Set([0, 1, 2, 3]), FRONT);
-    expect(mesh.faces).toHaveLength(2);
-    const area = mesh.faces.reduce((sum, [a, b, c]) => {
-      const [p, q, r] = [square.vertices[a], square.vertices[b], square.vertices[c]];
-      return sum + Math.abs((q.x - p.x) * (r.y - p.y) - (r.x - p.x) * (q.y - p.y)) / 2;
+    expect(mesh.faces).toHaveLength(1);
+    const [face] = mesh.faces;
+    expect(face).toHaveLength(4);
+    // The shoelace area of the loop is the whole square, so it doesn't cross itself.
+    const area = face.reduce((sum, a, i) => {
+      const [p, q] = [square.vertices[a], square.vertices[face[(i + 1) % 4]]];
+      return sum + (p.x * q.y - q.x * p.y) / 2;
     }, 0);
-    expect(area).toBeCloseTo(100);
+    expect(Math.abs(area)).toBeCloseTo(100);
   });
 });
 

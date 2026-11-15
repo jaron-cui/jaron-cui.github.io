@@ -9,6 +9,8 @@ import { Camera, Edge, EllipsoidShape, Face, fixed, Rgb, Scene, SceneNode, Trans
 import { Modifier, modifiedMesh } from './modifiers';
 import { ellipsoidMesh, MeshData } from './primitives';
 import { projectPoint } from '../../../lib/vrender/project';
+import { allTriangles } from '../../../lib/vrender/triangulate';
+import { EdgeCurve, tessellated } from './curves';
 
 // What the editor edits. Every change makes a new document that shares its unchanged parts, so
 // a past document is a complete undo step, selection included.
@@ -37,6 +39,9 @@ export type SceneObject = {
   // Lines drawn along with the outline, as vertex pairs (see marks.ts). Missing in files from before
   // there were any.
   markedEdges?: Edge[];
+  // Lines that bend, each against the vertex pair it joins (see curves.ts). Missing in files from
+  // before there were any.
+  curves?: EdgeCurve[];
   fill: Rgb;
   border: { color: Rgb; width: number };
   selectedVertices: Selection;
@@ -554,14 +559,17 @@ export function renderedMesh(
   }
   const modifiers = object.modifiers ?? [];
   if (modifiers.length === 0) {
-    return { vertices: displayVertices(document, object, time, transient, matrices), faces: object.faces, edges: object.edges, marked: object.markedEdges ?? [] };
+    return tessellated({
+      vertices: displayVertices(document, object, time, transient, matrices), faces: object.faces, edges: object.edges, marked: object.markedEdges ?? [], curves: object.curves,
+    });
   }
   const { local } = resolveObject(object, time, transient);
-  const { vertices, faces, edges, marked, groups } = modifiedMesh(
-    { vertices: local, faces: object.faces, edges: object.edges, marked: object.markedEdges ?? [] }, object.vertexGroups, modifiers
+  const { vertices, faces, edges, marked, curves, groups } = modifiedMesh(
+    { vertices: local, faces: object.faces, edges: object.edges, marked: object.markedEdges ?? [], curves: object.curves }, object.vertexGroups, modifiers
   );
   const isEditing = document.mode === 'edit' && document.activeObject === object.id;
-  return { vertices: isEditing ? vertices : deformedBy(document, object, vertices, groups, time, transient, matrices), faces, edges, marked };
+  // Curves are drawn after deforming their ends; their handles don't bend with the bones.
+  return tessellated({ vertices: isEditing ? vertices : deformedBy(document, object, vertices, groups, time, transient, matrices), faces, edges, marked, curves });
 }
 
 // The view from a camera object, from wherever parents and constraints put it. Scale is ignored.
@@ -961,7 +969,7 @@ function surfaceTriangles(document: EditorDocument, time: number, transient: Tra
     .flatMap(object => {
       const { vertices, faces } = renderedMesh(document, object, time, transient, matrices);
       const world = toWorld(matrices.get(object.id)!, vertices);
-      return faces.map(([a, b, c]): Triangle => [world[a], world[b], world[c]]);
+      return allTriangles(faces, vertices).map(([a, b, c]): Triangle => [world[a], world[b], world[c]]);
     });
 }
 
@@ -1067,7 +1075,7 @@ export function pickObject(document: EditorDocument, camera: Camera, time: numbe
         boneDistance = distanceToSegment(point, pa, pb);
       }
     }
-    for (const [a, b, c] of mesh.faces) {
+    for (const [a, b, c] of allTriangles(mesh.faces, mesh.vertices)) {
       const [pa, pb, pc] = [projected[a], projected[b], projected[c]];
       if (pa && pb && pc && inTriangle(point, pa, pb, pc)) {
         const distance = [a, b, c].reduce((sum, i) => (

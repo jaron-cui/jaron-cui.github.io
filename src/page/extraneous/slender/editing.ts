@@ -2,6 +2,8 @@ import { applyMatrix, invertMatrix, viewMatrix } from '../../../lib/vrender/matr
 import { Camera, Edge, Face, Vec2, Vec3 } from '../../../lib/vrender/model';
 import { MeshData } from './primitives';
 import { projectPoint } from '../../../lib/vrender/project';
+import { faceNormal, faceTriangles } from '../../../lib/vrender/triangulate';
+import { linePoints } from './curves';
 
 // Vertex indices.
 export type Selection = Set<number>;
@@ -106,7 +108,7 @@ export function appendMesh(mesh: MeshData, added: MeshData): { mesh: MeshData; a
   return {
     mesh: {
       vertices: [...mesh.vertices, ...added.vertices],
-      faces: [...mesh.faces, ...added.faces.map(([a, b, c]): Face => [a + offset, b + offset, c + offset])],
+      faces: [...mesh.faces, ...added.faces.map((face): Face => face.map(i => i + offset))],
       edges: [...mesh.edges, ...added.edges.map(([a, b]): Edge => [a + offset, b + offset])],
     },
     addedVertices: new Set(added.vertices.map((_, i) => i + offset)),
@@ -123,7 +125,7 @@ export function deleteVertices(mesh: MeshData, selection: Selection): { mesh: Me
     kept,
     mesh: {
       vertices: kept.map(i => mesh.vertices[i]),
-      faces: mesh.faces.filter(survives).map(([a, b, c]): Face => [newIndex.get(a)!, newIndex.get(b)!, newIndex.get(c)!]),
+      faces: mesh.faces.filter(survives).map((face): Face => face.map(i => newIndex.get(i)!)),
       edges: mesh.edges.filter(survives).map(([a, b]): Edge => [newIndex.get(a)!, newIndex.get(b)!]),
     },
   };
@@ -136,10 +138,10 @@ export function deleteSelected(mesh: MeshData, selection: Selection, mode: Selec
     return deleteVertices(mesh, selection);
   }
   const isSelected = (a: number, b: number) => selection.has(a) && selection.has(b);
-  const faces = mesh.faces.filter(([a, b, c]) => (
+  const faces = mesh.faces.filter(face => (
     mode === 'face'
-      ? !(selection.has(a) && isSelected(b, c))
-      : !(isSelected(a, b) || isSelected(b, c) || isSelected(c, a))
+      ? !face.every(i => selection.has(i))
+      : !faceSides(face).some(([a, b]) => isSelected(a, b))
   ));
   const edges = mode === 'line' ? mesh.edges.filter(([a, b]) => !isSelected(a, b)) : mesh.edges;
   const used = new Set([...faces.flat(), ...edges.flat()]);
@@ -147,8 +149,8 @@ export function deleteSelected(mesh: MeshData, selection: Selection, mode: Selec
   return deleteVertices({ vertices: mesh.vertices, faces, edges }, orphans);
 }
 
-// Copies the selected vertices with the faces and lines among them. A face with only two selected
-// vertices contributes the line between them. The copies are appended in selection order, and
+// Copies the selected vertices with the faces and lines among them. A face only partly selected
+// contributes the lines between its selected neighbors. The copies are appended in selection order, and
 // copiedFrom lists each one's source.
 export function duplicateSelection(mesh: MeshData, selection: Selection): { mesh: MeshData; copiedFrom: number[]; copies: Selection } {
   const copiedFrom = Array.from(selection);
@@ -170,11 +172,14 @@ export function duplicateSelection(mesh: MeshData, selection: Selection): { mesh
     }
   });
   mesh.faces.forEach(face => {
-    const selected = face.filter(index => selection.has(index));
-    if (selected.length === 3) {
-      faces.push([copyOf.get(face[0])!, copyOf.get(face[1])!, copyOf.get(face[2])!]);
-    } else if (selected.length === 2) {
-      addEdge(selected[0], selected[1]);
+    if (face.every(index => selection.has(index))) {
+      faces.push(face.map(index => copyOf.get(index)!));
+    } else {
+      faceSides(face).forEach(([a, b]) => {
+        if (selection.has(a) && selection.has(b)) {
+          addEdge(a, b);
+        }
+      });
     }
   });
 
@@ -210,9 +215,16 @@ function nearestLine(mesh: MeshData, camera: Camera, point: Vec2, radius: number
   let best: Edge | null = null;
   let bestDistance = radius;
   for (const edge of wireframeEdges(mesh)) {
-    const a = projectPoint(camera, mesh.vertices[edge[0]]);
-    const b = projectPoint(camera, mesh.vertices[edge[1]]);
-    if (a && b && !occluded?.(midpoint(mesh.vertices[edge[0]], mesh.vertices[edge[1]]))) {
+    // A curved line is picked along its curve, piece by piece.
+    const path = linePoints(mesh.curves, mesh.vertices, edge[0], edge[1]);
+    const projected = path.map(p => projectPoint(camera, p));
+    // Hidden or not by the point at its middle: on the curve, or between the ends.
+    const middle = path.length > 2 ? path[Math.floor(path.length / 2)] : midpoint(path[0], path[1]);
+    if (projected.some(p => !p) || occluded?.(middle)) {
+      continue;
+    }
+    for (let k = 0; k + 1 < projected.length; k++) {
+      const [a, b] = [projected[k]!, projected[k + 1]!];
       const [dx, dy] = [b.x - a.x, b.y - a.y];
       const lengthSquared = dx * dx + dy * dy;
       const s = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / lengthSquared));
@@ -226,24 +238,30 @@ function nearestLine(mesh: MeshData, camera: Camera, point: Vec2, radius: number
   return best;
 }
 
-// The triangle nearest the camera that is drawn over a point.
+// The face nearest the camera that is drawn over a point.
 function nearestFace(mesh: MeshData, camera: Camera, point: Vec2): Face | null {
   let best: Face | null = null;
   let bestDistance = Infinity;
-  for (const face of mesh.faces) {
-    const [a, b, c] = face.map(i => projectPoint(camera, mesh.vertices[i]));
-    if (a && b && c) {
-      const side = (u: Vec2, v: Vec2) => (v.x - u.x) * (point.y - u.y) - (v.y - u.y) * (point.x - u.x);
-      const [ab, bc, ca] = [side(a, b), side(b, c), side(c, a)];
-      if ((ab >= 0 && bc >= 0 && ca >= 0) || (ab <= 0 && bc <= 0 && ca <= 0)) {
-        const distance = face.reduce((sum, i) => {
-          const v = mesh.vertices[i];
-          return sum + Math.hypot(v.x - camera.position.x, v.y - camera.position.y, v.z - camera.position.z);
-        }, 0);
-        if (distance < bestDistance) {
-          best = face;
-          bestDistance = distance;
-        }
+  const side = (u: Vec2, v: Vec2) => (v.x - u.x) * (point.y - u.y) - (v.y - u.y) * (point.x - u.x);
+  const covers = (triangle: number[]) => {
+    const [a, b, c] = triangle.map(i => projectPoint(camera, mesh.vertices[i]));
+    if (!a || !b || !c) {
+      return false;
+    }
+    const [ab, bc, ca] = [side(a, b), side(b, c), side(c, a)];
+    return (ab >= 0 && bc >= 0 && ca >= 0) || (ab <= 0 && bc <= 0 && ca <= 0);
+  };
+  const triangles = faceTriangles(mesh.faces, mesh.vertices);
+  for (const [k, face] of mesh.faces.entries()) {
+    if (triangles[k].some(covers)) {
+      // Mean distance, so faces with more vertices aren't counted as farther.
+      const distance = face.reduce((sum, i) => {
+        const v = mesh.vertices[i];
+        return sum + Math.hypot(v.x - camera.position.x, v.y - camera.position.y, v.z - camera.position.z);
+      }, 0) / face.length;
+      if (distance < bestDistance) {
+        best = face;
+        bestDistance = distance;
       }
     }
   }
@@ -550,8 +568,9 @@ function edgeKey(a: number, b: number, count: number): number {
   return Math.min(a, b) * count + Math.max(a, b);
 }
 
-function faceSides([a, b, c]: Face): Edge[] {
-  return [[a, b], [b, c], [c, a]];
+// A face's sides, in order around it.
+export function faceSides(face: Face): Edge[] {
+  return face.map((a, i): Edge => [a, face[(i + 1) % face.length]]);
 }
 
 function isSelectedFace(face: Face, selection: Selection): boolean {
@@ -594,7 +613,7 @@ export function extrudeSelection(mesh: MeshData, selection: Selection): ExtrudeR
     touched.add(b);
     // An edge shared by two selected faces is inside the region and needs no wall.
     if ((regionCounts.get(keyOf(a, b)) ?? 0) < 2) {
-      walls.push([a, b, copyOf.get(b)!], [a, copyOf.get(b)!, copyOf.get(a)!]);
+      walls.push([a, b, copyOf.get(b)!, copyOf.get(a)!]);
     }
   });
   const lines = copiedFrom.filter(i => !touched.has(i)).map((i): Edge => [i, copyOf.get(i)!]);
@@ -627,11 +646,8 @@ export function regionNormal(vertices: Vec3[], faces: Face[], selection: Selecti
   }
   const sum = { x: 0, y: 0, z: 0 };
   // Faces made by hand can wind either way, so each is counted facing the way of those before it.
-  for (const [a, b, c] of region) {
-    const [p, q, r] = [vertices[a], vertices[b], vertices[c]];
-    const [ux, uy, uz] = [q.x - p.x, q.y - p.y, q.z - p.z];
-    const [vx, vy, vz] = [r.x - p.x, r.y - p.y, r.z - p.z];
-    const normal = { x: uy * vz - uz * vy, y: uz * vx - ux * vz, z: ux * vy - uy * vx };
+  for (const face of region) {
+    const normal = faceNormal(face.map(i => vertices[i]));
     const sign = dot(normal, sum) < 0 ? -1 : 1;
     sum.x += normal.x * sign;
     sum.y += normal.y * sign;
@@ -644,7 +660,8 @@ export function regionNormal(vertices: Vec3[], faces: Face[], selection: Selecti
 export type SubdivideResult = { faces: Face[]; edges: Edge[]; splits: Edge[]; selection: Selection };
 
 // Splits every selected line at its middle, along with the faces around it. splits lists the ends
-// of each split line, and its new vertex comes after the mesh's vertices in that order. A face with
+// of each split line, and its new vertex comes after the mesh's vertices in that order. A triangle
+// splits into smaller ones; a face with more sides gains the new vertices on its sides. A face with
 // only some sides split stays whole across the others, so nothing tears.
 export function subdivideSelection(mesh: MeshData, selection: Selection): SubdivideResult {
   const count = mesh.vertices.length;
@@ -653,6 +670,13 @@ export function subdivideSelection(mesh: MeshData, selection: Selection): Subdiv
   const mid = (a: number, b: number) => middle.get(edgeKey(a, b, count));
 
   const faces = mesh.faces.flatMap((face): Face[] => {
+    if (face.length !== 3) {
+      // Larger faces keep their shape, with each split side's new vertex taken into the loop.
+      return [face.flatMap((a, i) => {
+        const m = mid(a, face[(i + 1) % face.length]);
+        return m === undefined ? [a] : [a, m];
+      })];
+    }
     const [a, b, c] = face;
     const [ab, bc, ca] = [mid(a, b), mid(b, c), mid(c, a)];
     if (ab !== undefined && bc !== undefined && ca !== undefined) {
@@ -685,8 +709,8 @@ function sameIndices(a: number[], b: number[]): boolean {
   return sortedA.every((value, i) => value === sortedB[i]);
 }
 
-// Two selected vertices make a line. Three or more make a face, triangulated as a fan around the
-// order the vertices appear in on screen, so the result does not fold over itself in this view.
+// Two selected vertices make a line. Three or more make one face, its vertices in the order they
+// appear around their center on screen, so the result does not fold over itself in this view.
 export function fillSelection(mesh: MeshData, selection: Selection, camera: Camera): FillResult {
   const indices = Array.from(selection);
   if (indices.length < 2) {
@@ -713,20 +737,13 @@ export function fillSelection(mesh: MeshData, selection: Selection, camera: Came
     .sort((a, b) => a.angle - b.angle)
     .map(({ index }) => index);
 
-  const faces: Face[] = [];
-  for (let i = 1; i < ordered.length - 1; i++) {
-    const face: Face = [ordered[0], ordered[i], ordered[i + 1]];
-    if (!mesh.faces.some(existing => sameIndices(existing, face))) {
-      faces.push(face);
-    }
-  }
-  if (faces.length === 0) {
+  if (mesh.faces.some(existing => existing.length === ordered.length && sameIndices(existing, ordered))) {
     return { mesh, message: 'That face already exists.' };
   }
-  return { mesh: { ...mesh, faces: [...mesh.faces, ...faces] }, message: 'Created a face.' };
+  return { mesh: { ...mesh, faces: [...mesh.faces, ordered] }, message: `Created a ${ordered.length}-sided face.` };
 }
 
-// Every line to draw in the edit overlay: standalone edges and the sides of triangles, each once.
+// Every line to draw in the edit overlay: standalone edges and the sides of faces, each once.
 export function wireframeEdges({ vertices, faces, edges }: MeshData): Edge[] {
   const seen = new Set<number>();
   const result: Edge[] = [];
@@ -738,10 +755,6 @@ export function wireframeEdges({ vertices, faces, edges }: MeshData): Edge[] {
     }
   };
   edges.forEach(([a, b]) => add(a, b));
-  faces.forEach(([a, b, c]) => {
-    add(a, b);
-    add(b, c);
-    add(c, a);
-  });
+  faces.forEach(face => faceSides(face).forEach(([a, b]) => add(a, b)));
   return result;
 }

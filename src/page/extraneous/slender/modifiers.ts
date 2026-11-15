@@ -1,5 +1,6 @@
 import { VertexGroup } from './armature';
 import { Edge, Face, Vec3 } from '../../../lib/vrender/model';
+import { curvesAfterMirror } from './curves';
 import { marksAfterMirror } from './marks';
 import { MeshData } from './primitives';
 
@@ -64,7 +65,8 @@ function mirrorAcross(mesh: MeshData, groups: VertexGroup[], axis: MirrorAxis, m
   const isCopied = (i: number) => copyOf[i] !== i;
   const faces: Face[] = [
     ...mesh.faces,
-    ...mesh.faces.filter(face => face.some(isCopied)).map(([a, b, c]): Face => [copyOf[a], copyOf[c], copyOf[b]]),
+    // Reflected, with the winding reversed.
+    ...mesh.faces.filter(face => face.some(isCopied)).map((face): Face => [...face].reverse().map(i => copyOf[i])),
   ];
   const edges: Edge[] = [
     ...mesh.edges,
@@ -84,7 +86,8 @@ function mirrorAcross(mesh: MeshData, groups: VertexGroup[], axis: MirrorAxis, m
     });
   });
   const marked = mesh.marked && marksAfterMirror(mesh.marked, copiedFrom, count);
-  return { vertices, faces, edges, ...(marked ? { marked } : {}), groups: Array.from(result.values()), copiedFrom, welded };
+  const curves = mesh.curves && curvesAfterMirror(mesh.curves, copiedFrom, count, axis);
+  return { vertices, faces, edges, ...(marked ? { marked } : {}), ...(curves ? { curves } : {}), groups: Array.from(result.values()), copiedFrom, welded };
 }
 
 // One modifier's result on a mesh and its vertex groups.

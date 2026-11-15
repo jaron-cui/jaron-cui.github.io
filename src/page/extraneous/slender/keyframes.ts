@@ -132,11 +132,12 @@ export function dropHeldEdits(vertices: AnimatedVertex[]): AnimatedVertex[] {
 
 // The point halfway between two vertices. If either is animated, it follows them at every key
 // time of either.
-export function midpointVertex(a: AnimatedVertex, b: AnimatedVertex): AnimatedVertex {
+export function midpointVertex(a: AnimatedVertex, b: AnimatedVertex, along?: (p: Vec3, q: Vec3) => Vec3): AnimatedVertex {
   const times = keyTimes([a, b]);
+  // Halfway between the ends, or wherever `along` puts it, such as a curve's middle.
   const halfway = (time: number): Vec3 => {
     const [p, q] = poseAt([a, b], time);
-    return { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2, z: (p.z + q.z) / 2 };
+    return along ? along(p, q) : { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2, z: (p.z + q.z) / 2 };
   };
   if (times.length === 0) {
     return halfway(0);

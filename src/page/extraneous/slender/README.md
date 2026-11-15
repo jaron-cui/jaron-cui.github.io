@@ -62,9 +62,9 @@ EditorDocument --worldMatrices(time)--> matrices --toScene--> Scene
 | Ctrl+Shift+P | Parent without inverse: the child moves to the parent |
 | E | Extrude in edit mode: faces lift along their normal, lines grow walls, vertices grow lines, joints grow bones |
 | W | Specials menu in edit mode: Subdivide |
-| Ctrl+E | Edge menu in edit mode: Mark or Clear Freestyle Edge on the selected lines, which then draw along with the outline (green in edit mode) |
+| Ctrl+E | Edge menu in edit mode, on the selected lines: Mark or Clear Freestyle Edge, which then draw along with the outline (green in edit mode); and Curve: Straight, Quadratic, Cubic, Arc, or Flip Curve. A new curve bows sideways in the view |
 | Shift+D | Duplicate the selection and start moving it |
-| F | 2 vertices: line. 3 or more: face |
+| F | 2 vertices: line. 3 or more: one face with that many sides |
 | X, or Del | Delete what is selected in the pane under the pointer |
 | I | Key the property under the pointer, or remove its key if it is on one. Elsewhere, key the selection at the current time, for the properties turned on beside the key button |
 | Alt+I | Remove the key here from the property under the pointer |
@@ -123,6 +123,8 @@ In the outliner, click selects, Ctrl or Shift click toggles, double click rename
 - **Canvas 2D is the renderer for now.** `project.ts` reduces everything to flat outlines, so only `render.ts` knows about Canvas.
 - **Curves are flattened per frame** to within a quarter device pixel, since a projected cubic is no longer a cubic.
 - **A mesh draws as a single silhouette.** All projected triangles, wound the same way, form one path, stroked at twice the border width and then filled opaquely on top. Lines inside the outline are not drawn, unless marked.
+- **Faces have any number of sides.** A face is a loop of vertex indices. Drawing, depth tests, picking, and occlusion use its triangles, from ear clipping on its best-fit plane (`src/lib/vrender/triangulate.ts`), cached per face list since meshes are immutable. A face with a hole is one loop with a zero-width cut out to the hole and back. Faces draw as their triangles rather than as polygons, since a projected triangle can't fold over itself and cancel what's behind it under the nonzero fill.
+- **Lines can curve, in SVG's ways:** quadratic, cubic, or an elliptical arc with SVG's radii, axis, large-arc and sweep flags (in a plane given by a normal). A curve is stored against the vertex pair it bends (`curves` on the object, `curves.ts`); straight needs nothing. Cubic handles are relative to their ends, so they move with them. Curves follow deletion, duplication, extrusion, subdivision (which splits them, putting the new vertex on the curve), joining, separating, and the mirror. Rendering, the edit overlay, and line picking draw them as short straight pieces (`tessellated`), whose layout is cached per mesh structure so face lists, and so their triangles, stay the same while vertices move.
 - **Marked edges draw over the fill where the mesh's own faces don't hide them,** in the border's color at the border's width, like Blender's Freestyle edge marks. Faces have no reliable winding, so visibility is a depth test: each edge is sampled on screen and a sample is hidden when a face covers it at a nearer depth. Only the mesh's own faces count, as with the rest of its drawing. Marks are vertex pairs on the object (`markedEdges`), carried through deletion, duplication, extrusion, subdivision, joining, separating, and the mirror like vertex groups are (`marks.ts`).
 - **Only numbers animate, unless wrapped in `Fixed`.** Anchor counts cannot change over time. Face and edge indices are `Fixed`.
 - **Tracks live inline on the property they animate,** so no string paths can dangle. Reusing one animation on several objects will need a later addition.
@@ -133,7 +135,8 @@ In the outliner, click selects, Ctrl or Shift click toggles, double click rename
 ## Known limits
 
 - Each shape or mesh sorts as one item by average depth, so a flat shape passing through a mesh appears wholly in front or behind. Fixing this means moving to the GPU.
-- Faces are stored as triangles, so quads show their diagonal, and face select takes one triangle at a time.
+- Curves are edited only through the Edge menu: there are no handles to drag yet, and no numeric fields for them.
+- A face that bends out of its plane, or whose curved sides make it fold over itself, is triangulated by its best-fit plane and may draw a little off.
 - F orders vertices by their angle on screen around their center, which suits convex outlines viewed from the front.
 - Walking a camera object drops any roll it had.
 - Partial constraint influence blends matrices directly, which is approximate for rotations.

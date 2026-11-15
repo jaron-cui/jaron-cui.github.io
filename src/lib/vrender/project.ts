@@ -1,6 +1,7 @@
 import { toPath } from './geometry';
 import { applyMatrix, averageScale, Matrix, multiply, transformMatrix, viewMatrix } from './matrix';
-import { Camera, Color, EllipsoidNode, MeshNode, PathGeometry, Rgb, Scene, SceneNode, ShapeNode, Vec2, Vec3 } from './model';
+import { Camera, Color, EllipsoidNode, Face, MeshNode, PathGeometry, Rgb, Scene, SceneNode, ShapeNode, Vec2, Vec3 } from './model';
+import { allTriangles } from './triangulate';
 
 // Nothing closer to the camera than this is drawn. Projection divides by depth, so geometry must
 // be cut off before depth reaches zero.
@@ -244,8 +245,8 @@ type ScreenTriangle = { screen: Vec2[]; inverse: number[]; left: number; right: 
 // The parts of each marked edge not hidden by the mesh's own faces, projected. Each edge is sampled,
 // and a sample is hidden when a face covers it on screen at a nearer depth. Depth is interpolated as
 // 1 / z, which is linear on screen. Faces reaching behind the near plane don't hide anything.
-function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: [number, number, number][], focalLength: number): Vec2[][] {
-  const triangles: ScreenTriangle[] = faces
+function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[], focalLength: number): Vec2[][] {
+  const triangles: ScreenTriangle[] = allTriangles(faces, vertices)
     .map(face => face.map(i => vertices[i]))
     .filter(points => points.every(p => p.z >= NEAR_DEPTH))
     .map(points => {
@@ -328,8 +329,11 @@ function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshI
   const polygons: Vec2[][] = [];
   let depthSum = 0;
   let depthCount = 0;
-  for (const [a, b, c] of node.faces.value) {
-    const clipped = clipPolygon([vertices[a], vertices[b], vertices[c]]);
+  // Faces draw as their triangles: a projected triangle can't fold over itself, so every piece can
+  // be wound the same way and the nonzero fill covers their union. A larger face, a curved one most
+  // of all, can fold over seen nearly edge-on, and its reversed part would cancel what's behind it.
+  for (const face of allTriangles(node.faces.value, node.vertices)) {
+    const clipped = clipPolygon(face.map(i => vertices[i]));
     if (clipped.length === 0) {
       continue;
     }
