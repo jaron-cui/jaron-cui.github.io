@@ -1,4 +1,5 @@
 import { deleteObjects, EditorDocument, findObject, SceneObject, selectedVisible, uniqueName, updateObject, worldMatrices } from './document';
+import { marksAfterDelete, marksAfterOffset, marksOnMesh } from './marks';
 import { deleteVertices, vertexNeighbors } from './editing';
 import { AnimatedVertex, negatedValue, poseAt, transformedVertex } from './keyframes';
 import { invertMatrix, multiply } from '../../../lib/vrender/matrix';
@@ -26,6 +27,7 @@ export function joinSelected(document: EditorDocument, time: number): { document
   const matrices = worldMatrices(document, time);
   const inverse = invertMatrix(matrices.get(active.id)!);
   let { vertices, faces, edges, vertexGroups } = active;
+  let marked = active.markedEdges ?? [];
   let nextId = document.nextId;
   for (const source of sources) {
     const offset = vertices.length;
@@ -33,6 +35,7 @@ export function joinSelected(document: EditorDocument, time: number): { document
     vertices = [...vertices, ...source.vertices.map(vertex => transformedVertex(vertex, relative))];
     faces = [...faces, ...source.faces.map(([a, b, c]): Face => [a + offset, b + offset, c + offset])];
     edges = [...edges, ...source.edges.map(([a, b]): Edge => [a + offset, b + offset])];
+    marked = [...marked, ...marksAfterOffset(source.markedEdges ?? [], offset)];
     for (const group of source.vertexGroups) {
       const shifted = new Map(Array.from(group.weights).map(([i, weight]) => [i + offset, weight] as [number, number]));
       const existing = vertexGroups.find(other => other.name === group.name);
@@ -46,6 +49,7 @@ export function joinSelected(document: EditorDocument, time: number): { document
     vertices,
     faces,
     edges,
+    markedEdges: marked,
     vertexGroups,
     deformer: object.deformer ?? sources.find(source => source.deformer)?.deformer ?? null,
     selectedVertices: new Set(),
@@ -54,13 +58,14 @@ export function joinSelected(document: EditorDocument, time: number): { document
 }
 
 // A new object holding some vertices of another, and the faces and lines wholly among them.
-function partOf(object: SceneObject, part: Set<number>): Pick<SceneObject, 'vertices' | 'faces' | 'edges' | 'vertexGroups' | 'selectedVertices'> {
+function partOf(object: SceneObject, part: Set<number>): Pick<SceneObject, 'vertices' | 'faces' | 'edges' | 'markedEdges' | 'vertexGroups' | 'selectedVertices'> {
   const kept = Array.from(part).sort((a, b) => a - b);
   const index = new Map(kept.map((old, i) => [old, i]));
   return {
     vertices: kept.map(i => object.vertices[i]),
     faces: object.faces.filter(face => face.every(i => part.has(i))).map(([a, b, c]): Face => [index.get(a)!, index.get(b)!, index.get(c)!]),
     edges: object.edges.filter(edge => edge.every(i => part.has(i))).map(([a, b]): Edge => [index.get(a)!, index.get(b)!]),
+    markedEdges: marksAfterDelete(object.markedEdges ?? [], kept),
     vertexGroups: groupsAfterDelete(object.vertexGroups, kept),
     selectedVertices: new Set(),
   };
@@ -97,6 +102,7 @@ export function separateSelection(document: EditorDocument, id: string, time: nu
     vertices: kept.map(i => current.vertices[i]),
     faces: mesh.faces,
     edges: mesh.edges,
+    markedEdges: marksOnMesh(marksAfterDelete(current.markedEdges ?? [], kept), mesh.faces, mesh.edges),
     vertexGroups: groupsAfterDelete(current.vertexGroups, kept),
     selectedVertices: new Set(),
   }));
@@ -142,9 +148,10 @@ export function applyMirror(document: EditorDocument, id: string, modifierId: st
   const object = findObject(document, id)!;
   const modifier = object.modifiers?.find(candidate => candidate.id === modifierId) as MirrorModifier;
   let { vertices, faces, edges, vertexGroups } = object;
+  let marked = object.markedEdges ?? [];
   for (const axis of (['x', 'y', 'z'] as const).filter(candidate => modifier.axes[candidate])) {
     const one = { ...modifier, axes: { x: axis === 'x', y: axis === 'y', z: axis === 'z' } };
-    const result = mirrorMesh({ vertices: poseAt(vertices, time), faces, edges }, vertexGroups, one);
+    const result = mirrorMesh({ vertices: poseAt(vertices, time), faces, edges, marked }, vertexGroups, one);
     const welded = new Set(result.welded);
     const current = vertices;
     vertices = [
@@ -153,6 +160,7 @@ export function applyMirror(document: EditorDocument, id: string, modifierId: st
     ];
     faces = result.faces;
     edges = result.edges;
+    marked = result.marked ?? marked;
     vertexGroups = result.groups;
   }
   // Mirrored groups made anew need ids of their own.
@@ -163,6 +171,7 @@ export function applyMirror(document: EditorDocument, id: string, modifierId: st
     vertices,
     faces,
     edges,
+    markedEdges: marked,
     vertexGroups,
     modifiers: (current.modifiers ?? []).filter(candidate => candidate.id !== modifierId),
   }));

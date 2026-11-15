@@ -44,6 +44,7 @@ import {
   addArmature, addBone, addVertexGroup, assignToGroup, boneFromJoints, ClearField, clearTransforms, bonesToDelete, deleteBones, duplicateBones, extrudeBones, groupsAfterCopy, groupsAfterDelete, groupsAfterSubdivide,
   PaintTool, paintWeights, parentBones, ParentKind, parentSelected, removeFromGroup, removeVertexGroup, renameBone, renameVertexGroup, selectedBonesOf, setBoneParent, symmetrizeBones,
 } from './rigging';
+import { marksAfterCopy, marksAfterDelete, marksAfterSubdivide, marksOnMesh, selectedLines, setMarked } from './marks';
 import {
   canWriteFiles, currentTabId, deleteSession, downloadFile, FileHandle, forgetRecent, latestAbandonedSession, loadSession, pickFileToOpen, pickFileToSave, ProjectFile,
   pruneSessions, readHandle, RecentFile, rememberRecent, recentFiles, SessionRecord, writeHandle, writeSession,
@@ -144,7 +145,7 @@ type Mode =
   | { kind: 'painting'; tool: PaintTool; neighbors: number[][]; last: Vec2 }
   | { kind: 'brushResizing'; center: Vec2; original: number };
 
-type MenuKind = 'add' | 'parent' | 'boneParent' | 'file' | 'snap' | 'specials' | 'separate';
+type MenuKind = 'add' | 'parent' | 'boneParent' | 'file' | 'snap' | 'specials' | 'separate' | 'edge';
 type Menu = { kind: MenuKind; x: number; y: number };
 
 const PARENT_MENU_LABELS: Record<ParentKind, string> = {
@@ -826,6 +827,24 @@ export const Editor = () => {
     }
   };
 
+  // Ctrl+E: marks or clears the selected lines, which then draw along with the outline.
+  const markEdges = (marked: boolean) => {
+    setMenu(null);
+    const document = currentDocument();
+    const object = activeObject();
+    if (document.mode !== 'edit' || !object || object.bones) {
+      return;
+    }
+    const lines = selectedLines(object.faces, object.edges, object.selectedVertices);
+    if (lines.length === 0) {
+      setMessage('Select at least one line, or two connected vertices, to mark.');
+      return;
+    }
+    apply(updateObject(document, object.id, current => ({ ...current, markedEdges: setMarked(current.markedEdges ?? [], lines, marked) })));
+    const count = `${lines.length} ${lines.length === 1 ? 'line' : 'lines'}`;
+    setMessage(marked ? `Marked ${count} to draw with the outline.` : `Cleared ${count}.`);
+  };
+
   // Splits selected lines at their middles. New vertices follow their ends when those are animated.
   const subdivide = () => {
     setMenu(null);
@@ -844,6 +863,7 @@ export const Editor = () => {
       vertices: [...current.vertices, ...splits.map(([a, b]) => midpointVertex(current.vertices[a], current.vertices[b]))],
       faces,
       edges,
+      markedEdges: marksAfterSubdivide(current.markedEdges ?? [], splits, current.vertices.length),
       selectedVertices: selection,
       vertexGroups: groupsAfterSubdivide(current.vertexGroups, splits, current.vertices.length),
     })));
@@ -1555,6 +1575,7 @@ export const Editor = () => {
           vertices: [...current.vertices, ...copiedFrom.map(source => current.vertices[source])],
           faces: mesh.faces,
           edges: mesh.edges,
+          markedEdges: marksAfterCopy(current.markedEdges ?? [], copiedFrom, current.vertices.length),
           selectedVertices: copies,
           vertexGroups: groupsAfterCopy(current.vertexGroups, copiedFrom, current.vertices.length),
         })), DUPLICATE_STEP);
@@ -1589,6 +1610,7 @@ export const Editor = () => {
           vertices: kept.map(i => grown[i]),
           faces: mesh.faces,
           edges: mesh.edges,
+          markedEdges: marksOnMesh(marksAfterDelete(marksAfterCopy(current.markedEdges ?? [], copiedFrom, current.vertices.length), kept), mesh.faces, mesh.edges),
           selectedVertices: selection,
           vertexGroups: groupsAfterDelete(groupsAfterCopy(current.vertexGroups, copiedFrom, current.vertices.length), kept),
         };
@@ -1660,6 +1682,7 @@ export const Editor = () => {
           vertices: kept.map(i => current.vertices[i]),
           faces: mesh.faces,
           edges: mesh.edges,
+          markedEdges: marksOnMesh(marksAfterDelete(current.markedEdges ?? [], kept), mesh.faces, mesh.edges),
           selectedVertices: new Set(),
           vertexGroups: groupsAfterDelete(current.vertexGroups, kept),
         })));
@@ -1806,7 +1829,7 @@ export const Editor = () => {
       }
       if (event.ctrlKey || event.metaKey) {
         // Ctrl+P would otherwise open the browser's print dialog, even in the middle of something.
-        if (event.code === 'KeyP' || event.code === 'KeyJ') {
+        if (event.code === 'KeyP' || event.code === 'KeyJ' || event.code === 'KeyE') {
           event.preventDefault();
         }
         if (modeRef.current.kind !== 'idle' || event.repeat) {
@@ -1820,6 +1843,12 @@ export const Editor = () => {
           }
         } else if (event.code === 'KeyJ') {
           joinMeshes();
+        } else if (event.code === 'KeyE') {
+          if (currentDocument().mode === 'edit' && activeObject() && !activeObject()!.bones) {
+            openMenu('edge');
+          } else {
+            setMessage('Ctrl+E marks lines in edit mode on a mesh.');
+          }
         } else if (event.code === 'Tab') {
           event.preventDefault();
           togglePoseOrWeight();
@@ -2315,7 +2344,7 @@ export const Editor = () => {
         showOverlays: showOverlaysRef.current,
         occluded: document.mode === 'edit' && showOverlaysRef.current ? currentOcclusion(sceneCamera, transient) : undefined,
         editing: document.mode === 'edit' && active && !active.bones
-          ? { vertices: worldOf(active).vertices, faces: active.faces, edges: active.edges, selection: active.selectedVertices, selectMode: selectModeRef.current }
+          ? { vertices: worldOf(active).vertices, faces: active.faces, edges: active.edges, marked: active.markedEdges ?? [], selection: active.selectedVertices, selectMode: selectModeRef.current }
           : null,
         selected: document.mode === 'object'
           ? document.objects
@@ -2817,7 +2846,7 @@ export const Editor = () => {
       {menu && (
         <div
           role='menu'
-          aria-label={{ add: 'Add', parent: 'Set Parent To', boneParent: 'Make Parent', file: 'File', snap: 'Snap', specials: 'Specials', separate: 'Separate' }[menu.kind]}
+          aria-label={{ add: 'Add', parent: 'Set Parent To', boneParent: 'Make Parent', file: 'File', snap: 'Snap', specials: 'Specials', separate: 'Separate', edge: 'Edge' }[menu.kind]}
           style={{ position: 'fixed', left: menu.x, top: menu.y, background: '#262a35', border: '1px solid #4a5060', borderRadius: 4, padding: 4, minWidth: 120 }}
         >
           {menu.kind === 'snap' && (
@@ -2832,6 +2861,13 @@ export const Editor = () => {
             <>
               <div style={{ padding: '2px 8px', opacity: 0.6 }}>Specials</div>
               <button role='menuitem' onClick={subdivide} className='slender-menu-item'>Subdivide</button>
+            </>
+          )}
+          {menu.kind === 'edge' && (
+            <>
+              <div style={{ padding: '2px 8px', opacity: 0.6 }}>Edge</div>
+              <button role='menuitem' onClick={() => markEdges(true)} className='slender-menu-item'>Mark Freestyle Edge</button>
+              <button role='menuitem' onClick={() => markEdges(false)} className='slender-menu-item'>Clear Freestyle Edge</button>
             </>
           )}
           {menu.kind === 'separate' && (

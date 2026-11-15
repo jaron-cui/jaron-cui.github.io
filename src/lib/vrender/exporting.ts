@@ -69,7 +69,11 @@ function itemSvg(item: DrawItem): string {
   const border = item.border && item.border.width > 0
     ? `<path d="${faces}${lines}" fill="none" stroke="${color(item.border.color)}" stroke-width="${round(item.border.width * 2)}" stroke-linejoin="round" stroke-linecap="round"/>`
     : '';
-  return `${border}${faces ? `<path d="${faces}" fill="${color(item.fill)}"/>` : ''}`;
+  // Marked edges over the fill, at the border's width.
+  const marks = item.marks?.length && item.border && item.border.width > 0
+    ? `<path d="${item.marks.map(run => pathData(run, false)).join('')}" fill="none" stroke="${color(item.border.color)}" stroke-width="${round(item.border.width)}" stroke-linejoin="round" stroke-linecap="round"/>`
+    : '';
+  return `${border}${faces ? `<path d="${faces}" fill="${color(item.fill)}"/>` : ''}${marks}`;
 }
 
 function frameContent(scene: Scene): string {

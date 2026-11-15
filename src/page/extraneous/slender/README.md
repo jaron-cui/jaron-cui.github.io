@@ -62,6 +62,7 @@ EditorDocument --worldMatrices(time)--> matrices --toScene--> Scene
 | Ctrl+Shift+P | Parent without inverse: the child moves to the parent |
 | E | Extrude in edit mode: faces lift along their normal, lines grow walls, vertices grow lines, joints grow bones |
 | W | Specials menu in edit mode: Subdivide |
+| Ctrl+E | Edge menu in edit mode: Mark or Clear Freestyle Edge on the selected lines, which then draw along with the outline (green in edit mode) |
 | Shift+D | Duplicate the selection and start moving it |
 | F | 2 vertices: line. 3 or more: face |
 | X, or Del | Delete what is selected in the pane under the pointer |
@@ -121,7 +122,8 @@ In the outliner, click selects, Ctrl or Shift click toggles, double click rename
 - **X-Ray off respects occlusion.** With it off, the edit overlay, picking, and box select leave out what surfaces hide. Object mode's selection wires always show through.
 - **Canvas 2D is the renderer for now.** `project.ts` reduces everything to flat outlines, so only `render.ts` knows about Canvas.
 - **Curves are flattened per frame** to within a quarter device pixel, since a projected cubic is no longer a cubic.
-- **A mesh draws as a single silhouette.** All projected triangles, wound the same way, form one path, stroked at twice the border width and then filled opaquely on top. Lines inside the outline are not drawn.
+- **A mesh draws as a single silhouette.** All projected triangles, wound the same way, form one path, stroked at twice the border width and then filled opaquely on top. Lines inside the outline are not drawn, unless marked.
+- **Marked edges draw over the fill where the mesh's own faces don't hide them,** in the border's color at the border's width, like Blender's Freestyle edge marks. Faces have no reliable winding, so visibility is a depth test: each edge is sampled on screen and a sample is hidden when a face covers it at a nearer depth. Only the mesh's own faces count, as with the rest of its drawing. Marks are vertex pairs on the object (`markedEdges`), carried through deletion, duplication, extrusion, subdivision, joining, separating, and the mirror like vertex groups are (`marks.ts`).
 - **Only numbers animate, unless wrapped in `Fixed`.** Anchor counts cannot change over time. Face and edge indices are `Fixed`.
 - **Tracks live inline on the property they animate,** so no string paths can dangle. Reusing one animation on several objects will need a later addition.
 - **Key times are stored in seconds, and the pane works in whole frames.** Changing the frame rate rescales key times so keys stay on their frames, as in Blender.

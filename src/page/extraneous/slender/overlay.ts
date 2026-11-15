@@ -12,6 +12,8 @@ const CURSOR_RADIUS = 9;
 const CURSOR_TICK = 14;
 const EDIT_UNSELECTED = '#000000';
 const EDIT_SELECTED = '#ffa030';
+// Blender's color for Freestyle edge marks.
+const EDIT_MARKED = '#7fff7f';
 const EDIT_FACE_FILL = 'rgba(255, 160, 48, 0.5)';
 const BONE_RING_POSITION = 0.1;
 const BONE_RING_RADIUS = 0.08;
@@ -42,7 +44,7 @@ export type OverlayContent = {
   // With X-Ray off, what the camera cannot see in edit mode is left out.
   occluded?: Occlusion;
   // The active object in edit mode, in world space.
-  editing: { vertices: Vec3[]; faces: Face[]; edges: Edge[]; selection: Selection; selectMode: SelectMode } | null;
+  editing: { vertices: Vec3[]; faces: Face[]; edges: Edge[]; marked?: Edge[]; selection: Selection; selectMode: SelectMode } | null;
   // The selected objects in object mode, in world space.
   selected: { vertices: Vec3[]; faces: Face[]; edges: Edge[]; origin: Vec3; active: boolean }[];
   // Camera objects, which have no rendered form of their own, in world space.
@@ -322,6 +324,20 @@ function drawGuides(
   if (editing) {
     ctx.strokeStyle = EDIT_UNSELECTED;
     strokeWire(ctx, camera, editing.vertices, editing.faces, editing.edges, occluded);
+  }
+
+  // Marked lines, under the selection's color so a selected one still reads as selected.
+  if (editing?.marked?.length) {
+    ctx.strokeStyle = EDIT_MARKED;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    editing.marked.forEach(([a, b]) => {
+      if (!occluded?.(midpoint(editing.vertices[a], editing.vertices[b]))) {
+        linePath(ctx, camera, editing.vertices[a], editing.vertices[b]);
+      }
+    });
+    ctx.stroke();
+    ctx.lineWidth = 1;
   }
 
   if (editing?.selectMode === 'line') {

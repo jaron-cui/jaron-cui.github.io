@@ -58,6 +58,9 @@ export type MeshNode = {
   worldMatrix?: Fixed<number[]>;
   // A selection outline, drawn around the outside of the silhouette, border included.
   highlight?: Fixed<Rgb>;
+  // Lines drawn over the fill in the border's color, where the mesh's own faces do not hide them,
+  // to show creases and contours inside the silhouette. Each is a vertex pair, a face side or a line.
+  marked?: Fixed<Edge[]>;
   fill: Rgb;
   border: Stroke | null;
 };

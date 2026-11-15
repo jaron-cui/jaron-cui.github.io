@@ -36,6 +36,12 @@ Nothing is queued. All the owner's requests so far are done. Ask what comes next
 - `animation.ts` has a new ease, `'bounce'`: an elastic ease-out that overshoots the next key and rings down into it (`elastic()`). The editor plays it; no editor UI sets it yet.
 - `SlenderDemo.tsx` is the homepage demo: `cube.slender` in a viewport that swings round with a drag (with fling), the picked property's value curve with draggable keys and selectable segments (Linear / Eased / Bounce), an editor bar, play/pause, a two-box playback range, and an outliner of animated properties. Edits are not saved; a reload restores the cube.
 
+## Marked edges (2026-11-12)
+
+- Ctrl+E in edit mode opens the Edge menu: Mark or Clear Freestyle Edge, on lines with both ends selected (triangle diagonals included, since faces are triangles; pick lines in line select mode to avoid them). Marked lines draw over the fill wherever the mesh's own faces don't hide them, so creases and contours show inside a silhouette.
+- The renderer side is `marked` on `MeshNode` and `marks` on `MeshItem` in `src/lib/vrender`, and SVG export draws them too. Visibility samples each edge 24 times against the mesh's triangles, so very large meshes with many marks will cost more; nothing is measured.
+- Unverified: marks through a Mirror modifier and through Apply were only unit tested, not looked at.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.

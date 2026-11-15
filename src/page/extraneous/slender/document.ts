@@ -34,6 +34,9 @@ export type SceneObject = {
   vertices: AnimatedVertex[];
   faces: Face[];
   edges: Edge[];
+  // Lines drawn along with the outline, as vertex pairs (see marks.ts). Missing in files from before
+  // there were any.
+  markedEdges?: Edge[];
   fill: Rgb;
   border: { color: Rgb; width: number };
   selectedVertices: Selection;
@@ -551,12 +554,14 @@ export function renderedMesh(
   }
   const modifiers = object.modifiers ?? [];
   if (modifiers.length === 0) {
-    return { vertices: displayVertices(document, object, time, transient, matrices), faces: object.faces, edges: object.edges };
+    return { vertices: displayVertices(document, object, time, transient, matrices), faces: object.faces, edges: object.edges, marked: object.markedEdges ?? [] };
   }
   const { local } = resolveObject(object, time, transient);
-  const { vertices, faces, edges, groups } = modifiedMesh({ vertices: local, faces: object.faces, edges: object.edges }, object.vertexGroups, modifiers);
+  const { vertices, faces, edges, marked, groups } = modifiedMesh(
+    { vertices: local, faces: object.faces, edges: object.edges, marked: object.markedEdges ?? [] }, object.vertexGroups, modifiers
+  );
   const isEditing = document.mode === 'edit' && document.activeObject === object.id;
-  return { vertices: isEditing ? vertices : deformedBy(document, object, vertices, groups, time, transient, matrices), faces, edges };
+  return { vertices: isEditing ? vertices : deformedBy(document, object, vertices, groups, time, transient, matrices), faces, edges, marked };
 }
 
 // The view from a camera object, from wherever parents and constraints put it. Scale is ignored.
@@ -631,8 +636,8 @@ export function toScene(document: EditorDocument, camera: Camera, time: number, 
       if (object.ellipsoid) {
         return { kind: 'ellipsoid', ...style, radii: object.ellipsoid.radii, length: object.ellipsoid.length };
       }
-      const { vertices: local, faces, edges } = renderedMesh(document, object, time, transient, matrices);
-      return { kind: 'mesh', ...style, vertices: local, faces: fixed(faces), edges: fixed(edges) };
+      const { vertices: local, faces, edges, marked } = renderedMesh(document, object, time, transient, matrices);
+      return { kind: 'mesh', ...style, vertices: local, faces: fixed(faces), edges: fixed(edges), ...(marked?.length ? { marked: fixed(marked) } : {}) };
     }),
   };
 }

@@ -26,6 +26,8 @@ export type MeshItem = {
   depth: number;
   polygons: Vec2[][];
   lines: Vec2[][];
+  // The visible stretches of marked edges, drawn over the fill.
+  marks?: Vec2[][];
   fill: Rgb;
   border: ProjectedStroke | null;
   highlight?: Rgb;
@@ -226,6 +228,101 @@ function signedArea(polygon: Vec2[]): number {
   return area / 2;
 }
 
+// Samples along a marked edge: one per this share of the mesh's size on screen, within these bounds.
+const MARK_SAMPLE_SHARE = 1 / 150;
+const MIN_MARK_SAMPLES = 2;
+const MAX_MARK_SAMPLES = 24;
+// Triangles are bucketed in a grid this many cells across the mesh's screen bounds, so each sample
+// tests only the faces near it.
+const MARK_GRID = 24;
+// How much nearer a face must be to hide a point on a marked edge, as a share of the point's depth.
+// The edge's own faces pass through it at the same depth, so they never hide it.
+const MARK_DEPTH_TOLERANCE = 1e-3;
+
+type ScreenTriangle = { screen: Vec2[]; inverse: number[]; left: number; right: number; top: number; bottom: number };
+
+// The parts of each marked edge not hidden by the mesh's own faces, projected. Each edge is sampled,
+// and a sample is hidden when a face covers it on screen at a nearer depth. Depth is interpolated as
+// 1 / z, which is linear on screen. Faces reaching behind the near plane don't hide anything.
+function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: [number, number, number][], focalLength: number): Vec2[][] {
+  const triangles: ScreenTriangle[] = faces
+    .map(face => face.map(i => vertices[i]))
+    .filter(points => points.every(p => p.z >= NEAR_DEPTH))
+    .map(points => {
+      const screen = points.map(p => project(p, focalLength));
+      return {
+        screen,
+        inverse: points.map(p => 1 / p.z),
+        left: Math.min(...screen.map(p => p.x)), right: Math.max(...screen.map(p => p.x)),
+        top: Math.min(...screen.map(p => p.y)), bottom: Math.max(...screen.map(p => p.y)),
+      };
+    });
+  const left = Math.min(...triangles.map(t => t.left));
+  const right = Math.max(...triangles.map(t => t.right));
+  const top = Math.min(...triangles.map(t => t.top));
+  const bottom = Math.max(...triangles.map(t => t.bottom));
+  const cellW = (right - left) / MARK_GRID || 1;
+  const cellH = (bottom - top) / MARK_GRID || 1;
+  const column = (x: number) => Math.min(MARK_GRID - 1, Math.max(0, Math.floor((x - left) / cellW)));
+  const row = (y: number) => Math.min(MARK_GRID - 1, Math.max(0, Math.floor((y - top) / cellH)));
+  const cells: ScreenTriangle[][] = Array.from({ length: MARK_GRID * MARK_GRID }, () => []);
+  for (const triangle of triangles) {
+    for (let r = row(triangle.top); r <= row(triangle.bottom); r++) {
+      for (let c = column(triangle.left); c <= column(triangle.right); c++) {
+        cells[r * MARK_GRID + c].push(triangle);
+      }
+    }
+  }
+  const hides = (point: Vec2, z: number, { screen: [a, b, c], inverse, left: l, right: r, top: t, bottom: btm }: ScreenTriangle) => {
+    if (point.x < l || point.x > r || point.y < t || point.y > btm) {
+      return false;
+    }
+    const area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
+    if (Math.abs(area) < 1e-12) {
+      return false;
+    }
+    const u = ((b.x - point.x) * (c.y - point.y) - (c.x - point.x) * (b.y - point.y)) / area;
+    const v = ((c.x - point.x) * (a.y - point.y) - (a.x - point.x) * (c.y - point.y)) / area;
+    const w = 1 - u - v;
+    if (u < -1e-9 || v < -1e-9 || w < -1e-9) {
+      return false;
+    }
+    const faceZ = 1 / (u * inverse[0] + v * inverse[1] + w * inverse[2]);
+    return faceZ < z * (1 - MARK_DEPTH_TOLERANCE);
+  };
+  const outside = (point: Vec2) => point.x < left || point.x > right || point.y < top || point.y > bottom;
+  const hidden = (point: Vec2, z: number) => !outside(point) && cells[row(point.y) * MARK_GRID + column(point.x)].some(triangle => hides(point, z, triangle));
+  const spacing = Math.hypot(right - left, bottom - top) * MARK_SAMPLE_SHARE;
+  const runs: Vec2[][] = [];
+  for (const [i, j] of marked) {
+    const [run] = clipOpenPath([vertices[i], vertices[j]]);
+    if (!run) {
+      continue;
+    }
+    const [from, to] = run;
+    const a = project(from, focalLength);
+    const b = project(to, focalLength);
+    const samples = Math.min(MAX_MARK_SAMPLES, Math.max(MIN_MARK_SAMPLES, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (spacing || 1))));
+    let current: Vec2[] = [];
+    for (let k = 0; k <= samples; k++) {
+      const t = k / samples;
+      // Even steps on screen: interpolate 1 / z, then place the point at that depth.
+      const inverse = (1 - t) / from.z + t / to.z;
+      const s = (t / to.z) / inverse;
+      const point3 = { x: from.x + (to.x - from.x) * s, y: from.y + (to.y - from.y) * s, z: 1 / inverse };
+      const point = project(point3, focalLength);
+      if (hidden(point, point3.z)) {
+        if (current.length > 1) runs.push(current);
+        current = [];
+      } else {
+        current.push(point);
+      }
+    }
+    if (current.length > 1) runs.push(current);
+  }
+  return runs;
+}
+
 function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshItem | null {
   const vertices = node.vertices.map(({ x, y, z }) => applyMatrix(matrix, x, y, z));
   const polygons: Vec2[][] = [];
@@ -254,11 +351,13 @@ function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshI
     return null;
   }
   const depth = depthSum / depthCount;
+  const marks = node.marked?.value.length ? visibleMarks(node.marked.value, vertices, node.faces.value, focalLength) : [];
   return {
     kind: 'mesh',
     depth,
     polygons,
     lines,
+    ...(marks.length ? { marks } : {}),
     fill: node.fill,
     border: strokeOnScreen(node.border, matrix, depth, focalLength),
     highlight: node.highlight?.value,

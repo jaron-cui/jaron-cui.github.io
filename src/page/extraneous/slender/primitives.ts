@@ -1,6 +1,7 @@
 import { Edge, EllipsoidShape, Face, Vec3 } from '../../../lib/vrender/model';
 
-export type MeshData = { vertices: Vec3[]; faces: Face[]; edges: Edge[] };
+// marked: lines drawn along with the outline (see marks.ts). Only rendering and the mirror use it.
+export type MeshData = { vertices: Vec3[]; faces: Face[]; edges: Edge[]; marked?: Edge[] };
 
 const FULL_TURN = Math.PI * 2;
 

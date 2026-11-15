@@ -213,3 +213,40 @@ describe('painting order', () => {
     expect(items.map(item => item.fill?.r)).toEqual([0, 0.5]);
   });
 });
+
+describe('marked edges', () => {
+  // A 20-unit cube at the origin, seen from z = -100 looking along +z: its z = -10 face is in front.
+  const corners: Vec3[] = [];
+  for (const z of [-10, 10]) for (const y of [-10, 10]) for (const x of [-10, 10]) corners.push({ x, y, z });
+  const at = (x: number, y: number, z: number) => corners.findIndex(c => c.x === x && c.y === y && c.z === z);
+  const quad = (a: number, b: number, c: number, d: number): Face[] => [[a, b, c], [a, c, d]];
+  const faces: Face[] = [
+    ...quad(at(-10, -10, -10), at(10, -10, -10), at(10, 10, -10), at(-10, 10, -10)),
+    ...quad(at(-10, -10, 10), at(10, -10, 10), at(10, 10, 10), at(-10, 10, 10)),
+    ...quad(at(-10, -10, -10), at(10, -10, -10), at(10, -10, 10), at(-10, -10, 10)),
+    ...quad(at(-10, 10, -10), at(10, 10, -10), at(10, 10, 10), at(-10, 10, 10)),
+    ...quad(at(-10, -10, -10), at(-10, 10, -10), at(-10, 10, 10), at(-10, -10, 10)),
+    ...quad(at(10, -10, -10), at(10, 10, -10), at(10, 10, 10), at(10, -10, 10)),
+  ];
+  const meshWith = (marked: [number, number][]): MeshItem => {
+    const node: MeshNode = { ...triangles(corners, faces), marked: fixed(marked), border: { color: WHITE, width: 1 } };
+    return projectScene(sceneOf([node]), 0.25)[0] as MeshItem;
+  };
+
+  it('draws a front edge whole and hides one behind the mesh', () => {
+    const front = meshWith([[at(-10, -10, -10), at(10, -10, -10)]]);
+    expect(front.marks).toHaveLength(1);
+    // The run spans the whole edge on screen: 20 units at depth 90 with focal length 100.
+    const xs = front.marks![0].map(p => p.x);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeCloseTo((20 * 100) / 90);
+    const back = meshWith([[at(-10, -10, 10), at(10, -10, 10)]]);
+    expect(back.marks ?? []).toHaveLength(0);
+  });
+
+  it('keeps an edge between two visible faces, which shares their depth', () => {
+    // The front face's own diagonal lies in it, so the face never hides it.
+    const diagonal = meshWith([[at(-10, -10, -10), at(10, 10, -10)]]);
+    expect(diagonal.marks).toHaveLength(1);
+    expect(diagonal.marks![0].length).toBeGreaterThan(20);
+  });
+});

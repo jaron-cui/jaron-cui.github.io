@@ -1,5 +1,6 @@
 import { VertexGroup } from './armature';
 import { Edge, Face, Vec3 } from '../../../lib/vrender/model';
+import { marksAfterMirror } from './marks';
 import { MeshData } from './primitives';
 
 export type MirrorAxis = 'x' | 'y' | 'z';
@@ -82,7 +83,8 @@ function mirrorAcross(mesh: MeshData, groups: VertexGroup[], axis: MirrorAxis, m
       }
     });
   });
-  return { vertices, faces, edges, groups: Array.from(result.values()), copiedFrom, welded };
+  const marked = mesh.marked && marksAfterMirror(mesh.marked, copiedFrom, count);
+  return { vertices, faces, edges, ...(marked ? { marked } : {}), groups: Array.from(result.values()), copiedFrom, welded };
 }
 
 // One modifier's result on a mesh and its vertex groups.

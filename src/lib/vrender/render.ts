@@ -35,7 +35,7 @@ function drawShape(ctx: CanvasRenderingContext2D, { runs, fill, stroke }: ShapeI
 
 // Strokes every triangle edge at twice the border's width, then paints the fill over everything
 // inside the silhouette. Only the outer half of the silhouette's stroke remains visible.
-function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, fill, border, highlight }: MeshItem) {
+function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, marks, fill, border, highlight }: MeshItem) {
   const path = new Path2D();
   for (const polygon of polygons) {
     polygon.forEach(({ x, y }, i) => (i === 0 ? path.moveTo(x, y) : path.lineTo(x, y)));
@@ -65,6 +65,19 @@ function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, fill, border
   }
   ctx.fillStyle = toCssColor({ ...fill, a: 1 });
   ctx.fill(path, 'nonzero');
+  // Marked edges go over the fill at the border's width, the same weight as the visible outline.
+  if (marks?.length && border && borderWidth > 0) {
+    const marked = new Path2D();
+    for (const run of marks) {
+      run.forEach(({ x, y }, i) => (i === 0 ? marked.moveTo(x, y) : marked.lineTo(x, y)));
+    }
+    ctx.strokeStyle = toCssColor(border.color);
+    ctx.lineWidth = borderWidth;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke(marked);
+    ctx.lineCap = 'butt';
+  }
 }
 
 export function ellipsoidOutline({ arcs }: Pick<EllipsoidItem, 'arcs'>): Path2D {
