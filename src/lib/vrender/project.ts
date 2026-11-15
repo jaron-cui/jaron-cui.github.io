@@ -229,10 +229,11 @@ function signedArea(polygon: Vec2[]): number {
   return area / 2;
 }
 
-// Samples along a marked edge: one per this share of the mesh's size on screen, within these bounds.
+// The finest step along a marked edge, as a share of the mesh's size on screen.
 const MARK_SAMPLE_SHARE = 1 / 150;
-const MIN_MARK_SAMPLES = 2;
-const MAX_MARK_SAMPLES = 24;
+// A stretch of an edge whose ends agree is taken as wholly shown or hidden up to this many sample
+// spacings long.
+const COARSE_MARK_SAMPLES = 8;
 // Triangles are bucketed in a grid this many cells across the mesh's screen bounds, so each sample
 // tests only the faces near it.
 const MARK_GRID = 24;
@@ -240,83 +241,137 @@ const MARK_GRID = 24;
 // The edge's own faces pass through it at the same depth, so they never hide it.
 const MARK_DEPTH_TOLERANCE = 1e-3;
 
-type ScreenTriangle = { screen: Vec2[]; inverse: number[]; left: number; right: number; top: number; bottom: number };
-
 // The parts of each marked edge not hidden by the mesh's own faces, projected. Each edge is sampled,
 // and a sample is hidden when a face covers it on screen at a nearer depth. Depth is interpolated as
 // 1 / z, which is linear on screen. Faces reaching behind the near plane don't hide anything.
+//
+// Runs every frame, so it keeps to flat typed arrays: vertices are projected once, triangle bounds sit
+// in one buffer, and the grid is two integer arrays filled by counting, with nothing allocated per
+// sample.
 function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[], focalLength: number): Vec2[][] {
-  const triangles: ScreenTriangle[] = allTriangles(faces, vertices)
-    .map(face => face.map(i => vertices[i]))
-    .filter(points => points.every(p => p.z >= NEAR_DEPTH))
-    .map(points => {
-      const screen = points.map(p => project(p, focalLength));
-      return {
-        screen,
-        inverse: points.map(p => 1 / p.z),
-        left: Math.min(...screen.map(p => p.x)), right: Math.max(...screen.map(p => p.x)),
-        top: Math.min(...screen.map(p => p.y)), bottom: Math.max(...screen.map(p => p.y)),
-      };
-    });
-  const left = Math.min(...triangles.map(t => t.left));
-  const right = Math.max(...triangles.map(t => t.right));
-  const top = Math.min(...triangles.map(t => t.top));
-  const bottom = Math.max(...triangles.map(t => t.bottom));
+  const n = vertices.length;
+  const sx = new Float64Array(n);
+  const sy = new Float64Array(n);
+  const iz = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const { x, y, z } = vertices[i];
+    iz[i] = 1 / z;
+    sx[i] = focalLength * x * iz[i];
+    sy[i] = focalLength * y * iz[i];
+  }
+  const all = allTriangles(faces, vertices);
+  const tri = new Int32Array(all.length * 3);
+  const bounds = new Float64Array(all.length * 4);
+  let count = 0;
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  for (const [a, b, c] of all) {
+    if (vertices[a].z < NEAR_DEPTH || vertices[b].z < NEAR_DEPTH || vertices[c].z < NEAR_DEPTH) continue;
+    tri[count * 3] = a;
+    tri[count * 3 + 1] = b;
+    tri[count * 3 + 2] = c;
+    const l = Math.min(sx[a], sx[b], sx[c]);
+    const r = Math.max(sx[a], sx[b], sx[c]);
+    const t = Math.min(sy[a], sy[b], sy[c]);
+    const btm = Math.max(sy[a], sy[b], sy[c]);
+    bounds[count * 4] = l;
+    bounds[count * 4 + 1] = r;
+    bounds[count * 4 + 2] = t;
+    bounds[count * 4 + 3] = btm;
+    if (l < left) left = l;
+    if (r > right) right = r;
+    if (t < top) top = t;
+    if (btm > bottom) bottom = btm;
+    count++;
+  }
   const cellW = (right - left) / MARK_GRID || 1;
   const cellH = (bottom - top) / MARK_GRID || 1;
   const column = (x: number) => Math.min(MARK_GRID - 1, Math.max(0, Math.floor((x - left) / cellW)));
   const row = (y: number) => Math.min(MARK_GRID - 1, Math.max(0, Math.floor((y - top) / cellH)));
-  const cells: ScreenTriangle[][] = Array.from({ length: MARK_GRID * MARK_GRID }, () => []);
-  for (const triangle of triangles) {
-    for (let r = row(triangle.top); r <= row(triangle.bottom); r++) {
-      for (let c = column(triangle.left); c <= column(triangle.right); c++) {
-        cells[r * MARK_GRID + c].push(triangle);
-      }
+  // Counting sort of triangles into cells: first how many each cell gets, then where each starts.
+  const cellCount = MARK_GRID * MARK_GRID;
+  const starts = new Int32Array(cellCount + 1);
+  for (let k = 0; k < count; k++) {
+    for (let r = row(bounds[k * 4 + 2]); r <= row(bounds[k * 4 + 3]); r++) {
+      for (let c = column(bounds[k * 4]); c <= column(bounds[k * 4 + 1]); c++) starts[r * MARK_GRID + c + 1]++;
     }
   }
-  const hides = (point: Vec2, z: number, { screen: [a, b, c], inverse, left: l, right: r, top: t, bottom: btm }: ScreenTriangle) => {
-    if (point.x < l || point.x > r || point.y < t || point.y > btm) {
-      return false;
+  for (let i = 0; i < cellCount; i++) starts[i + 1] += starts[i];
+  const fill = starts.slice(0, cellCount);
+  const items = new Int32Array(starts[cellCount]);
+  for (let k = 0; k < count; k++) {
+    for (let r = row(bounds[k * 4 + 2]); r <= row(bounds[k * 4 + 3]); r++) {
+      for (let c = column(bounds[k * 4]); c <= column(bounds[k * 4 + 1]); c++) items[fill[r * MARK_GRID + c]++] = k;
     }
-    const area = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
-    if (Math.abs(area) < 1e-12) {
-      return false;
+  }
+  const hidden = (px: number, py: number, z: number) => {
+    if (px < left || px > right || py < top || py > bottom) return false;
+    const cell = row(py) * MARK_GRID + column(px);
+    for (let at = starts[cell]; at < starts[cell + 1]; at++) {
+      const k = items[at];
+      if (px < bounds[k * 4] || px > bounds[k * 4 + 1] || py < bounds[k * 4 + 2] || py > bounds[k * 4 + 3]) continue;
+      const a = tri[k * 3], b = tri[k * 3 + 1], c = tri[k * 3 + 2];
+      const area = (sx[b] - sx[a]) * (sy[c] - sy[a]) - (sx[c] - sx[a]) * (sy[b] - sy[a]);
+      if (Math.abs(area) < 1e-12) continue;
+      const u = ((sx[b] - px) * (sy[c] - py) - (sx[c] - px) * (sy[b] - py)) / area;
+      const v = ((sx[c] - px) * (sy[a] - py) - (sx[a] - px) * (sy[c] - py)) / area;
+      const w = 1 - u - v;
+      if (u < -1e-9 || v < -1e-9 || w < -1e-9) continue;
+      if (1 / (u * iz[a] + v * iz[b] + w * iz[c]) < z * (1 - MARK_DEPTH_TOLERANCE)) return true;
     }
-    const u = ((b.x - point.x) * (c.y - point.y) - (c.x - point.x) * (b.y - point.y)) / area;
-    const v = ((c.x - point.x) * (a.y - point.y) - (a.x - point.x) * (c.y - point.y)) / area;
-    const w = 1 - u - v;
-    if (u < -1e-9 || v < -1e-9 || w < -1e-9) {
-      return false;
-    }
-    const faceZ = 1 / (u * inverse[0] + v * inverse[1] + w * inverse[2]);
-    return faceZ < z * (1 - MARK_DEPTH_TOLERANCE);
+    return false;
   };
-  const outside = (point: Vec2) => point.x < left || point.x > right || point.y < top || point.y > bottom;
-  const hidden = (point: Vec2, z: number) => !outside(point) && cells[row(point.y) * MARK_GRID + column(point.x)].some(triangle => hides(point, z, triangle));
-  const spacing = Math.hypot(right - left, bottom - top) * MARK_SAMPLE_SHARE;
+  const spacing = Math.hypot(right - left, bottom - top) * MARK_SAMPLE_SHARE || 1;
+  const coarse = spacing * COARSE_MARK_SAMPLES;
+  // The edge being sampled, on screen and in depth. The helpers below read these, so they're made
+  // once per mesh rather than once per edge.
+  let ax = 0, ay = 0, bx = 0, by = 0, fromZ = 1, toZ = 1, length = 0;
+  const ts: number[] = [];
+  const vs: boolean[] = [];
+  const shown = (t: number) => !hidden(ax + (bx - ax) * t, ay + (by - ay) * t, 1 / ((1 - t) / fromZ + t / toZ));
+  // Adaptive: an edge is tested at its ends and middle, and a stretch is split again only where
+  // those disagree, or where it's long enough on screen to hide something between its tests. Splits
+  // stop at the sample spacing, so where visibility changes it's found as finely as before, while
+  // a short edge that's plainly in view or plainly hidden costs three tests.
+  const refine = (t0: number, v0: boolean, t1: number, v1: boolean) => {
+    const span = (t1 - t0) * length;
+    if (span <= spacing || (v0 === v1 && span <= coarse && t1 - t0 < 1)) {
+      ts.push(t1);
+      vs.push(v1);
+      return;
+    }
+    const tm = (t0 + t1) / 2;
+    const vm = shown(tm);
+    refine(t0, v0, tm, vm);
+    refine(tm, vm, t1, v1);
+  };
   const runs: Vec2[][] = [];
   for (const [i, j] of marked) {
-    const [run] = clipOpenPath([vertices[i], vertices[j]]);
-    if (!run) {
-      continue;
+    let from = vertices[i];
+    let to = vertices[j];
+    if (from.z < NEAR_DEPTH || to.z < NEAR_DEPTH) {
+      const [run] = clipOpenPath([from, to]);
+      if (!run) continue;
+      [from, to] = run;
     }
-    const [from, to] = run;
-    const a = project(from, focalLength);
-    const b = project(to, focalLength);
-    const samples = Math.min(MAX_MARK_SAMPLES, Math.max(MIN_MARK_SAMPLES, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / (spacing || 1))));
+    ax = (focalLength * from.x) / from.z;
+    ay = (focalLength * from.y) / from.z;
+    bx = (focalLength * to.x) / to.z;
+    by = (focalLength * to.y) / to.z;
+    fromZ = from.z;
+    toZ = to.z;
+    length = Math.hypot(bx - ax, by - ay);
+    ts.length = 0;
+    vs.length = 0;
+    ts.push(0);
+    vs.push(shown(0));
+    refine(0, vs[0], 1, shown(1));
     let current: Vec2[] = [];
-    for (let k = 0; k <= samples; k++) {
-      const t = k / samples;
-      // Even steps on screen: interpolate 1 / z, then place the point at that depth.
-      const inverse = (1 - t) / from.z + t / to.z;
-      const s = (t / to.z) / inverse;
-      const point3 = { x: from.x + (to.x - from.x) * s, y: from.y + (to.y - from.y) * s, z: 1 / inverse };
-      const point = project(point3, focalLength);
-      if (hidden(point, point3.z)) {
+    for (let k = 0; k < ts.length; k++) {
+      if (vs[k]) {
+        current.push({ x: ax + (bx - ax) * ts[k], y: ay + (by - ay) * ts[k] });
+      } else {
         if (current.length > 1) runs.push(current);
         current = [];
-      } else {
-        current.push(point);
       }
     }
     if (current.length > 1) runs.push(current);
