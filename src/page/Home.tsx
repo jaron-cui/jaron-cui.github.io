@@ -75,13 +75,13 @@ export default function Home() {
             <h2>Neural Circuit Architectural Priors</h2>
             <Row>
               <Col>
-                <img src="project/ncap/ncap-a1.gif" alt="NCAP controlling a Unitree A1 in MuJoCo simulation" width='100%'/>
+                <img loading="lazy" decoding="async" src="project/ncap/ncap-a1.gif" alt="NCAP controlling a Unitree A1 in MuJoCo simulation" width='100%'/>
               </Col>
               <Col>
-                <img src="project/ncap/compliant-a1.gif" alt="Compliant muscle model on the real Unitree A1" width='100%'/>
+                <img loading="lazy" decoding="async" src="project/ncap/compliant-a1.gif" alt="Compliant muscle model on the real Unitree A1" width='100%'/>
               </Col>
               <Col>
-                <img src="project/ncap/ncap-rat-task-diagram.png" alt="NCAP with rat action/observation space" width='100%'/>
+                <img loading="lazy" decoding="async" src="project/ncap/ncap-rat-task-diagram.png" alt="NCAP with rat action/observation space" width='100%'/>
               </Col>
             </Row>
             <p>
@@ -118,15 +118,15 @@ export default function Home() {
             <Row>
               <Col>
                 <h4><a href='/#/projects/marimba'>I Built a Marimba</a></h4>
-                <img src="project/marimba/marimba.jpg" alt="Marimba" width='100%'/>
+                <img loading="lazy" decoding="async" src="project/marimba/marimba.jpg" alt="Marimba" width='100%'/>
               </Col>
               <Col>
                 <h4><a href='/#/projects/cdit-planning'>CDiT World Model</a></h4>
-                <img src="project/cdit-planning/obstructed_mujoco_rollout.gif" alt="World model exploration" width='100%'/>
+                <img loading="lazy" decoding="async" src="project/cdit-planning/obstructed_mujoco_rollout.gif" alt="World model exploration" width='100%'/>
               </Col>
               <Col>
                 <h4><a href='/#/projects/robotic-hand'>Robotic Hand</a></h4>
-                <img src="robot-hand.gif" alt="Robotic Hand" width='100%'/>
+                <img loading="lazy" decoding="async" src="robot-hand.gif" alt="Robotic Hand" width='100%'/>
               </Col>
             </Row>
           </Col>

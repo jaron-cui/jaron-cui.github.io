@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navbar, Container, Nav, NavDropdown } from 'react-bootstrap';
 import { Envelope, EnvelopePaper, Github, Linkedin } from 'react-bootstrap-icons';
-import { LINKS } from '../util/constants';
+import { LINKS } from '../util/links';
 import { DEFAULT_FONT } from '../util/styles';
 import WidthSwitch from './WidthSwitch';
 

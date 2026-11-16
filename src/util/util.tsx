@@ -1,4 +1,4 @@
-import { TECH_SYNONYMS, TECH_DEPENDENCIES } from './constants';
+import { TECH_SYNONYMS, TECH_DEPENDENCIES } from './tech';
 import { Timeframe, Semesters, Semester, Season } from './types';
 
 export function wrapContent(content: any) {

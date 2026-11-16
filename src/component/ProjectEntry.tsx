@@ -46,7 +46,8 @@ export default function ProjectEntry(props: ProjectEntryProps & { locked?: boole
           <LinkButton link={props.repository} Img={Github} label='View on GitHub'/>
         </span>
       </div>
-      <Collapse in={props.open}>
+      {/* Mounted only while open, so a closed project's videos, images, and demos neither load nor run. */}
+      <Collapse in={props.open} unmountOnExit>
         {
           props.legacy ? (
             <div style={{padding: '20px'}}>
@@ -57,7 +58,7 @@ export default function ProjectEntry(props: ProjectEntryProps & { locked?: boole
                 </ul>
               </div>
               {props.gallery && wrapContent(<ProjectEntryGallery media={props.gallery}/>)}
-              {props.video && wrapContent(<iframe width="768" height="432" src={props.video}></iframe>)}
+              {props.video && wrapContent(<iframe width="768" height="432" src={props.video} loading='lazy'></iframe>)}
               {props.clip && wrapContent(content)}
               <div style={{paddingTop: '10px'}}>
                 <h4>Description</h4>

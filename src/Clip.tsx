@@ -8,6 +8,7 @@ export default function Clip(props: {link: string, width?: string, height?: stri
       <iframe id='video'
         src={props.link}
         allow='autoplay'
+        loading='lazy'
         width={props.width || "768"} height={props.height || "432"}>
       </iframe>
     </>

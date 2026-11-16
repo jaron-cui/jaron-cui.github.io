@@ -25,7 +25,7 @@ export default function ProjectEntryGallery({ media } : { media: Media[] }) {
     <div style={{height: '300px', width: '100%', display: 'flex', justifyContent: 'center'}}>
       <SideButton direction='left' onClick={changeImage(-1)}/>
       <Tooltip title={media[index].description} leaveDelay={0}>
-        <div style={{display: 'flex', backgroundColor: '#999999', height: '100%', width: 'max(50%, 700px)'}}>{<img src={toDownloadLink(media[index].link)} style={{objectFit: 'contain', width: '100%'}}/>}</div>
+        <div style={{display: 'flex', backgroundColor: '#999999', height: '100%', width: 'max(50%, 700px)'}}>{<img src={toDownloadLink(media[index].link)} decoding='async' style={{objectFit: 'contain', width: '100%'}}/>}</div>
       </Tooltip>
       <SideButton direction='right' onClick={changeImage(1)}/>
     </div>

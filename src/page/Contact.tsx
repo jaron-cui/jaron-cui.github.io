@@ -1,6 +1,6 @@
 import { Clipboard, Envelope, Github, Icon, Linkedin } from "react-bootstrap-icons";
 import { CopyButton } from "../component/Buttons";
-import { LINKS } from "../util/constants";
+import { LINKS } from '../util/links';
 import { DEFAULT_FONT, DEFAULT_MARGIN } from "../util/styles";
 
 export default function Contact() {

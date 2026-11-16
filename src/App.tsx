@@ -5,21 +5,24 @@ import { useLocation } from 'react-router-dom';
 import Home from './page/Home';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Navigation from './component/Navigation';
-import Projects from './page/Projects';
-import ProjectPage from './page/extraneous/Project';
-import Experience from './page/Experience';
 import NotFound from './page/NotFound';
-import Contact from './page/Contact';
-import ViewportPage from './page/extraneous/ViewportPage';
-import { StringUtil } from './page/extraneous/StringManipulation';
-import WordlePage from './page/extraneous/Wordle';
-import Tetris from './page/extraneous/Tetris';
-import Groc from './page/extraneous/Grocery';
-import { Rect } from './page/extraneous/rect/Rect';
-import { Chess } from './page/extraneous/chess/view';
-import { ConnectFour } from './page/extraneous/connect-four/view';
-import { Slender } from './page/extraneous/slender/Slender';
-import { Editor } from './page/extraneous/slender/Editor';
+
+// Every page but Home loads on first visit, so the homepage doesn't download the editors, games, and
+// project pages too.
+const Projects = lazy(() => import('./page/Projects'));
+const ProjectPage = lazy(() => import('./page/extraneous/Project'));
+const Experience = lazy(() => import('./page/Experience'));
+const Contact = lazy(() => import('./page/Contact'));
+const ViewportPage = lazy(() => import('./page/extraneous/ViewportPage'));
+const StringUtil = lazy(() => import('./page/extraneous/StringManipulation').then(m => ({ default: m.StringUtil })));
+const WordlePage = lazy(() => import('./page/extraneous/Wordle'));
+const Tetris = lazy(() => import('./page/extraneous/Tetris'));
+const Groc = lazy(() => import('./page/extraneous/Grocery'));
+const Rect = lazy(() => import('./page/extraneous/rect/Rect').then(m => ({ default: m.Rect })));
+const Chess = lazy(() => import('./page/extraneous/chess/view').then(m => ({ default: m.Chess })));
+const ConnectFour = lazy(() => import('./page/extraneous/connect-four/view').then(m => ({ default: m.ConnectFour })));
+const Slender = lazy(() => import('./page/extraneous/slender/Slender').then(m => ({ default: m.Slender })));
+const Editor = lazy(() => import('./page/extraneous/slender/Editor').then(m => ({ default: m.Editor })));
 
 // Heavy demos load on first visit (three.js, MuJoCo WASM and the model stay out of the main bundle).
 const RatPage = lazy(() => import('./page/extraneous/rat-ncap/RatPage'));

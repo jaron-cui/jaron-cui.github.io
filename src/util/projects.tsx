@@ -10,7 +10,7 @@ import Marimba from '../page/extraneous/Marimba';
 
 function YouTubeEmbed({ videoID }: { videoID: string }) {
   return (
-    <iframe width='100%' height='480px' src={`https://youtube.com/embed/${videoID}?autoplay=1&showinfo=0&loop=1&rel=0`}></iframe>
+    <iframe width='100%' height='480px' loading='lazy' src={`https://youtube.com/embed/${videoID}?autoplay=1&showinfo=0&loop=1&rel=0`}></iframe>
   )
 }
 
