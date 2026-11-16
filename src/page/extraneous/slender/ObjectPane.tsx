@@ -183,7 +183,7 @@ export const ObjectPane = ({
     );
   }
 
-  const { id, name, camera, bones, fill, border, parent, constraints } = object;
+  const { id, name, camera, bones, fill, border, outline, parent, constraints } = object;
 
   return (
     <div data-testid='object-pane' onPointerDown={onEndStep} style={{ height: '100%', overflowY: 'auto', background: '#1c1f27' }}>
@@ -288,6 +288,18 @@ export const ObjectPane = ({
                 onChangeStyle('border-width', current => ({ ...current, border: { ...current.border, width } }));
               }}
               style={fieldStyle}
+            />
+          </Row>
+          <Row label='Outline'>
+            <input
+              type='checkbox'
+              aria-label='Outline'
+              title='Off: only marked edges and lines get the border'
+              checked={outline !== false}
+              onChange={event => {
+                const on = event.target.checked;
+                onChangeStyle('outline', ({ outline: _, ...current }) => (on ? current : { ...current, outline: false }));
+              }}
             />
           </Row>
         </Section>

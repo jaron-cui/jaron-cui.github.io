@@ -67,6 +67,11 @@ Phone-like benchmark: a 390 × 520 CSS-pixel canvas at device pixel ratio 3, CPU
 
 What's left is mostly rasterizing thick border strokes and marks; join and cap styles made no difference, and halving the pixel ratio saves about a third. The benchmark harness lived in a temporary `src/zz-bench.ts` and isn't kept.
 
+## Outline switch (2026-11-12)
+
+- Object pane, Outline: off fills the object without stroking its silhouette; marked edges and loose lines still draw. Missing means on, so older files are unchanged. vrender: `outline` on `MeshNode` and `MeshItem`, honored by `render.ts` and SVG export.
+- Pieces with their outline off get a one-device-pixel stroke in their fill color, which closes the anti-aliased seam where two pieces meet. It costs about 13 ms a frame on the phone-like benchmark for the gear demo's 150 pieces.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.

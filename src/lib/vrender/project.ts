@@ -29,6 +29,8 @@ export type MeshItem = {
   lines: Vec2[][];
   // The visible stretches of marked edges, drawn over the fill.
   marks?: Vec2[][];
+  // false: the polygons are filled but not stroked.
+  outline?: boolean;
   fill: Rgb;
   border: ProjectedStroke | null;
   highlight?: Rgb;
@@ -494,6 +496,7 @@ function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshI
     polygons,
     lines,
     ...(marks.length ? { marks } : {}),
+    ...(node.outline === false ? { outline: false } : {}),
     fill: node.fill,
     border: strokeOnScreen(node.border, matrix, depth, focalLength),
     highlight: node.highlight?.value,

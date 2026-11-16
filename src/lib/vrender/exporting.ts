@@ -66,14 +66,17 @@ function itemSvg(item: DrawItem): string {
   }
   const faces = item.polygons.map(polygon => pathData(polygon, true)).join('');
   const lines = item.lines.map(line => pathData(line, false)).join('');
-  const border = item.border && item.border.width > 0
-    ? `<path d="${faces}${lines}" fill="none" stroke="${color(item.border.color)}" stroke-width="${round(item.border.width * 2)}" stroke-linejoin="round" stroke-linecap="round"/>`
+  const outlined = item.outline === false ? lines : `${faces}${lines}`;
+  const border = item.border && item.border.width > 0 && outlined
+    ? `<path d="${outlined}" fill="none" stroke="${color(item.border.color)}" stroke-width="${round(item.border.width * 2)}" stroke-linejoin="round" stroke-linecap="round"/>`
     : '';
   // Marked edges over the fill, at the border's width.
   const marks = item.marks?.length && item.border && item.border.width > 0
     ? `<path d="${item.marks.map(run => pathData(run, false)).join('')}" fill="none" stroke="${color(item.border.color)}" stroke-width="${round(item.border.width)}" stroke-linejoin="round" stroke-linecap="round"/>`
     : '';
-  return `${border}${faces ? `<path d="${faces}" fill="${color(item.fill)}"/>` : ''}${marks}`;
+  // Without an outline, a thin stroke in the fill's color closes the seams between pieces.
+  const seams = item.outline === false ? ` stroke="${color(item.fill)}" stroke-width="0.5" stroke-linejoin="round"` : '';
+  return `${border}${faces ? `<path d="${faces}" fill="${color(item.fill)}"${seams}/>` : ''}${marks}`;
 }
 
 function frameContent(scene: Scene): string {

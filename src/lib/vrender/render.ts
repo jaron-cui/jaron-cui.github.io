@@ -35,7 +35,7 @@ function drawShape(ctx: CanvasRenderingContext2D, { runs, fill, stroke }: ShapeI
 
 // Strokes every triangle edge at twice the border's width, then paints the fill over everything
 // inside the silhouette. Only the outer half of the silhouette's stroke remains visible.
-function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, marks, fill, border, highlight }: MeshItem) {
+function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, marks, outline: outlined, fill, border, highlight }: MeshItem) {
   const path = new Path2D();
   for (const polygon of polygons) {
     polygon.forEach(({ x, y }, i) => (i === 0 ? path.moveTo(x, y) : path.lineTo(x, y)));
@@ -43,28 +43,40 @@ function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, marks, fill,
   }
   const borderWidth = border?.width ?? 0;
   if (borderWidth > 0 || highlight) {
-    const outline = new Path2D(path);
+    const linePath = new Path2D();
     for (const [from, to] of lines) {
-      outline.moveTo(from.x, from.y);
-      outline.lineTo(to.x, to.y);
+      linePath.moveTo(from.x, from.y);
+      linePath.lineTo(to.x, to.y);
     }
+    const outline = new Path2D(path);
+    outline.addPath(linePath);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    // Everything but its outermost ring gets painted over, which leaves only the perimeter lit.
+    // Everything but its outermost ring gets painted over, which leaves only the perimeter lit. A
+    // selection shows round the whole silhouette, outlined or not.
     if (highlight) {
       ctx.strokeStyle = toCssColor({ ...highlight, a: 1 });
       ctx.lineWidth = (borderWidth + HIGHLIGHT_WIDTH) * 2;
       ctx.stroke(outline);
     }
-    if (border && borderWidth > 0) {
+    if (border && borderWidth > 0 && (outlined !== false || lines.length)) {
       ctx.strokeStyle = toCssColor(border.color);
       ctx.lineWidth = borderWidth * 2;
-      ctx.stroke(outline);
+      ctx.stroke(outlined === false ? linePath : outline);
     }
     ctx.lineCap = 'butt';
   }
   ctx.fillStyle = toCssColor({ ...fill, a: 1 });
   ctx.fill(path, 'nonzero');
+  // Without an outline, pieces that meet edge to edge would leave a faint anti-aliased seam between
+  // them. A pixel-wide stroke in the fill's own color closes it.
+  if (outlined === false) {
+    const { a, b } = ctx.getTransform();
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.lineWidth = 1 / (Math.hypot(a, b) || 1);
+    ctx.lineJoin = 'bevel';
+    ctx.stroke(path);
+  }
   // Marked edges go over the fill at the border's width, the same weight as the visible outline.
   if (marks?.length && border && borderWidth > 0) {
     const marked = new Path2D();

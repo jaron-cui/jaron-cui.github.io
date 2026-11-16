@@ -64,6 +64,9 @@ export type MeshNode = {
   // Lines drawn over the fill in the border's color, where the mesh's own faces do not hide them,
   // to show creases and contours inside the silhouette. Each is a vertex pair, a face side or a line.
   marked?: Fixed<Edge[]>;
+  // false: no border round the silhouette. Marked edges and standalone lines still draw, so a shape
+  // split into pieces can mark only the lines it wants.
+  outline?: boolean;
   fill: Rgb;
   border: Stroke | null;
 };

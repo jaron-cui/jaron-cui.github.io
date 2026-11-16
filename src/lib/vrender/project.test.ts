@@ -251,6 +251,15 @@ describe('marked edges', () => {
     const [p, q] = diagonal.marks![0];
     expect(Math.hypot(q.x - p.x, q.y - p.y)).toBeCloseTo((Math.hypot(20, 20) * 100) / 90);
   });
+
+  it('passes a mesh with its outline off through with its fill and marks', () => {
+    const node: MeshNode = { ...triangles(corners, faces), marked: fixed([[at(-10, -10, -10), at(10, -10, -10)]]), outline: false, border: { color: WHITE, width: 1 } };
+    const item = projectScene(sceneOf([node]), 0.25)[0] as MeshItem;
+    expect(item.outline).toBe(false);
+    expect(item.polygons.length).toBeGreaterThan(0);
+    expect(item.marks).toHaveLength(1);
+    expect(meshWith([]).outline).toBeUndefined();
+  });
 });
 
 describe('stacks', () => {
