@@ -231,13 +231,17 @@ function signedArea(polygon: Vec2[]): number {
   return area / 2;
 }
 
-// The finest step along a marked edge, as a share of the mesh's size on screen.
+// The finest step along a marked edge, as a share of the mesh's size on screen, but never finer than
+// this many flattening tolerances (a quarter pixel each in the viewport): a small mesh needn't find
+// where an edge goes behind something more precisely than a pixel or so.
 const MARK_SAMPLE_SHARE = 1 / 150;
+const MARK_SAMPLE_FLOOR = 6;
 // A stretch of an edge whose ends agree is taken as wholly shown or hidden up to this many sample
 // spacings long.
 const COARSE_MARK_SAMPLES = 8;
-// Triangles are bucketed in a grid this many cells across the mesh's screen bounds, so each sample
-// tests only the faces near it.
+// Triangles are bucketed in a grid over the mesh's screen bounds, so each sample tests only the faces
+// near it: about one cell per triangle, up to this many cells across. A small mesh gets a coarse grid,
+// since each of its triangles would otherwise be counted into a large share of the cells.
 const MARK_GRID = 24;
 // How much nearer a face must be to hide a point on a marked edge, as a share of the point's depth.
 // The edge's own faces pass through it at the same depth, so they never hide it.
@@ -250,7 +254,7 @@ const MARK_DEPTH_TOLERANCE = 1e-3;
 // Runs every frame, so it keeps to flat typed arrays: vertices are projected once, triangle bounds sit
 // in one buffer, and the grid is two integer arrays filled by counting, with nothing allocated per
 // sample.
-function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[], focalLength: number): Vec2[][] {
+function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[], focalLength: number, tolerance: number): Vec2[][] {
   const n = vertices.length;
   const sx = new Float64Array(n);
   const sy = new Float64Array(n);
@@ -285,16 +289,17 @@ function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[
     if (btm > bottom) bottom = btm;
     count++;
   }
-  const cellW = (right - left) / MARK_GRID || 1;
-  const cellH = (bottom - top) / MARK_GRID || 1;
-  const column = (x: number) => Math.min(MARK_GRID - 1, Math.max(0, Math.floor((x - left) / cellW)));
-  const row = (y: number) => Math.min(MARK_GRID - 1, Math.max(0, Math.floor((y - top) / cellH)));
+  const grid = Math.max(1, Math.min(MARK_GRID, Math.ceil(Math.sqrt(count))));
+  const cellW = (right - left) / grid || 1;
+  const cellH = (bottom - top) / grid || 1;
+  const column = (x: number) => Math.min(grid - 1, Math.max(0, Math.floor((x - left) / cellW)));
+  const row = (y: number) => Math.min(grid - 1, Math.max(0, Math.floor((y - top) / cellH)));
   // Counting sort of triangles into cells: first how many each cell gets, then where each starts.
-  const cellCount = MARK_GRID * MARK_GRID;
+  const cellCount = grid * grid;
   const starts = new Int32Array(cellCount + 1);
   for (let k = 0; k < count; k++) {
     for (let r = row(bounds[k * 4 + 2]); r <= row(bounds[k * 4 + 3]); r++) {
-      for (let c = column(bounds[k * 4]); c <= column(bounds[k * 4 + 1]); c++) starts[r * MARK_GRID + c + 1]++;
+      for (let c = column(bounds[k * 4]); c <= column(bounds[k * 4 + 1]); c++) starts[r * grid + c + 1]++;
     }
   }
   for (let i = 0; i < cellCount; i++) starts[i + 1] += starts[i];
@@ -302,12 +307,12 @@ function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[
   const items = new Int32Array(starts[cellCount]);
   for (let k = 0; k < count; k++) {
     for (let r = row(bounds[k * 4 + 2]); r <= row(bounds[k * 4 + 3]); r++) {
-      for (let c = column(bounds[k * 4]); c <= column(bounds[k * 4 + 1]); c++) items[fill[r * MARK_GRID + c]++] = k;
+      for (let c = column(bounds[k * 4]); c <= column(bounds[k * 4 + 1]); c++) items[fill[r * grid + c]++] = k;
     }
   }
   const hidden = (px: number, py: number, z: number) => {
     if (px < left || px > right || py < top || py > bottom) return false;
-    const cell = row(py) * MARK_GRID + column(px);
+    const cell = row(py) * grid + column(px);
     for (let at = starts[cell]; at < starts[cell + 1]; at++) {
       const k = items[at];
       if (px < bounds[k * 4] || px > bounds[k * 4 + 1] || py < bounds[k * 4 + 2] || py > bounds[k * 4 + 3]) continue;
@@ -322,7 +327,7 @@ function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[
     }
     return false;
   };
-  const spacing = Math.hypot(right - left, bottom - top) * MARK_SAMPLE_SHARE || 1;
+  const spacing = Math.max(Math.hypot(right - left, bottom - top) * MARK_SAMPLE_SHARE, tolerance * MARK_SAMPLE_FLOOR) || 1;
   const coarse = spacing * COARSE_MARK_SAMPLES;
   // The edge being sampled, on screen and in depth. The helpers below read these, so they're made
   // once per mesh rather than once per edge.
@@ -330,6 +335,13 @@ function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[
   const ts: number[] = [];
   const vs: boolean[] = [];
   const shown = (t: number) => !hidden(ax + (bx - ax) * t, ay + (by - ay) * t, 1 / ((1 - t) / fromZ + t / toZ));
+  // Whether each vertex shows, once found: marked edges often meet end to end, as a curve's pieces do.
+  // 0 not yet tested, 1 shown, 2 hidden.
+  const vertexShown = new Uint8Array(n);
+  const shownAt = (vertex: number, t: number) => {
+    if (vertexShown[vertex] === 0) vertexShown[vertex] = shown(t) ? 1 : 2;
+    return vertexShown[vertex] === 1;
+  };
   // Adaptive: an edge is tested at its ends and middle, and a stretch is split again only where
   // those disagree, or where it's long enough on screen to hide something between its tests. Splits
   // stop at the sample spacing, so where visibility changes it's found as finely as before, while
@@ -350,7 +362,8 @@ function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[
   for (const [i, j] of marked) {
     let from = vertices[i];
     let to = vertices[j];
-    if (from.z < NEAR_DEPTH || to.z < NEAR_DEPTH) {
+    const clipped = from.z < NEAR_DEPTH || to.z < NEAR_DEPTH;
+    if (clipped) {
       const [run] = clipOpenPath([from, to]);
       if (!run) continue;
       [from, to] = run;
@@ -365,8 +378,8 @@ function visibleMarks(marked: [number, number][], vertices: Vec3[], faces: Face[
     ts.length = 0;
     vs.length = 0;
     ts.push(0);
-    vs.push(shown(0));
-    refine(0, vs[0], 1, shown(1));
+    vs.push(clipped ? shown(0) : shownAt(i, 0));
+    refine(0, vs[0], 1, clipped ? shown(1) : shownAt(j, 1));
     // A marked edge is straight on screen, so a visible stretch needs only its two ends.
     let first = -1;
     for (let k = 0; k <= ts.length; k++) {
@@ -456,7 +469,7 @@ function outlineLoops(node: MeshNode, vertices: Vec3[], focalLength: number): { 
   return { loops, depthSum, depthCount };
 }
 
-function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshItem | null {
+function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number, tolerance: number): MeshItem | null {
   const vertices = node.vertices.map(({ x, y, z }) => applyMatrix(matrix, x, y, z));
   const outline = outlineLoops(node, vertices, focalLength);
   const polygons: Vec2[][] = outline ? outline.loops : [];
@@ -489,7 +502,7 @@ function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number): MeshI
     return null;
   }
   const depth = depthSum / depthCount;
-  const marks = node.marked?.value.length ? visibleMarks(node.marked.value, vertices, node.faces.value, focalLength) : [];
+  const marks = node.marked?.value.length ? visibleMarks(node.marked.value, vertices, node.faces.value, focalLength, tolerance) : [];
   return {
     kind: 'mesh',
     depth,
@@ -676,7 +689,7 @@ export function projectScene({ camera, nodes }: Scene, tolerance: number): DrawI
       ? projectShape(node, matrix, camera.focalLength, tolerance)
       : node.kind === 'ellipsoid'
         ? projectEllipsoid(node, matrix, camera.focalLength)
-        : projectMesh(node, matrix, camera.focalLength);
+        : projectMesh(node, matrix, camera.focalLength, tolerance);
     if (item) {
       items.push(node.stack ? { ...item, stack: node.stack.value } : item);
     }

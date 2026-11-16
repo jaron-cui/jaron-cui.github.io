@@ -72,6 +72,13 @@ What's left is mostly rasterizing thick border strokes and marks; join and cap s
 - Object pane, Outline: off fills the object without stroking its silhouette; marked edges and loose lines still draw. Missing means on, so older files are unchanged. vrender: `outline` on `MeshNode` and `MeshItem`, honored by `render.ts` and SVG export.
 - Pieces with their outline off get a one-device-pixel stroke in their fill color, which closes the anti-aliased seam where two pieces meet. It costs about 13 ms a frame on the phone-like benchmark for the gear demo's 150 pieces.
 
+## Marked edges on many small meshes (2026-11-12)
+
+- Splitting the gear demo into pieces raised marked-edge visibility from 2 to 10 ms a frame in Node. Three changes in `visibleMarks` (`project.ts`) brought it back down, and they help one-piece meshes too:
+  - The triangle grid is about one cell per triangle, up to 24 across. A fixed 24 × 24 grid over a small mesh counted every triangle into dozens of cells.
+  - Each vertex's visibility is found once per frame, since marked edges often meet end to end, as a curve's pieces do.
+  - The finest sampling step is at least six flattening tolerances, about 1.5 device pixels in the viewport, not just 1/150 of the mesh's size.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.
