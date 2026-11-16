@@ -321,6 +321,18 @@ export class SlenderRenderer implements SceneRenderer {
       this.canvas.addEventListener('pointerup', this.onSwingEnd);
       this.canvas.addEventListener('pointercancel', this.onSwingEnd);
     }
+    this.setRunning(true);
+  }
+
+  // Draws every frame while running. A page stops it while the view is off screen, since the frames
+  // would cost as much as visible ones.
+  setRunning(running: boolean) {
+    if (running === (this.frameRequest !== 0)) return;
+    if (!running) {
+      cancelAnimationFrame(this.frameRequest);
+      this.frameRequest = 0;
+      return;
+    }
     const loop = () => {
       this.render();
       this.frameRequest = requestAnimationFrame(loop);
@@ -552,7 +564,7 @@ export class SlenderRenderer implements SceneRenderer {
   }
 
   dispose() {
-    cancelAnimationFrame(this.frameRequest);
+    this.setRunning(false);
     this.resizeObserver.disconnect();
     this.canvas.remove();
   }

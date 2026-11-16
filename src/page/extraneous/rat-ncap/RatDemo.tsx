@@ -232,6 +232,8 @@ export default function RatDemo(): JSX.Element {
   const timescaleRef = useRef(timescale);
   timescaleRef.current = timescale;
   useEffect(() => {
+    // The renderer draws in its own loop; it stops too while the demo is off screen.
+    renderer.current?.setRunning(visible);
     if (!visible) return;
     let frame = 0;
     let last = performance.now();

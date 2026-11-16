@@ -123,6 +123,7 @@ export default function SlenderDemo(): JSX.Element {
     if (!visible) return;
     let frame = 0;
     let last = performance.now();
+    const drawn = { time: NaN, offset: NaN, tilt: NaN, doc: null as typeof documentRef.current | null, frame: NaN, size: NaN };
     const loop = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
@@ -142,8 +143,18 @@ export default function SlenderDemo(): JSX.Element {
       }
       const tilt = clampTilt(s.tilt);
       if (tilt !== s.tilt) [s.tilt, s.tiltVelocity] = [tilt, 0];
-      draw(canvas.current, doc, time.current, s.offset, s.tilt);
-      redraw();
+      // Draw only when something moved: the time, the camera, the scene, or the canvas's size.
+      const size = (canvas.current?.clientWidth ?? 0) * 10000 + (canvas.current?.clientHeight ?? 0);
+      if (time.current !== drawn.time || s.offset !== drawn.offset || s.tilt !== drawn.tilt || doc !== drawn.doc || size !== drawn.size) {
+        draw(canvas.current, doc, time.current, s.offset, s.tilt);
+        Object.assign(drawn, { time: time.current, offset: s.offset, tilt: s.tilt, doc, size });
+      }
+      // The panels follow the frame shown, so they re-render only when it changes, not every frame.
+      const shownFrame = Math.round(time.current * doc.frameRate);
+      if (shownFrame !== drawn.frame) {
+        drawn.frame = shownFrame;
+        redraw();
+      }
       frame = requestAnimationFrame(loop);
     };
     frame = requestAnimationFrame(loop);
