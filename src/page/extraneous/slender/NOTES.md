@@ -89,6 +89,24 @@ What's left is mostly rasterizing thick border strokes and marks; join and cap s
 - Still a painter's-algorithm limit: the band sits only 20–40 units outside the signal pinions' axles, and a pinion piece pointing down toward a tilted camera is about 15 units nearer than its axle. No error showed in four checked views, but other angles may show one.
 - Phone-like benchmark, same harness and machine load: the earlier one-piece file 101 ms, the pieces 121 ms without the seam stroke, 134 ms with it. The file is 595 KB, 157 objects, 2,700 marks.
 
+## Flat gear demo (2026-11-12)
+
+- `gear-slip-ring-flat.slender` (from `scripts/gear-slip-ring-flat.ts`) is the same mechanism and motion drawn flat:
+  - **Pinions:** one outlined face each.
+  - **Rings:** each a polygon of vertical panels, one per tooth, the tooth profile standing on a chord of the pitch circle.
+  - **Carrier:** 16 plain panels.
+  - **Axles and poles:** lines.
+- **Panel seams:** panels have their outline off and mark every side but the cuts to their neighbors, so a ring reads as one band without lines between panels.
+- **Frames:** each is three outlined pieces facing away from the mechanism.
+  - Two posts at the ring's radius where its panels meet, so they run on from the ring's sides.
+  - A horizontal bar joining their ends.
+  - Each piece sorts on its own.
+- **Shared code:** both generators share the dimensions, tooth profiles, motion, colors and file writing through `scripts/gearSlipRing.ts`.
+- **Benchmark** (phone-like, same load):
+  - Flat 58 ms a frame, solid 140 ms.
+  - 119 objects, 108 faces, 241 KB.
+- **Edge-on:** flat pieces thin to a line seen edge-on, as a pinion does seen along its face.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.
