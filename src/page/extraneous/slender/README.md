@@ -142,6 +142,7 @@ In the outliner, click selects, Ctrl or Shift click toggles, double click rename
 - A face that bends out of its plane, or whose curved sides make it fold over itself, is triangulated by its best-fit plane and may draw a little off.
 - F orders vertices by their angle on screen around their center, which suits convex outlines viewed from the front.
 - Walking a camera object drops any roll it had.
+- Walking the viewport leaves playback running; walking a camera object pauses it, since the walk is keyed at the frame it ends on.
 - Partial constraint influence blends matrices directly, which is approximate for rotations.
 - A bone is in one IK chain. Where chains overlap, the first takes the shared bones and the next stops short of them, rather than averaging as Blender does. There are no joint limits or per-bone stiffness, and no tip rotation option: use Copy Rotation on a foot bone for that.
 - Moving a bone inside an IK chain only changes the solver's starting point, as in Blender. Move the target instead.

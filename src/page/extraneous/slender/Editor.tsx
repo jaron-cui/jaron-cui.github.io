@@ -1490,7 +1490,12 @@ export const Editor = () => {
       walkFastRef.current = false;
       walkZoomRef.current = null;
       walkSpeedRef.current = WALK_SPEED;
-      playingRef.current = false;
+      // Walking a camera object edits it, keyed at the current frame and placed against its parent
+      // as of now, so playback stops as for any transform. Walking the viewport only moves the view,
+      // so playback carries on.
+      if (viewed) {
+        playingRef.current = false;
+      }
       setMode({ kind: 'walk', original, cameraId: viewed?.id ?? null, transform, parentInverse });
       setMessage('Walking: the mouse looks around. WASD move, Q/E down and up, Shift faster, Space zooms to a surface, wheel sets speed. Left click to keep, Esc or right click to go back.');
       // Without the lock, as when the browser refuses it, the mouse still looks around until the
