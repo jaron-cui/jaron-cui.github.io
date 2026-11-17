@@ -9,7 +9,7 @@
 // them don't show, and mark the lines that should.
 import type { Edge, Face, Rgb, Vec3 } from '../../../../lib/vrender/model';
 import {
-  add, BACK, BASE_BOTTOM, BASE_RING_ROOT, BLUE, doubleProfile, emptyMesh, GRAY, HF, INNER_TEETH, lighter, merge, OUTER_OFFSET,
+  add, BACK, BASE_BOTTOM, BASE_RING_ROOT, BLUE, carrierRadius, doubleProfile, emptyMesh, GRAY, HF, INNER_TEETH, lighter, merge, OUTER_OFFSET,
   OUTER_TEETH, PINION_TEETH, PINION_WIDTH, pinionTooth, PURPLE, R_INNER, R_OUTER, R_PINION, RED, singleProfile, TOP,
   TOP_RING_ROOT, track, turn, writeProject, Z_A_HIGH, Z_A_LOW, Z_B_HIGH, Z_B_LOW, Z_INPUT, Z_OUTPUT, Z_PINIONS,
 } from './gearSlipRing';
@@ -118,12 +118,17 @@ function pinionSection(): Mesh {
   return mesh;
 }
 
+// The carrier's band: its middle and half its width, radially. Thinner than the gap between the
+// pinions' faces, so it clears the reference pinions.
+const CARRIER_MIDDLE = carrierRadius(R_INNER + PINION_WIDTH / 2, R_OUTER - PINION_WIDTH / 2, 3 / 4);
+const CARRIER_HALF = 5;
+
 // A section of the carrier's band, centered on angle 0 and `span` wide, with its rims marked. Its
 // ends are closed but unmarked.
 function carrierSection(span: number): Mesh {
   const mesh = emptyMesh();
   // Index = side + 2 · level + 4 · ring.
-  for (const r of [R_INNER + 20, R_OUTER - 20]) for (const z of [Z_PINIONS - 7, Z_PINIONS + 7]) for (const angle of [-span / 2, span / 2]) {
+  for (const r of [CARRIER_MIDDLE - CARRIER_HALF, CARRIER_MIDDLE + CARRIER_HALF]) for (const z of [Z_PINIONS - 7, Z_PINIONS + 7]) for (const angle of [-span / 2, span / 2]) {
     mesh.vertices.push({ x: r * Math.cos(angle), y: r * Math.sin(angle), z });
   }
   mesh.faces.push([2, 3, 7, 6], [0, 1, 5, 4], [0, 1, 3, 2], [4, 5, 7, 6], [0, 2, 6, 4], [1, 3, 7, 5]);
@@ -160,24 +165,26 @@ function pinion(name: string, fill: Rgb, options: Placement) {
   })), options);
 }
 
-add('Base', merge(
+// Each pinion's pole out to its post is its own object, so it sorts by its own depth: as part of the
+// frame it sorted at the frame's middle, behind a near pinion and in front of a far one.
+const base = add('Base', merge(
   box(-R_OUTER - 30, R_OUTER + 30, -20, 20, BASE_BOTTOM, BASE_BOTTOM + 14),
   box(R_OUTER - 10, R_OUTER + 10, -10, 10, BASE_BOTTOM + 14, BASE_RING_ROOT - BACK),
   box(-R_OUTER - 10, -R_OUTER + 10, -10, 10, BASE_BOTTOM + 14, BASE_RING_ROOT - BACK),
-  box(R_INNER + PINION_WIDTH / 2, R_OUTER - 10, -3, 3, Z_INPUT - 3, Z_INPUT + 3),
 ), lighter(RED));
+add('Input pole', box(R_INNER + PINION_WIDTH / 2, R_OUTER - 10, -3, 3, Z_INPUT - 3, Z_INPUT + 3), lighter(RED), { parent: base });
 ring('Base ring', lighter(RED), OUTER_TEETH, ringSection(singleProfile(), R_OUTER, z => BASE_RING_ROOT + z), OUTER_OFFSET);
 pinion('Input pinion', RED, { position: { x: R_INNER, y: 0, z: Z_INPUT }, rotation: { x: track(g => g.input), y: 0, z: 0 } });
 const middleA = (Z_A_LOW + Z_A_HIGH) / 2;
 ring('Ring A', PURPLE, INNER_TEETH, ringSection(doubleProfile(), R_INNER, z => middleA + z), 0, { rotation: { x: 0, y: 0, z: track(g => g.a) } });
 
-// The carrier: a band between the two pinion circles in sections, with an axle out to each pinion
-// from the section it sits in: signal pinions at 0° and 180°, reference pinions at 90° and 270°.
+// The carrier: a band between the pinions in sections, with an axle to each pinion from the section
+// it sits in: signal pinions at 0° and 180°, reference pinions at 90° and 270°.
 const CARRIER_SECTIONS = 16;
 const carrierSpan = (2 * Math.PI) / CARRIER_SECTIONS;
 const axles = [
-  box(R_INNER + PINION_WIDTH / 2, R_INNER + 21, -3, 3, Z_PINIONS - 3, Z_PINIONS + 3),
-  box(R_OUTER - 21, R_OUTER - PINION_WIDTH / 2, -3, 3, Z_PINIONS - 3, Z_PINIONS + 3),
+  box(R_INNER + PINION_WIDTH / 2, CARRIER_MIDDLE - CARRIER_HALF + 1, -3, 3, Z_PINIONS - 3, Z_PINIONS + 3),
+  box(CARRIER_MIDDLE + CARRIER_HALF - 1, R_OUTER - PINION_WIDTH / 2, -3, 3, Z_PINIONS - 3, Z_PINIONS + 3),
 ];
 const carrier = pieces('Carrier', lighter(PURPLE), Array.from({ length: CARRIER_SECTIONS }, (_, k) => {
   const quarter = (k * 4) / CARRIER_SECTIONS;
@@ -211,8 +218,8 @@ const top = add('Top segment', merge(
   box(-R_OUTER - 30, R_OUTER + 30, -20, 20, TOP, TOP + 14),
   box(R_OUTER - 10, R_OUTER + 10, -10, 10, TOP_RING_ROOT + BACK, TOP),
   box(-R_OUTER - 10, -R_OUTER + 10, -10, 10, TOP_RING_ROOT + BACK, TOP),
-  box(R_INNER + PINION_WIDTH / 2, R_OUTER - 10, -3, 3, Z_OUTPUT - 3, Z_OUTPUT + 3),
 ), lighter(BLUE), { rotation: { x: 0, y: 0, z: track(g => g.phi) } });
+add('Output pole', box(R_INNER + PINION_WIDTH / 2, R_OUTER - 10, -3, 3, Z_OUTPUT - 3, Z_OUTPUT + 3), lighter(BLUE), { parent: top });
 ring('Top ring', lighter(BLUE), OUTER_TEETH, ringSection(singleProfile(), R_OUTER, z => TOP_RING_ROOT - z), OUTER_OFFSET, { parent: top });
 pinion('Output pinion', BLUE, { parent: top, position: { x: R_INNER, y: 0, z: Z_OUTPUT }, rotation: { x: track(g => g.output), y: 0, z: 0 } });
 

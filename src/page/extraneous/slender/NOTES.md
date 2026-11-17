@@ -107,6 +107,14 @@ What's left is mostly rasterizing thick border strokes and marks; join and cap s
   - 119 objects, 108 faces, 241 KB.
 - **Edge-on:** flat pieces thin to a line seen edge-on, as a pinion does seen along its face.
 
+## Carrier band and poles (2026-11-12)
+
+- **Carrier band:** in both gear demos it sits most of the way out from the signal pinions' surfaces to the reference pinions' (`carrierRadius`).
+  - **Solid:** three quarters of the way between the faces at 131 and 169, so its middle is at 159.5. It's thinned to 10, so it clears the reference pinions by 4.5 and the signal pinions by 23.5.
+  - **Flat:** two thirds of the way from 120 to 180, so the panels stand at 160.
+  - **Why:** it used to sit midway, 20–40 units from the signal pinions, and flickered against them in the sort. It curves away from a reference pinion on both sides, so it can sit close to them.
+- **Poles:** the input and output poles are their own objects. As part of their frame they sorted at the frame's middle, near the axis, so they drew over a pinion they were behind and under one they were in front of.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.

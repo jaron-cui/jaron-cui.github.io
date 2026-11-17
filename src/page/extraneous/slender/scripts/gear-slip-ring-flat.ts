@@ -10,7 +10,7 @@
 // two posts running on from the ring's sides and a bar between them. Axles are lines.
 import type { Edge, Rgb, Vec3 } from '../../../../lib/vrender/model';
 import {
-  add, BACK, BASE_BOTTOM, BASE_RING_ROOT, BLUE, doubleProfile, emptyMesh, GRAY, INNER_TEETH, lighter, OUTER_OFFSET,
+  add, BACK, BASE_BOTTOM, BASE_RING_ROOT, BLUE, carrierRadius, doubleProfile, emptyMesh, GRAY, INNER_TEETH, lighter, OUTER_OFFSET,
   OUTER_TEETH, PINION_TEETH, pinionTooth, PURPLE, R_INNER, R_OUTER, RED, singleProfile, TOP, TOP_RING_ROOT, track, turn,
   writeProject, Z_A_HIGH, Z_A_LOW, Z_B_HIGH, Z_B_LOW, Z_INPUT, Z_OUTPUT, Z_PINIONS,
 } from './gearSlipRing';
@@ -56,18 +56,17 @@ const pinion = (name: string, fill: Rgb, options: Placement) => add(name, pinion
 // A frame: two posts facing outward at the ring's radius, running from the ring's edge at `ringEdge`
 // to the bar at `bar`, and the bar between them facing away from the mechanism. The posts sit where
 // the ring's panels meet, so each runs on from the ring. The pinion's axle goes out to the post on
-// its side. Each piece is its own object, so the near post can draw in front of the mechanism and
-// the far one behind it.
+// its side. Each piece, the axle too, is its own object, so the near post can draw in front of the
+// mechanism and the far one behind it.
 const BEAM = 10; // half a beam's width
 function frame(name: string, fill: Rgb, ringEdge: number, bar: number, axle: Vec3, options: Placement = {}) {
   const parent = add(name, emptyMesh(), fill, options);
   for (const side of [1, -1]) {
     const x = side * R_OUTER;
     const post = face([{ x, y: -BEAM, z: ringEdge }, { x, y: BEAM, z: ringEdge }, { x, y: BEAM, z: bar }, { x, y: -BEAM, z: bar }]);
-    const shaft = side === 1 ? line(axle, { x, y: 0, z: axle.z }) : null;
-    const mesh = shaft ? { ...post, vertices: [...post.vertices, ...shaft.vertices], edges: [[4, 5] as Edge] } : post;
-    add(`${name} post ${side === 1 ? 1 : 2}`, mesh, fill, { parent });
+    add(`${name} post ${side === 1 ? 1 : 2}`, post, fill, { parent });
   }
+  add(`${name} axle`, line(axle, { x: R_OUTER, y: 0, z: axle.z }), fill, { parent });
   add(`${name} bar`, face([
     { x: -R_OUTER, y: -BEAM, z: bar }, { x: R_OUTER, y: -BEAM, z: bar }, { x: R_OUTER, y: BEAM, z: bar }, { x: -R_OUTER, y: BEAM, z: bar },
   ]), fill, { parent });
@@ -80,17 +79,17 @@ pinion('Input pinion', RED, { position: { x: R_INNER, y: 0, z: Z_INPUT }, rotati
 const middleA = (Z_A_LOW + Z_A_HIGH) / 2;
 ring('Ring A', PURPLE, INNER_TEETH, panel(doubleProfile(), R_INNER, INNER_TEETH, z => middleA + z), 0, { rotation: { x: 0, y: 0, z: track(g => g.a) } });
 
-// The carrier: a polygon of plain panels between the two pinion circles, and an axle out to each
-// pinion: signal pinions at 0° and 180°, reference pinions at 90° and 270°. Each axle is its own
-// object, so it sorts by its own depth.
+// The carrier: a polygon of plain panels between the pinions, and an axle to each pinion: signal
+// pinions at 0° and 180°, reference pinions at 90° and 270°, where panels are centered. Each axle
+// is its own object, so it sorts by its own depth.
 const CARRIER_SIDES = 16;
-const R_CARRIER = (R_INNER + R_OUTER) / 2;
+const R_CARRIER = carrierRadius(R_INNER, R_OUTER, 2 / 3) / Math.cos(Math.PI / CARRIER_SIDES); // panels stand at carrierRadius
 const half = (Math.PI * R_CARRIER) / CARRIER_SIDES;
 const carrierPanel = panel({ profile: [[-half, -7], [half, -7], [half, 7], [-half, 7]], cuts: [1, 3] }, R_CARRIER, CARRIER_SIDES, z => Z_PINIONS + z);
 const carrier = ring('Carrier', lighter(PURPLE), CARRIER_SIDES, carrierPanel, -Math.PI / CARRIER_SIDES, { rotation: { x: 0, y: 0, z: track(g => g.c) } });
 const bandInside = R_CARRIER * Math.cos(Math.PI / CARRIER_SIDES);
 for (const [i, angle] of [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].entries()) {
-  const [from, to] = i % 2 === 0 ? [R_INNER, bandInside] : [bandInside, R_OUTER];
+  const [from, to] = [i % 2 === 0 ? R_INNER : R_OUTER, bandInside];
   add(`Carrier axle ${i + 1}`, line({ x: from, y: 0, z: Z_PINIONS }, { x: to, y: 0, z: Z_PINIONS }), lighter(PURPLE), { parent: carrier, rotation: turn(angle) });
 }
 for (const [i, angle] of [0, Math.PI].entries()) {

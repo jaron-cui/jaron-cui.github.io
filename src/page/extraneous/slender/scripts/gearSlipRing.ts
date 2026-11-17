@@ -66,6 +66,11 @@ export const BASE_BOTTOM = Z_INPUT - (R_PINION + HA) - 10 - 14;
 export const BASE_RING_ROOT = Z_A_HIGH - HF; // the base ring's root plane
 export const TOP_RING_ROOT = Z_B_LOW + HF; // the top ring's
 export const TOP = Z_OUTPUT + R_PINION + HA + 10;
+// The carrier's band runs round between the signal and reference pinions at their axles' height,
+// `share` of the way out from the signal pinions' surfaces to the reference pinions', so it keeps its
+// distance from the signal pinions. It curves away from a reference pinion on both sides.
+export const carrierRadius = (signalSurface: number, referenceSurface: number, share: number) =>
+  signalSurface + share * (referenceSurface - signalSurface);
 // A quarter turn isn't a whole number of the outer rings' teeth, so their spaces are turned to sit
 // under the reference pinions there.
 export const OUTER_OFFSET = Math.PI / 2 - Math.round(OUTER_TEETH / 4) * ((2 * Math.PI) / OUTER_TEETH);

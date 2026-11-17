@@ -98,16 +98,6 @@
       "x": 180,
       "y": -10,
       "z": -94.5
-     },
-     {
-      "x": 120,
-      "y": 0,
-      "z": 0
-     },
-     {
-      "x": 180,
-      "y": 0,
-      "z": 0
      }
     ],
     "faces": [
@@ -118,12 +108,7 @@
       3
      ]
     ],
-    "edges": [
-     [
-      4,
-      5
-     ]
-    ],
+    "edges": [],
     "markedEdges": [],
     "fill": {
      "r": 0.9299999999999999,
@@ -229,6 +214,73 @@
    },
    {
     "id": "object-4",
+    "name": "Base axle",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-1",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 120,
+      "y": 0,
+      "z": 0
+     },
+     {
+      "x": 180,
+      "y": 0,
+      "z": 0
+     }
+    ],
+    "faces": [],
+    "edges": [
+     [
+      0,
+      1
+     ]
+    ],
+    "markedEdges": [],
+    "fill": {
+     "r": 0.9299999999999999,
+     "g": 0.63,
+     "b": 0.62
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-5",
     "name": "Base bar",
     "transform": {
      "position": {
@@ -307,7 +359,7 @@
     "modifiers": []
    },
    {
-    "id": "object-5",
+    "id": "object-6",
     "name": "Base ring",
     "transform": {
      "position": {
@@ -358,7 +410,7 @@
     "modifiers": []
    },
    {
-    "id": "object-6",
+    "id": "object-7",
     "name": "Base ring panel 1",
     "transform": {
      "position": {
@@ -377,136 +429,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 178.46007504728587,
-      "y": -23.49471459960928,
-      "z": 85
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -14.867374699750476,
-      "z": 85
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -5.602185673851863,
-      "z": 110.5
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 5.602185673851863,
-      "z": 110.5
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 14.867374699750476,
-      "z": 85
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 23.49471459960928,
-      "z": 85
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 23.49471459960928,
-      "z": 73
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -23.49471459960928,
-      "z": 73
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7
-     ]
-    ],
-    "edges": [],
-    "markedEdges": [
-     [
-      0,
-      1
-     ],
-     [
-      1,
-      2
-     ],
-     [
-      2,
-      3
-     ],
-     [
-      3,
-      4
-     ],
-     [
-      4,
-      5
-     ],
-     [
-      6,
-      7
-     ]
-    ],
-    "fill": {
-     "r": 0.9299999999999999,
-     "g": 0.63,
-     "b": 0.62
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "outline": false,
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-7",
-    "name": "Base ring panel 2",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0.39269908169872414
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -617,7 +540,7 @@
    },
    {
     "id": "object-8",
-    "name": "Base ring panel 3",
+    "name": "Base ring panel 2",
     "transform": {
      "position": {
       "x": 0,
@@ -627,7 +550,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 0.6544984694978736
+      "z": 0.39269908169872414
      },
      "scale": {
       "x": 1,
@@ -635,7 +558,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -746,7 +669,7 @@
    },
    {
     "id": "object-9",
-    "name": "Base ring panel 4",
+    "name": "Base ring panel 3",
     "transform": {
      "position": {
       "x": 0,
@@ -756,7 +679,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 0.916297857297023
+      "z": 0.6544984694978736
      },
      "scale": {
       "x": 1,
@@ -764,7 +687,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -875,7 +798,7 @@
    },
    {
     "id": "object-10",
-    "name": "Base ring panel 5",
+    "name": "Base ring panel 4",
     "transform": {
      "position": {
       "x": 0,
@@ -885,7 +808,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.1780972450961724
+      "z": 0.916297857297023
      },
      "scale": {
       "x": 1,
@@ -893,7 +816,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1004,7 +927,7 @@
    },
    {
     "id": "object-11",
-    "name": "Base ring panel 6",
+    "name": "Base ring panel 5",
     "transform": {
      "position": {
       "x": 0,
@@ -1014,7 +937,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.4398966328953218
+      "z": 1.1780972450961724
      },
      "scale": {
       "x": 1,
@@ -1022,7 +945,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1133,7 +1056,7 @@
    },
    {
     "id": "object-12",
-    "name": "Base ring panel 7",
+    "name": "Base ring panel 6",
     "transform": {
      "position": {
       "x": 0,
@@ -1143,7 +1066,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.7016960206944713
+      "z": 1.4398966328953218
      },
      "scale": {
       "x": 1,
@@ -1151,7 +1074,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1262,7 +1185,7 @@
    },
    {
     "id": "object-13",
-    "name": "Base ring panel 8",
+    "name": "Base ring panel 7",
     "transform": {
      "position": {
       "x": 0,
@@ -1272,7 +1195,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.9634954084936205
+      "z": 1.7016960206944713
      },
      "scale": {
       "x": 1,
@@ -1280,7 +1203,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1391,7 +1314,7 @@
    },
    {
     "id": "object-14",
-    "name": "Base ring panel 9",
+    "name": "Base ring panel 8",
     "transform": {
      "position": {
       "x": 0,
@@ -1401,7 +1324,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.2252947962927703
+      "z": 1.9634954084936205
      },
      "scale": {
       "x": 1,
@@ -1409,7 +1332,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1520,7 +1443,7 @@
    },
    {
     "id": "object-15",
-    "name": "Base ring panel 10",
+    "name": "Base ring panel 9",
     "transform": {
      "position": {
       "x": 0,
@@ -1530,7 +1453,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.4870941840919194
+      "z": 2.2252947962927703
      },
      "scale": {
       "x": 1,
@@ -1538,7 +1461,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1649,7 +1572,7 @@
    },
    {
     "id": "object-16",
-    "name": "Base ring panel 11",
+    "name": "Base ring panel 10",
     "transform": {
      "position": {
       "x": 0,
@@ -1659,7 +1582,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.748893571891069
+      "z": 2.4870941840919194
      },
      "scale": {
       "x": 1,
@@ -1667,7 +1590,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1778,7 +1701,7 @@
    },
    {
     "id": "object-17",
-    "name": "Base ring panel 12",
+    "name": "Base ring panel 11",
     "transform": {
      "position": {
       "x": 0,
@@ -1788,7 +1711,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.010692959690218
+      "z": 2.748893571891069
      },
      "scale": {
       "x": 1,
@@ -1796,7 +1719,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -1907,7 +1830,7 @@
    },
    {
     "id": "object-18",
-    "name": "Base ring panel 13",
+    "name": "Base ring panel 12",
     "transform": {
      "position": {
       "x": 0,
@@ -1917,7 +1840,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.272492347489368
+      "z": 3.010692959690218
      },
      "scale": {
       "x": 1,
@@ -1925,7 +1848,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2036,7 +1959,7 @@
    },
    {
     "id": "object-19",
-    "name": "Base ring panel 14",
+    "name": "Base ring panel 13",
     "transform": {
      "position": {
       "x": 0,
@@ -2046,7 +1969,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.5342917352885173
+      "z": 3.272492347489368
      },
      "scale": {
       "x": 1,
@@ -2054,7 +1977,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2165,7 +2088,7 @@
    },
    {
     "id": "object-20",
-    "name": "Base ring panel 15",
+    "name": "Base ring panel 14",
     "transform": {
      "position": {
       "x": 0,
@@ -2175,7 +2098,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.796091123087667
+      "z": 3.5342917352885173
      },
      "scale": {
       "x": 1,
@@ -2183,7 +2106,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2294,7 +2217,7 @@
    },
    {
     "id": "object-21",
-    "name": "Base ring panel 16",
+    "name": "Base ring panel 15",
     "transform": {
      "position": {
       "x": 0,
@@ -2304,7 +2227,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.057890510886816
+      "z": 3.796091123087667
      },
      "scale": {
       "x": 1,
@@ -2312,7 +2235,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2423,7 +2346,7 @@
    },
    {
     "id": "object-22",
-    "name": "Base ring panel 17",
+    "name": "Base ring panel 16",
     "transform": {
      "position": {
       "x": 0,
@@ -2433,7 +2356,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.319689898685966
+      "z": 4.057890510886816
      },
      "scale": {
       "x": 1,
@@ -2441,7 +2364,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2552,7 +2475,7 @@
    },
    {
     "id": "object-23",
-    "name": "Base ring panel 18",
+    "name": "Base ring panel 17",
     "transform": {
      "position": {
       "x": 0,
@@ -2562,7 +2485,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.581489286485115
+      "z": 4.319689898685966
      },
      "scale": {
       "x": 1,
@@ -2570,7 +2493,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2681,7 +2604,7 @@
    },
    {
     "id": "object-24",
-    "name": "Base ring panel 19",
+    "name": "Base ring panel 18",
     "transform": {
      "position": {
       "x": 0,
@@ -2691,7 +2614,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.843288674284264
+      "z": 4.581489286485115
      },
      "scale": {
       "x": 1,
@@ -2699,7 +2622,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2810,7 +2733,7 @@
    },
    {
     "id": "object-25",
-    "name": "Base ring panel 20",
+    "name": "Base ring panel 19",
     "transform": {
      "position": {
       "x": 0,
@@ -2820,7 +2743,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.105088062083413
+      "z": 4.843288674284264
      },
      "scale": {
       "x": 1,
@@ -2828,7 +2751,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -2939,7 +2862,7 @@
    },
    {
     "id": "object-26",
-    "name": "Base ring panel 21",
+    "name": "Base ring panel 20",
     "transform": {
      "position": {
       "x": 0,
@@ -2949,7 +2872,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.3668874498825625
+      "z": 5.105088062083413
      },
      "scale": {
       "x": 1,
@@ -2957,7 +2880,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -3068,7 +2991,7 @@
    },
    {
     "id": "object-27",
-    "name": "Base ring panel 22",
+    "name": "Base ring panel 21",
     "transform": {
      "position": {
       "x": 0,
@@ -3078,7 +3001,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.6286868376817125
+      "z": 5.3668874498825625
      },
      "scale": {
       "x": 1,
@@ -3086,7 +3009,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -3197,7 +3120,7 @@
    },
    {
     "id": "object-28",
-    "name": "Base ring panel 23",
+    "name": "Base ring panel 22",
     "transform": {
      "position": {
       "x": 0,
@@ -3207,7 +3130,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.8904862254808625
+      "z": 5.6286868376817125
      },
      "scale": {
       "x": 1,
@@ -3215,7 +3138,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -3326,7 +3249,7 @@
    },
    {
     "id": "object-29",
-    "name": "Base ring panel 24",
+    "name": "Base ring panel 23",
     "transform": {
      "position": {
       "x": 0,
@@ -3336,7 +3259,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 6.152285613280012
+      "z": 5.8904862254808625
      },
      "scale": {
       "x": 1,
@@ -3344,7 +3267,7 @@
       "z": 1
      }
     },
-    "parent": "object-5",
+    "parent": "object-6",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -3455,6 +3378,135 @@
    },
    {
     "id": "object-30",
+    "name": "Base ring panel 24",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 6.152285613280012
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-6",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 178.46007504728587,
+      "y": -23.49471459960928,
+      "z": 85
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -14.867374699750476,
+      "z": 85
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -5.602185673851863,
+      "z": 110.5
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 5.602185673851863,
+      "z": 110.5
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 14.867374699750476,
+      "z": 85
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 23.49471459960928,
+      "z": 85
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 23.49471459960928,
+      "z": 73
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -23.49471459960928,
+      "z": 73
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      6,
+      7
+     ]
+    ],
+    "fill": {
+     "r": 0.9299999999999999,
+     "g": 0.63,
+     "b": 0.62
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "outline": false,
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-31",
     "name": "Input pinion",
     "transform": {
      "position": {
@@ -3740,7 +3792,7 @@
     "modifiers": []
    },
    {
-    "id": "object-31",
+    "id": "object-32",
     "name": "Ring A",
     "transform": {
      "position": {
@@ -3830,7 +3882,7 @@
     "modifiers": []
    },
    {
-    "id": "object-32",
+    "id": "object-33",
     "name": "Ring A panel 1",
     "transform": {
      "position": {
@@ -3849,176 +3901,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 117.69423364838765,
-      "y": -23.410838641935385,
-      "z": 85
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -14.846195032882198,
-      "z": 85
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -5.601054763238598,
-      "z": 110.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 5.601054763238598,
-      "z": 110.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 14.846195032882198,
-      "z": 85
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 23.410838641935385,
-      "z": 85
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 23.410838641935385,
-      "z": 75
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 14.846195032882198,
-      "z": 75
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 5.601054763238598,
-      "z": 49.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -5.601054763238598,
-      "z": 49.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -14.846195032882198,
-      "z": 75
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -23.410838641935385,
-      "z": 75
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11
-     ]
-    ],
-    "edges": [],
-    "markedEdges": [
-     [
-      0,
-      1
-     ],
-     [
-      1,
-      2
-     ],
-     [
-      2,
-      3
-     ],
-     [
-      3,
-      4
-     ],
-     [
-      4,
-      5
-     ],
-     [
-      6,
-      7
-     ],
-     [
-      7,
-      8
-     ],
-     [
-      8,
-      9
-     ],
-     [
-      9,
-      10
-     ],
-     [
-      10,
-      11
-     ]
-    ],
-    "fill": {
-     "r": 0.56,
-     "g": 0.32,
-     "b": 0.8
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "outline": false,
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-33",
-    "name": "Ring A panel 2",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0.5890486225480862
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -4169,7 +4052,7 @@
    },
    {
     "id": "object-34",
-    "name": "Ring A panel 3",
+    "name": "Ring A panel 2",
     "transform": {
      "position": {
       "x": 0,
@@ -4179,7 +4062,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 0.9817477042468103
+      "z": 0.5890486225480862
      },
      "scale": {
       "x": 1,
@@ -4187,7 +4070,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -4338,7 +4221,7 @@
    },
    {
     "id": "object-35",
-    "name": "Ring A panel 4",
+    "name": "Ring A panel 3",
     "transform": {
      "position": {
       "x": 0,
@@ -4348,7 +4231,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.3744467859455345
+      "z": 0.9817477042468103
      },
      "scale": {
       "x": 1,
@@ -4356,7 +4239,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -4507,7 +4390,7 @@
    },
    {
     "id": "object-36",
-    "name": "Ring A panel 5",
+    "name": "Ring A panel 4",
     "transform": {
      "position": {
       "x": 0,
@@ -4517,7 +4400,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.7671458676442586
+      "z": 1.3744467859455345
      },
      "scale": {
       "x": 1,
@@ -4525,7 +4408,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -4676,7 +4559,7 @@
    },
    {
     "id": "object-37",
-    "name": "Ring A panel 6",
+    "name": "Ring A panel 5",
     "transform": {
      "position": {
       "x": 0,
@@ -4686,7 +4569,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.1598449493429825
+      "z": 1.7671458676442586
      },
      "scale": {
       "x": 1,
@@ -4694,7 +4577,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -4845,7 +4728,7 @@
    },
    {
     "id": "object-38",
-    "name": "Ring A panel 7",
+    "name": "Ring A panel 6",
     "transform": {
      "position": {
       "x": 0,
@@ -4855,7 +4738,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.552544031041707
+      "z": 2.1598449493429825
      },
      "scale": {
       "x": 1,
@@ -4863,7 +4746,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -5014,7 +4897,7 @@
    },
    {
     "id": "object-39",
-    "name": "Ring A panel 8",
+    "name": "Ring A panel 7",
     "transform": {
      "position": {
       "x": 0,
@@ -5024,7 +4907,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.945243112740431
+      "z": 2.552544031041707
      },
      "scale": {
       "x": 1,
@@ -5032,7 +4915,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -5183,7 +5066,7 @@
    },
    {
     "id": "object-40",
-    "name": "Ring A panel 9",
+    "name": "Ring A panel 8",
     "transform": {
      "position": {
       "x": 0,
@@ -5193,7 +5076,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.3379421944391554
+      "z": 2.945243112740431
      },
      "scale": {
       "x": 1,
@@ -5201,7 +5084,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -5352,7 +5235,7 @@
    },
    {
     "id": "object-41",
-    "name": "Ring A panel 10",
+    "name": "Ring A panel 9",
     "transform": {
      "position": {
       "x": 0,
@@ -5362,7 +5245,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.730641276137879
+      "z": 3.3379421944391554
      },
      "scale": {
       "x": 1,
@@ -5370,7 +5253,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -5521,7 +5404,7 @@
    },
    {
     "id": "object-42",
-    "name": "Ring A panel 11",
+    "name": "Ring A panel 10",
     "transform": {
      "position": {
       "x": 0,
@@ -5531,7 +5414,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.123340357836604
+      "z": 3.730641276137879
      },
      "scale": {
       "x": 1,
@@ -5539,7 +5422,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -5690,7 +5573,7 @@
    },
    {
     "id": "object-43",
-    "name": "Ring A panel 12",
+    "name": "Ring A panel 11",
     "transform": {
      "position": {
       "x": 0,
@@ -5700,7 +5583,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.516039439535327
+      "z": 4.123340357836604
      },
      "scale": {
       "x": 1,
@@ -5708,7 +5591,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -5859,7 +5742,7 @@
    },
    {
     "id": "object-44",
-    "name": "Ring A panel 13",
+    "name": "Ring A panel 12",
     "transform": {
      "position": {
       "x": 0,
@@ -5869,7 +5752,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.908738521234052
+      "z": 4.516039439535327
      },
      "scale": {
       "x": 1,
@@ -5877,7 +5760,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -6028,7 +5911,7 @@
    },
    {
     "id": "object-45",
-    "name": "Ring A panel 14",
+    "name": "Ring A panel 13",
     "transform": {
      "position": {
       "x": 0,
@@ -6038,7 +5921,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.301437602932776
+      "z": 4.908738521234052
      },
      "scale": {
       "x": 1,
@@ -6046,7 +5929,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -6197,7 +6080,7 @@
    },
    {
     "id": "object-46",
-    "name": "Ring A panel 15",
+    "name": "Ring A panel 14",
     "transform": {
      "position": {
       "x": 0,
@@ -6207,7 +6090,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.6941366846315
+      "z": 5.301437602932776
      },
      "scale": {
       "x": 1,
@@ -6215,7 +6098,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -6366,7 +6249,7 @@
    },
    {
     "id": "object-47",
-    "name": "Ring A panel 16",
+    "name": "Ring A panel 15",
     "transform": {
      "position": {
       "x": 0,
@@ -6376,7 +6259,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 6.086835766330224
+      "z": 5.6941366846315
      },
      "scale": {
       "x": 1,
@@ -6384,7 +6267,7 @@
       "z": 1
      }
     },
-    "parent": "object-31",
+    "parent": "object-32",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -6535,6 +6418,175 @@
    },
    {
     "id": "object-48",
+    "name": "Ring A panel 16",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 6.086835766330224
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-32",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 117.69423364838765,
+      "y": -23.410838641935385,
+      "z": 85
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -14.846195032882198,
+      "z": 85
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -5.601054763238598,
+      "z": 110.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 5.601054763238598,
+      "z": 110.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 14.846195032882198,
+      "z": 85
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 23.410838641935385,
+      "z": 85
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 23.410838641935385,
+      "z": 75
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 14.846195032882198,
+      "z": 75
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 5.601054763238598,
+      "z": 49.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -5.601054763238598,
+      "z": 49.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -14.846195032882198,
+      "z": 75
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -23.410838641935385,
+      "z": 75
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      6,
+      7
+     ],
+     [
+      7,
+      8
+     ],
+     [
+      8,
+      9
+     ],
+     [
+      9,
+      10
+     ],
+     [
+      10,
+      11
+     ]
+    ],
+    "fill": {
+     "r": 0.56,
+     "g": 0.32,
+     "b": 0.8
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "outline": false,
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-49",
     "name": "Carrier",
     "transform": {
      "position": {
@@ -6624,7 +6676,7 @@
     "modifiers": []
    },
    {
-    "id": "object-49",
+    "id": "object-50",
     "name": "Carrier panel 1",
     "transform": {
      "position": {
@@ -6643,118 +6695,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
-      "z": 167
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3
-     ]
-    ],
-    "edges": [],
-    "markedEdges": [
-     [
-      0,
-      1
-     ],
-     [
-      2,
-      3
-     ]
-    ],
-    "fill": {
-     "r": 0.78,
-     "g": 0.6599999999999999,
-     "b": 0.9
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "outline": false,
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-50",
-    "name": "Carrier panel 2",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0.39269908169872414
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-48",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
-      "z": 153
-     },
-     {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
-      "z": 153
-     },
-     {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
-      "z": 167
-     },
-     {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -6803,7 +6766,7 @@
    },
    {
     "id": "object-51",
-    "name": "Carrier panel 3",
+    "name": "Carrier panel 2",
     "transform": {
      "position": {
       "x": 0,
@@ -6813,7 +6776,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 0.7853981633974483
+      "z": 0.39269908169872414
      },
      "scale": {
       "x": 1,
@@ -6821,29 +6784,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -6892,7 +6855,7 @@
    },
    {
     "id": "object-52",
-    "name": "Carrier panel 4",
+    "name": "Carrier panel 3",
     "transform": {
      "position": {
       "x": 0,
@@ -6902,7 +6865,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.1780972450961724
+      "z": 0.7853981633974483
      },
      "scale": {
       "x": 1,
@@ -6910,29 +6873,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -6981,7 +6944,7 @@
    },
    {
     "id": "object-53",
-    "name": "Carrier panel 5",
+    "name": "Carrier panel 4",
     "transform": {
      "position": {
       "x": 0,
@@ -6991,7 +6954,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.5707963267948966
+      "z": 1.1780972450961724
      },
      "scale": {
       "x": 1,
@@ -6999,29 +6962,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7070,7 +7033,7 @@
    },
    {
     "id": "object-54",
-    "name": "Carrier panel 6",
+    "name": "Carrier panel 5",
     "transform": {
      "position": {
       "x": 0,
@@ -7080,7 +7043,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.9634954084936205
+      "z": 1.5707963267948966
      },
      "scale": {
       "x": 1,
@@ -7088,29 +7051,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7159,7 +7122,7 @@
    },
    {
     "id": "object-55",
-    "name": "Carrier panel 7",
+    "name": "Carrier panel 6",
     "transform": {
      "position": {
       "x": 0,
@@ -7169,7 +7132,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.356194490192345
+      "z": 1.9634954084936205
      },
      "scale": {
       "x": 1,
@@ -7177,29 +7140,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7248,7 +7211,7 @@
    },
    {
     "id": "object-56",
-    "name": "Carrier panel 8",
+    "name": "Carrier panel 7",
     "transform": {
      "position": {
       "x": 0,
@@ -7258,7 +7221,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.7488935718910685
+      "z": 2.356194490192345
      },
      "scale": {
       "x": 1,
@@ -7266,29 +7229,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7337,7 +7300,7 @@
    },
    {
     "id": "object-57",
-    "name": "Carrier panel 9",
+    "name": "Carrier panel 8",
     "transform": {
      "position": {
       "x": 0,
@@ -7347,7 +7310,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.141592653589793
+      "z": 2.7488935718910685
      },
      "scale": {
       "x": 1,
@@ -7355,29 +7318,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7426,7 +7389,7 @@
    },
    {
     "id": "object-58",
-    "name": "Carrier panel 10",
+    "name": "Carrier panel 9",
     "transform": {
      "position": {
       "x": 0,
@@ -7436,7 +7399,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.534291735288517
+      "z": 3.141592653589793
      },
      "scale": {
       "x": 1,
@@ -7444,29 +7407,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7515,7 +7478,7 @@
    },
    {
     "id": "object-59",
-    "name": "Carrier panel 11",
+    "name": "Carrier panel 10",
     "transform": {
      "position": {
       "x": 0,
@@ -7525,7 +7488,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.9269908169872414
+      "z": 3.534291735288517
      },
      "scale": {
       "x": 1,
@@ -7533,29 +7496,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7604,7 +7567,7 @@
    },
    {
     "id": "object-60",
-    "name": "Carrier panel 12",
+    "name": "Carrier panel 11",
     "transform": {
      "position": {
       "x": 0,
@@ -7614,7 +7577,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.319689898685965
+      "z": 3.9269908169872414
      },
      "scale": {
       "x": 1,
@@ -7622,29 +7585,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7693,7 +7656,7 @@
    },
    {
     "id": "object-61",
-    "name": "Carrier panel 13",
+    "name": "Carrier panel 12",
     "transform": {
      "position": {
       "x": 0,
@@ -7703,7 +7666,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.71238898038469
+      "z": 4.319689898685965
      },
      "scale": {
       "x": 1,
@@ -7711,29 +7674,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7782,7 +7745,7 @@
    },
    {
     "id": "object-62",
-    "name": "Carrier panel 14",
+    "name": "Carrier panel 13",
     "transform": {
      "position": {
       "x": 0,
@@ -7792,7 +7755,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.105088062083413
+      "z": 4.71238898038469
      },
      "scale": {
       "x": 1,
@@ -7800,29 +7763,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7871,7 +7834,7 @@
    },
    {
     "id": "object-63",
-    "name": "Carrier panel 15",
+    "name": "Carrier panel 14",
     "transform": {
      "position": {
       "x": 0,
@@ -7881,7 +7844,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.497787143782138
+      "z": 5.105088062083413
      },
      "scale": {
       "x": 1,
@@ -7889,29 +7852,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -7960,7 +7923,7 @@
    },
    {
     "id": "object-64",
-    "name": "Carrier panel 16",
+    "name": "Carrier panel 15",
     "transform": {
      "position": {
       "x": 0,
@@ -7970,7 +7933,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.890486225480862
+      "z": 5.497787143782138
      },
      "scale": {
       "x": 1,
@@ -7978,29 +7941,29 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 153
      },
      {
-      "x": 147.11779206048456,
-      "y": 29.263548302419238,
+      "x": 160,
+      "y": 31.82597878074528,
       "z": 167
      },
      {
-      "x": 147.11779206048456,
-      "y": -29.263548302419238,
+      "x": 160,
+      "y": -31.82597878074528,
       "z": 167
      }
     ],
@@ -8049,6 +8012,95 @@
    },
    {
     "id": "object-65",
+    "name": "Carrier panel 16",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 5.890486225480862
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-49",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 160,
+      "y": -31.82597878074528,
+      "z": 153
+     },
+     {
+      "x": 160,
+      "y": 31.82597878074528,
+      "z": 153
+     },
+     {
+      "x": 160,
+      "y": 31.82597878074528,
+      "z": 167
+     },
+     {
+      "x": 160,
+      "y": -31.82597878074528,
+      "z": 167
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [
+     [
+      0,
+      1
+     ],
+     [
+      2,
+      3
+     ]
+    ],
+    "fill": {
+     "r": 0.78,
+     "g": 0.6599999999999999,
+     "b": 0.9
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "outline": false,
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-66",
     "name": "Carrier axle 1",
     "transform": {
      "position": {
@@ -8067,7 +8119,7 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -8078,74 +8130,7 @@
       "z": 160
      },
      {
-      "x": 147.11779206048456,
-      "y": 0,
-      "z": 160
-     }
-    ],
-    "faces": [],
-    "edges": [
-     [
-      0,
-      1
-     ]
-    ],
-    "markedEdges": [],
-    "fill": {
-     "r": 0.78,
-     "g": 0.6599999999999999,
-     "b": 0.9
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-66",
-    "name": "Carrier axle 2",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 1.5707963267948966
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-48",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 147.11779206048456,
-      "y": 0,
-      "z": 160
-     },
-     {
-      "x": 180,
+      "x": 160,
       "y": 0,
       "z": 160
      }
@@ -8183,7 +8168,7 @@
    },
    {
     "id": "object-67",
-    "name": "Carrier axle 3",
+    "name": "Carrier axle 2",
     "transform": {
      "position": {
       "x": 0,
@@ -8193,7 +8178,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.141592653589793
+      "z": 1.5707963267948966
      },
      "scale": {
       "x": 1,
@@ -8201,18 +8186,18 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 120,
+      "x": 180,
       "y": 0,
       "z": 160
      },
      {
-      "x": 147.11779206048456,
+      "x": 160,
       "y": 0,
       "z": 160
      }
@@ -8250,7 +8235,7 @@
    },
    {
     "id": "object-68",
-    "name": "Carrier axle 4",
+    "name": "Carrier axle 3",
     "transform": {
      "position": {
       "x": 0,
@@ -8260,7 +8245,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.71238898038469
+      "z": 3.141592653589793
      },
      "scale": {
       "x": 1,
@@ -8268,18 +8253,18 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
     "vertices": [
      {
-      "x": 147.11779206048456,
+      "x": 120,
       "y": 0,
       "z": 160
      },
      {
-      "x": 180,
+      "x": 160,
       "y": 0,
       "z": 160
      }
@@ -8317,6 +8302,73 @@
    },
    {
     "id": "object-69",
+    "name": "Carrier axle 4",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 4.71238898038469
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-49",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 180,
+      "y": 0,
+      "z": 160
+     },
+     {
+      "x": 160,
+      "y": 0,
+      "z": 160
+     }
+    ],
+    "faces": [],
+    "edges": [
+     [
+      0,
+      1
+     ]
+    ],
+    "markedEdges": [],
+    "fill": {
+     "r": 0.78,
+     "g": 0.6599999999999999,
+     "b": 0.9
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-70",
     "name": "Signal pinion 1",
     "transform": {
      "position": {
@@ -8374,293 +8426,7 @@
       "z": 1
      }
     },
-    "parent": "object-48",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 0,
-      "y": -14.61441105975549,
-      "z": 42.56076819532862
-     },
-     {
-      "x": 0,
-      "y": -5.597193702781498,
-      "z": 70.27746027463957
-     },
-     {
-      "x": 0,
-      "y": 5.597193702781498,
-      "z": 70.27746027463957
-     },
-     {
-      "x": 0,
-      "y": 14.61441105975549,
-      "z": 42.56076819532862
-     },
-     {
-      "x": 0,
-      "y": 19.76105864002482,
-      "z": 40.4289569668264
-     },
-     {
-      "x": 0,
-      "y": 45.73585510191441,
-      "z": 53.65148234761729
-     },
-     {
-      "x": 0,
-      "y": 53.65148234761729,
-      "z": 45.73585510191442
-     },
-     {
-      "x": 0,
-      "y": 40.42895696682639,
-      "z": 19.761058640024824
-     },
-     {
-      "x": 0,
-      "y": 42.56076819532862,
-      "z": 14.614411059755492
-     },
-     {
-      "x": 0,
-      "y": 70.27746027463957,
-      "z": 5.597193702781509
-     },
-     {
-      "x": 0,
-      "y": 70.27746027463957,
-      "z": -5.5971937027815
-     },
-     {
-      "x": 0,
-      "y": 42.56076819532862,
-      "z": -14.614411059755488
-     },
-     {
-      "x": 0,
-      "y": 40.4289569668264,
-      "z": -19.76105864002481
-     },
-     {
-      "x": 0,
-      "y": 53.651482347617296,
-      "z": -45.7358551019144
-     },
-     {
-      "x": 0,
-      "y": 45.73585510191441,
-      "z": -53.65148234761729
-     },
-     {
-      "x": 0,
-      "y": 19.761058640024817,
-      "z": -40.4289569668264
-     },
-     {
-      "x": 0,
-      "y": 14.614411059755504,
-      "z": -42.56076819532861
-     },
-     {
-      "x": 0,
-      "y": 5.597193702781514,
-      "z": -70.27746027463957
-     },
-     {
-      "x": 0,
-      "y": -5.597193702781496,
-      "z": -70.27746027463957
-     },
-     {
-      "x": 0,
-      "y": -14.614411059755495,
-      "z": -42.56076819532862
-     },
-     {
-      "x": 0,
-      "y": -19.761058640024807,
-      "z": -40.4289569668264
-     },
-     {
-      "x": 0,
-      "y": -45.7358551019144,
-      "z": -53.6514823476173
-     },
-     {
-      "x": 0,
-      "y": -53.65148234761726,
-      "z": -45.73585510191444
-     },
-     {
-      "x": 0,
-      "y": -40.4289569668264,
-      "z": -19.76105864002482
-     },
-     {
-      "x": 0,
-      "y": -42.56076819532861,
-      "z": -14.614411059755508
-     },
-     {
-      "x": 0,
-      "y": -70.27746027463957,
-      "z": -5.597193702781487
-     },
-     {
-      "x": 0,
-      "y": -70.27746027463958,
-      "z": 5.5971937027814604
-     },
-     {
-      "x": 0,
-      "y": -42.56076819532862,
-      "z": 14.614411059755492
-     },
-     {
-      "x": 0,
-      "y": -40.4289569668264,
-      "z": 19.761058640024807
-     },
-     {
-      "x": 0,
-      "y": -53.65148234761729,
-      "z": 45.73585510191442
-     },
-     {
-      "x": 0,
-      "y": -45.73585510191444,
-      "z": 53.65148234761726
-     },
-     {
-      "x": 0,
-      "y": -19.761058640024824,
-      "z": 40.42895696682639
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11,
-      12,
-      13,
-      14,
-      15,
-      16,
-      17,
-      18,
-      19,
-      20,
-      21,
-      22,
-      23,
-      24,
-      25,
-      26,
-      27,
-      28,
-      29,
-      30,
-      31
-     ]
-    ],
-    "edges": [],
-    "markedEdges": [],
-    "fill": {
-     "r": 0.56,
-     "g": 0.32,
-     "b": 0.8
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-70",
-    "name": "Signal pinion 2",
-    "transform": {
-     "position": {
-      "x": -120,
-      "y": 1.469576158976824e-14,
-      "z": 160
-     },
-     "rotation": {
-      "x": {
-       "kind": "track",
-       "keys": [
-        {
-         "time": 0,
-         "value": 0,
-         "ease": "linear"
-        },
-        {
-         "time": 4,
-         "value": -6.283185307179585,
-         "ease": "linear"
-        },
-        {
-         "time": 4.5,
-         "value": -6.283185307179585,
-         "ease": "linear"
-        },
-        {
-         "time": 6.5,
-         "value": -12.56637061435917,
-         "ease": "linear"
-        },
-        {
-         "time": 7.5,
-         "value": -12.56637061435917,
-         "ease": "linear"
-        },
-        {
-         "time": 9.5,
-         "value": -6.283185307179585,
-         "ease": "linear"
-        },
-        {
-         "time": 10,
-         "value": -6.283185307179585,
-         "ease": "linear"
-        }
-       ]
-      },
-      "y": 0,
-      "z": 3.141592653589793
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -8889,11 +8655,11 @@
    },
    {
     "id": "object-71",
-    "name": "Reference pinion 1",
+    "name": "Signal pinion 2",
     "transform": {
      "position": {
-      "x": 1.1021821192326179e-14,
-      "y": 180,
+      "x": -120,
+      "y": 1.469576158976824e-14,
       "z": 160
      },
      "rotation": {
@@ -8907,38 +8673,38 @@
         },
         {
          "time": 4,
-         "value": -9.42477796076938,
+         "value": -6.283185307179585,
          "ease": "linear"
         },
         {
          "time": 4.5,
-         "value": -9.42477796076938,
+         "value": -6.283185307179585,
          "ease": "linear"
         },
         {
          "time": 6.5,
-         "value": -9.42477796076938,
+         "value": -12.56637061435917,
          "ease": "linear"
         },
         {
          "time": 7.5,
-         "value": -9.42477796076938,
+         "value": -12.56637061435917,
          "ease": "linear"
         },
         {
          "time": 9.5,
-         "value": -9.42477796076938,
+         "value": -6.283185307179585,
          "ease": "linear"
         },
         {
          "time": 10,
-         "value": -9.42477796076938,
+         "value": -6.283185307179585,
          "ease": "linear"
         }
        ]
       },
       "y": 0,
-      "z": 1.5707963267948966
+      "z": 3.141592653589793
      },
      "scale": {
       "x": 1,
@@ -8946,7 +8712,7 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -9151,8 +8917,8 @@
     "edges": [],
     "markedEdges": [],
     "fill": {
-     "r": 0.775,
-     "g": 0.7849999999999999,
+     "r": 0.56,
+     "g": 0.32,
      "b": 0.8
     },
     "border": {
@@ -9175,11 +8941,11 @@
    },
    {
     "id": "object-72",
-    "name": "Reference pinion 2",
+    "name": "Reference pinion 1",
     "transform": {
      "position": {
-      "x": -3.3065463576978534e-14,
-      "y": -180,
+      "x": 1.1021821192326179e-14,
+      "y": 180,
       "z": 160
      },
      "rotation": {
@@ -9224,7 +8990,7 @@
        ]
       },
       "y": 0,
-      "z": 4.71238898038469
+      "z": 1.5707963267948966
      },
      "scale": {
       "x": 1,
@@ -9232,7 +8998,7 @@
       "z": 1
      }
     },
-    "parent": "object-48",
+    "parent": "object-49",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -9461,6 +9227,292 @@
    },
    {
     "id": "object-73",
+    "name": "Reference pinion 2",
+    "transform": {
+     "position": {
+      "x": -3.3065463576978534e-14,
+      "y": -180,
+      "z": 160
+     },
+     "rotation": {
+      "x": {
+       "kind": "track",
+       "keys": [
+        {
+         "time": 0,
+         "value": 0,
+         "ease": "linear"
+        },
+        {
+         "time": 4,
+         "value": -9.42477796076938,
+         "ease": "linear"
+        },
+        {
+         "time": 4.5,
+         "value": -9.42477796076938,
+         "ease": "linear"
+        },
+        {
+         "time": 6.5,
+         "value": -9.42477796076938,
+         "ease": "linear"
+        },
+        {
+         "time": 7.5,
+         "value": -9.42477796076938,
+         "ease": "linear"
+        },
+        {
+         "time": 9.5,
+         "value": -9.42477796076938,
+         "ease": "linear"
+        },
+        {
+         "time": 10,
+         "value": -9.42477796076938,
+         "ease": "linear"
+        }
+       ]
+      },
+      "y": 0,
+      "z": 4.71238898038469
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-49",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 0,
+      "y": -14.61441105975549,
+      "z": 42.56076819532862
+     },
+     {
+      "x": 0,
+      "y": -5.597193702781498,
+      "z": 70.27746027463957
+     },
+     {
+      "x": 0,
+      "y": 5.597193702781498,
+      "z": 70.27746027463957
+     },
+     {
+      "x": 0,
+      "y": 14.61441105975549,
+      "z": 42.56076819532862
+     },
+     {
+      "x": 0,
+      "y": 19.76105864002482,
+      "z": 40.4289569668264
+     },
+     {
+      "x": 0,
+      "y": 45.73585510191441,
+      "z": 53.65148234761729
+     },
+     {
+      "x": 0,
+      "y": 53.65148234761729,
+      "z": 45.73585510191442
+     },
+     {
+      "x": 0,
+      "y": 40.42895696682639,
+      "z": 19.761058640024824
+     },
+     {
+      "x": 0,
+      "y": 42.56076819532862,
+      "z": 14.614411059755492
+     },
+     {
+      "x": 0,
+      "y": 70.27746027463957,
+      "z": 5.597193702781509
+     },
+     {
+      "x": 0,
+      "y": 70.27746027463957,
+      "z": -5.5971937027815
+     },
+     {
+      "x": 0,
+      "y": 42.56076819532862,
+      "z": -14.614411059755488
+     },
+     {
+      "x": 0,
+      "y": 40.4289569668264,
+      "z": -19.76105864002481
+     },
+     {
+      "x": 0,
+      "y": 53.651482347617296,
+      "z": -45.7358551019144
+     },
+     {
+      "x": 0,
+      "y": 45.73585510191441,
+      "z": -53.65148234761729
+     },
+     {
+      "x": 0,
+      "y": 19.761058640024817,
+      "z": -40.4289569668264
+     },
+     {
+      "x": 0,
+      "y": 14.614411059755504,
+      "z": -42.56076819532861
+     },
+     {
+      "x": 0,
+      "y": 5.597193702781514,
+      "z": -70.27746027463957
+     },
+     {
+      "x": 0,
+      "y": -5.597193702781496,
+      "z": -70.27746027463957
+     },
+     {
+      "x": 0,
+      "y": -14.614411059755495,
+      "z": -42.56076819532862
+     },
+     {
+      "x": 0,
+      "y": -19.761058640024807,
+      "z": -40.4289569668264
+     },
+     {
+      "x": 0,
+      "y": -45.7358551019144,
+      "z": -53.6514823476173
+     },
+     {
+      "x": 0,
+      "y": -53.65148234761726,
+      "z": -45.73585510191444
+     },
+     {
+      "x": 0,
+      "y": -40.4289569668264,
+      "z": -19.76105864002482
+     },
+     {
+      "x": 0,
+      "y": -42.56076819532861,
+      "z": -14.614411059755508
+     },
+     {
+      "x": 0,
+      "y": -70.27746027463957,
+      "z": -5.597193702781487
+     },
+     {
+      "x": 0,
+      "y": -70.27746027463958,
+      "z": 5.5971937027814604
+     },
+     {
+      "x": 0,
+      "y": -42.56076819532862,
+      "z": 14.614411059755492
+     },
+     {
+      "x": 0,
+      "y": -40.4289569668264,
+      "z": 19.761058640024807
+     },
+     {
+      "x": 0,
+      "y": -53.65148234761729,
+      "z": 45.73585510191442
+     },
+     {
+      "x": 0,
+      "y": -45.73585510191444,
+      "z": 53.65148234761726
+     },
+     {
+      "x": 0,
+      "y": -19.761058640024824,
+      "z": 40.42895696682639
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [],
+    "fill": {
+     "r": 0.775,
+     "g": 0.7849999999999999,
+     "b": 0.8
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-74",
     "name": "Ring B",
     "transform": {
      "position": {
@@ -9550,7 +9602,7 @@
     "modifiers": []
    },
    {
-    "id": "object-74",
+    "id": "object-75",
     "name": "Ring B panel 1",
     "transform": {
      "position": {
@@ -9569,176 +9621,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 117.69423364838765,
-      "y": -23.410838641935385,
-      "z": 245
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -14.846195032882198,
-      "z": 245
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -5.601054763238598,
-      "z": 270.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 5.601054763238598,
-      "z": 270.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 14.846195032882198,
-      "z": 245
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 23.410838641935385,
-      "z": 245
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 23.410838641935385,
-      "z": 235
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 14.846195032882198,
-      "z": 235
-     },
-     {
-      "x": 117.69423364838765,
-      "y": 5.601054763238598,
-      "z": 209.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -5.601054763238598,
-      "z": 209.5
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -14.846195032882198,
-      "z": 235
-     },
-     {
-      "x": 117.69423364838765,
-      "y": -23.410838641935385,
-      "z": 235
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11
-     ]
-    ],
-    "edges": [],
-    "markedEdges": [
-     [
-      0,
-      1
-     ],
-     [
-      1,
-      2
-     ],
-     [
-      2,
-      3
-     ],
-     [
-      3,
-      4
-     ],
-     [
-      4,
-      5
-     ],
-     [
-      6,
-      7
-     ],
-     [
-      7,
-      8
-     ],
-     [
-      8,
-      9
-     ],
-     [
-      9,
-      10
-     ],
-     [
-      10,
-      11
-     ]
-    ],
-    "fill": {
-     "r": 0.56,
-     "g": 0.32,
-     "b": 0.8
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "outline": false,
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-75",
-    "name": "Ring B panel 2",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0.5890486225480862
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -9889,7 +9772,7 @@
    },
    {
     "id": "object-76",
-    "name": "Ring B panel 3",
+    "name": "Ring B panel 2",
     "transform": {
      "position": {
       "x": 0,
@@ -9899,7 +9782,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 0.9817477042468103
+      "z": 0.5890486225480862
      },
      "scale": {
       "x": 1,
@@ -9907,7 +9790,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -10058,7 +9941,7 @@
    },
    {
     "id": "object-77",
-    "name": "Ring B panel 4",
+    "name": "Ring B panel 3",
     "transform": {
      "position": {
       "x": 0,
@@ -10068,7 +9951,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.3744467859455345
+      "z": 0.9817477042468103
      },
      "scale": {
       "x": 1,
@@ -10076,7 +9959,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -10227,7 +10110,7 @@
    },
    {
     "id": "object-78",
-    "name": "Ring B panel 5",
+    "name": "Ring B panel 4",
     "transform": {
      "position": {
       "x": 0,
@@ -10237,7 +10120,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.7671458676442586
+      "z": 1.3744467859455345
      },
      "scale": {
       "x": 1,
@@ -10245,7 +10128,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -10396,7 +10279,7 @@
    },
    {
     "id": "object-79",
-    "name": "Ring B panel 6",
+    "name": "Ring B panel 5",
     "transform": {
      "position": {
       "x": 0,
@@ -10406,7 +10289,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.1598449493429825
+      "z": 1.7671458676442586
      },
      "scale": {
       "x": 1,
@@ -10414,7 +10297,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -10565,7 +10448,7 @@
    },
    {
     "id": "object-80",
-    "name": "Ring B panel 7",
+    "name": "Ring B panel 6",
     "transform": {
      "position": {
       "x": 0,
@@ -10575,7 +10458,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.552544031041707
+      "z": 2.1598449493429825
      },
      "scale": {
       "x": 1,
@@ -10583,7 +10466,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -10734,7 +10617,7 @@
    },
    {
     "id": "object-81",
-    "name": "Ring B panel 8",
+    "name": "Ring B panel 7",
     "transform": {
      "position": {
       "x": 0,
@@ -10744,7 +10627,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.945243112740431
+      "z": 2.552544031041707
      },
      "scale": {
       "x": 1,
@@ -10752,7 +10635,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -10903,7 +10786,7 @@
    },
    {
     "id": "object-82",
-    "name": "Ring B panel 9",
+    "name": "Ring B panel 8",
     "transform": {
      "position": {
       "x": 0,
@@ -10913,7 +10796,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.3379421944391554
+      "z": 2.945243112740431
      },
      "scale": {
       "x": 1,
@@ -10921,7 +10804,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -11072,7 +10955,7 @@
    },
    {
     "id": "object-83",
-    "name": "Ring B panel 10",
+    "name": "Ring B panel 9",
     "transform": {
      "position": {
       "x": 0,
@@ -11082,7 +10965,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.730641276137879
+      "z": 3.3379421944391554
      },
      "scale": {
       "x": 1,
@@ -11090,7 +10973,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -11241,7 +11124,7 @@
    },
    {
     "id": "object-84",
-    "name": "Ring B panel 11",
+    "name": "Ring B panel 10",
     "transform": {
      "position": {
       "x": 0,
@@ -11251,7 +11134,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.123340357836604
+      "z": 3.730641276137879
      },
      "scale": {
       "x": 1,
@@ -11259,7 +11142,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -11410,7 +11293,7 @@
    },
    {
     "id": "object-85",
-    "name": "Ring B panel 12",
+    "name": "Ring B panel 11",
     "transform": {
      "position": {
       "x": 0,
@@ -11420,7 +11303,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.516039439535327
+      "z": 4.123340357836604
      },
      "scale": {
       "x": 1,
@@ -11428,7 +11311,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -11579,7 +11462,7 @@
    },
    {
     "id": "object-86",
-    "name": "Ring B panel 13",
+    "name": "Ring B panel 12",
     "transform": {
      "position": {
       "x": 0,
@@ -11589,7 +11472,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.908738521234052
+      "z": 4.516039439535327
      },
      "scale": {
       "x": 1,
@@ -11597,7 +11480,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -11748,7 +11631,7 @@
    },
    {
     "id": "object-87",
-    "name": "Ring B panel 14",
+    "name": "Ring B panel 13",
     "transform": {
      "position": {
       "x": 0,
@@ -11758,7 +11641,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.301437602932776
+      "z": 4.908738521234052
      },
      "scale": {
       "x": 1,
@@ -11766,7 +11649,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -11917,7 +11800,7 @@
    },
    {
     "id": "object-88",
-    "name": "Ring B panel 15",
+    "name": "Ring B panel 14",
     "transform": {
      "position": {
       "x": 0,
@@ -11927,7 +11810,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.6941366846315
+      "z": 5.301437602932776
      },
      "scale": {
       "x": 1,
@@ -11935,7 +11818,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -12086,7 +11969,7 @@
    },
    {
     "id": "object-89",
-    "name": "Ring B panel 16",
+    "name": "Ring B panel 15",
     "transform": {
      "position": {
       "x": 0,
@@ -12096,7 +11979,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 6.086835766330224
+      "z": 5.6941366846315
      },
      "scale": {
       "x": 1,
@@ -12104,7 +11987,7 @@
       "z": 1
      }
     },
-    "parent": "object-73",
+    "parent": "object-74",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -12255,6 +12138,175 @@
    },
    {
     "id": "object-90",
+    "name": "Ring B panel 16",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 6.086835766330224
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-74",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 117.69423364838765,
+      "y": -23.410838641935385,
+      "z": 245
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -14.846195032882198,
+      "z": 245
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -5.601054763238598,
+      "z": 270.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 5.601054763238598,
+      "z": 270.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 14.846195032882198,
+      "z": 245
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 23.410838641935385,
+      "z": 245
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 23.410838641935385,
+      "z": 235
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 14.846195032882198,
+      "z": 235
+     },
+     {
+      "x": 117.69423364838765,
+      "y": 5.601054763238598,
+      "z": 209.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -5.601054763238598,
+      "z": 209.5
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -14.846195032882198,
+      "z": 235
+     },
+     {
+      "x": 117.69423364838765,
+      "y": -23.410838641935385,
+      "z": 235
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      6,
+      7
+     ],
+     [
+      7,
+      8
+     ],
+     [
+      8,
+      9
+     ],
+     [
+      9,
+      10
+     ],
+     [
+      10,
+      11
+     ]
+    ],
+    "fill": {
+     "r": 0.56,
+     "g": 0.32,
+     "b": 0.8
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "outline": false,
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-91",
     "name": "Top segment",
     "transform": {
      "position": {
@@ -12344,7 +12396,7 @@
     "modifiers": []
    },
    {
-    "id": "object-91",
+    "id": "object-92",
     "name": "Top segment post 1",
     "transform": {
      "position": {
@@ -12363,7 +12415,7 @@
       "z": 1
      }
     },
-    "parent": "object-90",
+    "parent": "object-91",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -12385,100 +12437,6 @@
      },
      {
       "x": 180,
-      "y": -10,
-      "z": 414.5
-     },
-     {
-      "x": 120,
-      "y": 0,
-      "z": 320
-     },
-     {
-      "x": 180,
-      "y": 0,
-      "z": 320
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3
-     ]
-    ],
-    "edges": [
-     [
-      4,
-      5
-     ]
-    ],
-    "markedEdges": [],
-    "fill": {
-     "r": 0.61,
-     "g": 0.7250000000000001,
-     "b": 0.9299999999999999
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-92",
-    "name": "Top segment post 2",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-90",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": -180,
-      "y": -10,
-      "z": 247
-     },
-     {
-      "x": -180,
-      "y": 10,
-      "z": 247
-     },
-     {
-      "x": -180,
-      "y": 10,
-      "z": 414.5
-     },
-     {
-      "x": -180,
       "y": -10,
       "z": 414.5
      }
@@ -12518,7 +12476,7 @@
    },
    {
     "id": "object-93",
-    "name": "Top segment bar",
+    "name": "Top segment post 2",
     "transform": {
      "position": {
       "x": 0,
@@ -12536,7 +12494,7 @@
       "z": 1
      }
     },
-    "parent": "object-90",
+    "parent": "object-91",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -12544,21 +12502,21 @@
      {
       "x": -180,
       "y": -10,
-      "z": 414.5
+      "z": 247
      },
      {
-      "x": 180,
-      "y": -10,
-      "z": 414.5
+      "x": -180,
+      "y": 10,
+      "z": 247
      },
      {
-      "x": 180,
+      "x": -180,
       "y": 10,
       "z": 414.5
      },
      {
       "x": -180,
-      "y": 10,
+      "y": -10,
       "z": 414.5
      }
     ],
@@ -12597,6 +12555,152 @@
    },
    {
     "id": "object-94",
+    "name": "Top segment axle",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-91",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 120,
+      "y": 0,
+      "z": 320
+     },
+     {
+      "x": 180,
+      "y": 0,
+      "z": 320
+     }
+    ],
+    "faces": [],
+    "edges": [
+     [
+      0,
+      1
+     ]
+    ],
+    "markedEdges": [],
+    "fill": {
+     "r": 0.61,
+     "g": 0.7250000000000001,
+     "b": 0.9299999999999999
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-95",
+    "name": "Top segment bar",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-91",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": -180,
+      "y": -10,
+      "z": 414.5
+     },
+     {
+      "x": 180,
+      "y": -10,
+      "z": 414.5
+     },
+     {
+      "x": 180,
+      "y": 10,
+      "z": 414.5
+     },
+     {
+      "x": -180,
+      "y": 10,
+      "z": 414.5
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [],
+    "fill": {
+     "r": 0.61,
+     "g": 0.7250000000000001,
+     "b": 0.9299999999999999
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-96",
     "name": "Top ring",
     "transform": {
      "position": {
@@ -12615,7 +12719,7 @@
       "z": 1
      }
     },
-    "parent": "object-90",
+    "parent": "object-91",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -12647,7 +12751,7 @@
     "modifiers": []
    },
    {
-    "id": "object-95",
+    "id": "object-97",
     "name": "Top ring panel 1",
     "transform": {
      "position": {
@@ -12666,265 +12770,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 178.46007504728587,
-      "y": -23.49471459960928,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -14.867374699750476,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -5.602185673851863,
-      "z": 209.5
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 5.602185673851863,
-      "z": 209.5
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 14.867374699750476,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 23.49471459960928,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 23.49471459960928,
-      "z": 247
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -23.49471459960928,
-      "z": 247
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7
-     ]
-    ],
-    "edges": [],
-    "markedEdges": [
-     [
-      0,
-      1
-     ],
-     [
-      1,
-      2
-     ],
-     [
-      2,
-      3
-     ],
-     [
-      3,
-      4
-     ],
-     [
-      4,
-      5
-     ],
-     [
-      6,
-      7
-     ]
-    ],
-    "fill": {
-     "r": 0.61,
-     "g": 0.7250000000000001,
-     "b": 0.9299999999999999
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "outline": false,
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-96",
-    "name": "Top ring panel 2",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0.39269908169872414
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-94",
-    "constraints": [],
-    "folder": null,
-    "visible": true,
-    "vertices": [
-     {
-      "x": 178.46007504728587,
-      "y": -23.49471459960928,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -14.867374699750476,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -5.602185673851863,
-      "z": 209.5
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 5.602185673851863,
-      "z": 209.5
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 14.867374699750476,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 23.49471459960928,
-      "z": 235
-     },
-     {
-      "x": 178.46007504728587,
-      "y": 23.49471459960928,
-      "z": 247
-     },
-     {
-      "x": 178.46007504728587,
-      "y": -23.49471459960928,
-      "z": 247
-     }
-    ],
-    "faces": [
-     [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7
-     ]
-    ],
-    "edges": [],
-    "markedEdges": [
-     [
-      0,
-      1
-     ],
-     [
-      1,
-      2
-     ],
-     [
-      2,
-      3
-     ],
-     [
-      3,
-      4
-     ],
-     [
-      4,
-      5
-     ],
-     [
-      6,
-      7
-     ]
-    ],
-    "fill": {
-     "r": 0.61,
-     "g": 0.7250000000000001,
-     "b": 0.9299999999999999
-    },
-    "border": {
-     "color": {
-      "r": 0.12,
-      "g": 0.12,
-      "b": 0.15
-     },
-     "width": 1.6
-    },
-    "outline": false,
-    "selectedVertices": {
-     "$set": []
-    },
-    "camera": null,
-    "bones": null,
-    "deformer": null,
-    "vertexGroups": [],
-    "activeGroup": null,
-    "modifiers": []
-   },
-   {
-    "id": "object-97",
-    "name": "Top ring panel 3",
-    "transform": {
-     "position": {
-      "x": 0,
-      "y": 0,
-      "z": 0
-     },
-     "rotation": {
-      "x": 0,
-      "y": 0,
-      "z": 0.6544984694978736
-     },
-     "scale": {
-      "x": 1,
-      "y": 1,
-      "z": 1
-     }
-    },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13035,7 +12881,7 @@
    },
    {
     "id": "object-98",
-    "name": "Top ring panel 4",
+    "name": "Top ring panel 2",
     "transform": {
      "position": {
       "x": 0,
@@ -13045,7 +12891,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 0.916297857297023
+      "z": 0.39269908169872414
      },
      "scale": {
       "x": 1,
@@ -13053,7 +12899,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13164,7 +13010,7 @@
    },
    {
     "id": "object-99",
-    "name": "Top ring panel 5",
+    "name": "Top ring panel 3",
     "transform": {
      "position": {
       "x": 0,
@@ -13174,7 +13020,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.1780972450961724
+      "z": 0.6544984694978736
      },
      "scale": {
       "x": 1,
@@ -13182,7 +13028,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13293,7 +13139,7 @@
    },
    {
     "id": "object-100",
-    "name": "Top ring panel 6",
+    "name": "Top ring panel 4",
     "transform": {
      "position": {
       "x": 0,
@@ -13303,7 +13149,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.4398966328953218
+      "z": 0.916297857297023
      },
      "scale": {
       "x": 1,
@@ -13311,7 +13157,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13422,7 +13268,7 @@
    },
    {
     "id": "object-101",
-    "name": "Top ring panel 7",
+    "name": "Top ring panel 5",
     "transform": {
      "position": {
       "x": 0,
@@ -13432,7 +13278,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.7016960206944713
+      "z": 1.1780972450961724
      },
      "scale": {
       "x": 1,
@@ -13440,7 +13286,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13551,7 +13397,7 @@
    },
    {
     "id": "object-102",
-    "name": "Top ring panel 8",
+    "name": "Top ring panel 6",
     "transform": {
      "position": {
       "x": 0,
@@ -13561,7 +13407,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 1.9634954084936205
+      "z": 1.4398966328953218
      },
      "scale": {
       "x": 1,
@@ -13569,7 +13415,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13680,7 +13526,7 @@
    },
    {
     "id": "object-103",
-    "name": "Top ring panel 9",
+    "name": "Top ring panel 7",
     "transform": {
      "position": {
       "x": 0,
@@ -13690,7 +13536,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.2252947962927703
+      "z": 1.7016960206944713
      },
      "scale": {
       "x": 1,
@@ -13698,7 +13544,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13809,7 +13655,7 @@
    },
    {
     "id": "object-104",
-    "name": "Top ring panel 10",
+    "name": "Top ring panel 8",
     "transform": {
      "position": {
       "x": 0,
@@ -13819,7 +13665,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.4870941840919194
+      "z": 1.9634954084936205
      },
      "scale": {
       "x": 1,
@@ -13827,7 +13673,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -13938,7 +13784,7 @@
    },
    {
     "id": "object-105",
-    "name": "Top ring panel 11",
+    "name": "Top ring panel 9",
     "transform": {
      "position": {
       "x": 0,
@@ -13948,7 +13794,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 2.748893571891069
+      "z": 2.2252947962927703
      },
      "scale": {
       "x": 1,
@@ -13956,7 +13802,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14067,7 +13913,7 @@
    },
    {
     "id": "object-106",
-    "name": "Top ring panel 12",
+    "name": "Top ring panel 10",
     "transform": {
      "position": {
       "x": 0,
@@ -14077,7 +13923,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.010692959690218
+      "z": 2.4870941840919194
      },
      "scale": {
       "x": 1,
@@ -14085,7 +13931,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14196,7 +14042,7 @@
    },
    {
     "id": "object-107",
-    "name": "Top ring panel 13",
+    "name": "Top ring panel 11",
     "transform": {
      "position": {
       "x": 0,
@@ -14206,7 +14052,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.272492347489368
+      "z": 2.748893571891069
      },
      "scale": {
       "x": 1,
@@ -14214,7 +14060,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14325,7 +14171,7 @@
    },
    {
     "id": "object-108",
-    "name": "Top ring panel 14",
+    "name": "Top ring panel 12",
     "transform": {
      "position": {
       "x": 0,
@@ -14335,7 +14181,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.5342917352885173
+      "z": 3.010692959690218
      },
      "scale": {
       "x": 1,
@@ -14343,7 +14189,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14454,7 +14300,7 @@
    },
    {
     "id": "object-109",
-    "name": "Top ring panel 15",
+    "name": "Top ring panel 13",
     "transform": {
      "position": {
       "x": 0,
@@ -14464,7 +14310,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 3.796091123087667
+      "z": 3.272492347489368
      },
      "scale": {
       "x": 1,
@@ -14472,7 +14318,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14583,7 +14429,7 @@
    },
    {
     "id": "object-110",
-    "name": "Top ring panel 16",
+    "name": "Top ring panel 14",
     "transform": {
      "position": {
       "x": 0,
@@ -14593,7 +14439,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.057890510886816
+      "z": 3.5342917352885173
      },
      "scale": {
       "x": 1,
@@ -14601,7 +14447,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14712,7 +14558,7 @@
    },
    {
     "id": "object-111",
-    "name": "Top ring panel 17",
+    "name": "Top ring panel 15",
     "transform": {
      "position": {
       "x": 0,
@@ -14722,7 +14568,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.319689898685966
+      "z": 3.796091123087667
      },
      "scale": {
       "x": 1,
@@ -14730,7 +14576,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14841,7 +14687,7 @@
    },
    {
     "id": "object-112",
-    "name": "Top ring panel 18",
+    "name": "Top ring panel 16",
     "transform": {
      "position": {
       "x": 0,
@@ -14851,7 +14697,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.581489286485115
+      "z": 4.057890510886816
      },
      "scale": {
       "x": 1,
@@ -14859,7 +14705,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -14970,7 +14816,7 @@
    },
    {
     "id": "object-113",
-    "name": "Top ring panel 19",
+    "name": "Top ring panel 17",
     "transform": {
      "position": {
       "x": 0,
@@ -14980,7 +14826,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 4.843288674284264
+      "z": 4.319689898685966
      },
      "scale": {
       "x": 1,
@@ -14988,7 +14834,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -15099,7 +14945,7 @@
    },
    {
     "id": "object-114",
-    "name": "Top ring panel 20",
+    "name": "Top ring panel 18",
     "transform": {
      "position": {
       "x": 0,
@@ -15109,7 +14955,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.105088062083413
+      "z": 4.581489286485115
      },
      "scale": {
       "x": 1,
@@ -15117,7 +14963,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -15228,7 +15074,7 @@
    },
    {
     "id": "object-115",
-    "name": "Top ring panel 21",
+    "name": "Top ring panel 19",
     "transform": {
      "position": {
       "x": 0,
@@ -15238,7 +15084,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.3668874498825625
+      "z": 4.843288674284264
      },
      "scale": {
       "x": 1,
@@ -15246,7 +15092,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -15357,7 +15203,7 @@
    },
    {
     "id": "object-116",
-    "name": "Top ring panel 22",
+    "name": "Top ring panel 20",
     "transform": {
      "position": {
       "x": 0,
@@ -15367,7 +15213,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.6286868376817125
+      "z": 5.105088062083413
      },
      "scale": {
       "x": 1,
@@ -15375,7 +15221,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -15486,7 +15332,7 @@
    },
    {
     "id": "object-117",
-    "name": "Top ring panel 23",
+    "name": "Top ring panel 21",
     "transform": {
      "position": {
       "x": 0,
@@ -15496,7 +15342,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 5.8904862254808625
+      "z": 5.3668874498825625
      },
      "scale": {
       "x": 1,
@@ -15504,7 +15350,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -15615,7 +15461,7 @@
    },
    {
     "id": "object-118",
-    "name": "Top ring panel 24",
+    "name": "Top ring panel 22",
     "transform": {
      "position": {
       "x": 0,
@@ -15625,7 +15471,7 @@
      "rotation": {
       "x": 0,
       "y": 0,
-      "z": 6.152285613280012
+      "z": 5.6286868376817125
      },
      "scale": {
       "x": 1,
@@ -15633,7 +15479,7 @@
       "z": 1
      }
     },
-    "parent": "object-94",
+    "parent": "object-96",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -15744,6 +15590,264 @@
    },
    {
     "id": "object-119",
+    "name": "Top ring panel 23",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 5.8904862254808625
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-96",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 178.46007504728587,
+      "y": -23.49471459960928,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -14.867374699750476,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -5.602185673851863,
+      "z": 209.5
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 5.602185673851863,
+      "z": 209.5
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 14.867374699750476,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 23.49471459960928,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 23.49471459960928,
+      "z": 247
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -23.49471459960928,
+      "z": 247
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      6,
+      7
+     ]
+    ],
+    "fill": {
+     "r": 0.61,
+     "g": 0.7250000000000001,
+     "b": 0.9299999999999999
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "outline": false,
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-120",
+    "name": "Top ring panel 24",
+    "transform": {
+     "position": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+     },
+     "rotation": {
+      "x": 0,
+      "y": 0,
+      "z": 6.152285613280012
+     },
+     "scale": {
+      "x": 1,
+      "y": 1,
+      "z": 1
+     }
+    },
+    "parent": "object-96",
+    "constraints": [],
+    "folder": null,
+    "visible": true,
+    "vertices": [
+     {
+      "x": 178.46007504728587,
+      "y": -23.49471459960928,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -14.867374699750476,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -5.602185673851863,
+      "z": 209.5
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 5.602185673851863,
+      "z": 209.5
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 14.867374699750476,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 23.49471459960928,
+      "z": 235
+     },
+     {
+      "x": 178.46007504728587,
+      "y": 23.49471459960928,
+      "z": 247
+     },
+     {
+      "x": 178.46007504728587,
+      "y": -23.49471459960928,
+      "z": 247
+     }
+    ],
+    "faces": [
+     [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ]
+    ],
+    "edges": [],
+    "markedEdges": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      2,
+      3
+     ],
+     [
+      3,
+      4
+     ],
+     [
+      4,
+      5
+     ],
+     [
+      6,
+      7
+     ]
+    ],
+    "fill": {
+     "r": 0.61,
+     "g": 0.7250000000000001,
+     "b": 0.9299999999999999
+    },
+    "border": {
+     "color": {
+      "r": 0.12,
+      "g": 0.12,
+      "b": 0.15
+     },
+     "width": 1.6
+    },
+    "outline": false,
+    "selectedVertices": {
+     "$set": []
+    },
+    "camera": null,
+    "bones": null,
+    "deformer": null,
+    "vertexGroups": [],
+    "activeGroup": null,
+    "modifiers": []
+   },
+   {
+    "id": "object-121",
     "name": "Output pinion",
     "transform": {
      "position": {
@@ -15801,7 +15905,7 @@
       "z": 1
      }
     },
-    "parent": "object-90",
+    "parent": "object-91",
     "constraints": [],
     "folder": null,
     "visible": true,
@@ -16038,7 +16142,7 @@
   "frameRate": 24,
   "frameStart": 0,
   "frameEnd": 240,
-  "nextId": 120,
+  "nextId": 122,
   "mode": "object",
   "selectedObjects": [],
   "activeObject": null,
