@@ -79,6 +79,16 @@ What's left is mostly rasterizing thick border strokes and marks; join and cap s
   - Each vertex's visibility is found once per frame, since marked edges often meet end to end, as a curve's pieces do.
   - The finest sampling step is at least six flattening tolerances, about 1.5 device pixels in the viewport, not just 1/150 of the mesh's size.
 
+## Gear demo in pieces (2026-11-12)
+
+- `gear-slip-ring.slender` is now one object per tooth: each pinion, ring and the carrier is an empty on its axis that carries the motion, with its pieces as children, their outlines off. Ring sections are cut radially in the root lands, a tooth up and a tooth down on rings A and B (12-sided profile) and one tooth with a flat back on the base and top rings (8-sided). A pinion's pieces are a tooth with its slice of the hub, cut from the axle to the middle of each land. The carrier band is 16 sections; 8 let a pinion tooth sort over the band in an oblique view.
+- Every piece is closed, cut faces included but unmarked: an open end let the piece's own hidden marked lines show through it when it drew after its neighbor.
+- Colors: the drive path is at full color (input pinion red, rings A and B and the signal pinions purple, output pinion blue); the base and its ring are light red, the top segment and its ring light blue, the carrier light purple, the reference pinions light gray.
+- Edges are arcs only where they bow at least 1 unit from straight (`MIN_BOW`): the carrier rims and the outer rings' backs. Tooth tips and lands stay straight; as arcs they looked the same and doubled the marked lines.
+- Tried and dropped: the carrier band as two halves that stay still. Each half sorts at its own center, about 95 units out, so a signal pinion at 120 always sorts in front of the near half, though the band passes in front of its lower teeth.
+- Still a painter's-algorithm limit: the band sits only 20–40 units outside the signal pinions' axles, and a pinion piece pointing down toward a tilted camera is about 15 units nearer than its axle. No error showed in four checked views, but other angles may show one.
+- Phone-like benchmark, same harness and machine load: the earlier one-piece file 101 ms, the pieces 121 ms without the seam stroke, 134 ms with it. The file is 595 KB, 157 objects, 2,700 marks.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.
