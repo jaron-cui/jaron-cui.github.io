@@ -3,8 +3,10 @@ import { type ParameterEntry, Parameters } from './Parameters';
 import type { FromWorker, SceneRenderer, Stats, ToWorker } from './protocol';
 import './styles.css';
 
-// Exported checkpoint directory, served from the site's `public/rat-ncap/`.
-const CHECKPOINT = `${import.meta.env.BASE_URL}rat-ncap/1_4_flxext`;
+// The model's bundle (compiled env and actor, parameter presets), served from `public/rat-ncap/`.
+const CHECKPOINT = `${import.meta.env.BASE_URL}rat-ncap/generic12`;
+// The preset the worker starts with (see worker.ts).
+const DEFAULT_EPOCH = '2500';
 const TRAINED_MAX = 1.0;  // (m/s) Trained target speeds were 0, 0.2, ..., 1.0.
 const EXTENDED_MAX = 1.5;
 // Playback rates (simulated time per wall time) selectable with the slider.
@@ -16,24 +18,18 @@ type Status = { kind: 'loading' } | { kind: 'ready' } | { kind: 'error', message
 let next_id = 0;
 const new_id = () => `p${next_id++}`;
 
-/** The export's own parameters (loaded at startup) and its epoch presets (`params/index.json`). */
+/** The parameters loaded at startup and the bundle's other epoch presets (`params/index.json`). */
 async function initial_entries(): Promise<ParameterEntry[]> {
-  const fetch_json = async (path: string) => {
-    const response = await fetch(`${CHECKPOINT}/${path}`);
-    return response.ok ? response.json() : null;
-  };
-  const [manifest, index] = await Promise.all([
-    fetch_json('manifest.json').catch(() => null),
-    fetch_json('params/index.json').catch(() => null),
-  ]);
+  const response = await fetch(`${CHECKPOINT}/params/index.json`).catch(() => null);
+  const index: { name: string, epoch: string, file: string }[] = response?.ok ? await response.json() : [];
   const exported: ParameterEntry = {
     id: 'export',
-    name: manifest?.epoch !== undefined ? `exported (epoch ${manifest.epoch})` : 'exported',
+    name: `epoch ${DEFAULT_EPOCH}`,
     source: 'export',
-    url: `${CHECKPOINT}/state_dict.json`,
+    url: `${CHECKPOINT}/params/params_${DEFAULT_EPOCH}`,
     status: 'idle',
   };
-  const presets: ParameterEntry[] = (index ?? []).map((p: { name: string, file: string }) => ({
+  const presets: ParameterEntry[] = index.filter(p => p.epoch !== DEFAULT_EPOCH).map(p => ({
     id: new_id(),
     name: p.name,
     source: 'preset',

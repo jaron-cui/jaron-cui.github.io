@@ -15,7 +15,7 @@ import { RG_UNITS } from './app/protocol';
 import type { Activity, FromWorker, Geoms, ToWorker } from './app/protocol';
 import { rowsFromQuaternion, SlenderRenderer } from './app/slenderRenderer';
 
-const CHECKPOINT = `${import.meta.env.BASE_URL}rat-ncap/1_4_flxext`;
+const CHECKPOINT = `${import.meta.env.BASE_URL}rat-ncap/generic12`;
 const CONTROL_DT = 0.03;  // (s) One control step, which is also one circuit tick.
 const PANEL_HEIGHT = 300;
 const INK = '#1d2330';

@@ -12,30 +12,31 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { Simulation } from '../src/app/simulation';
-import { readGeoms } from '../app/geoms';
+import loadMujoco from '@mujoco/mujoco';
+import { Rat } from '../app/rat';
 import { RG_SOURCES, RG_UNITS } from '../app/protocol';
 import { quaternionFromRows } from '../app/slenderRenderer';
 
-const dir = process.argv[2] ?? 'public/rat-ncap/1_4_flxext';
+const dir = process.argv[2] ?? 'public/rat-ncap/generic12';
 const speed = Number(process.argv[3] ?? 0.4);
+const PARAMS = 'params/params_2500';  // As the live demo starts with (worker.ts).
 const WARMUP = 200;  // Steps (6 s) to settle into a steady gait.
 const RECORD = 260;  // Steps to search for a loop in.
 const MIN_LOOP = 60;  // Shortest loop (steps).
-const SEED = 1;
 
-const sim = await Simulation.load(async name => new Uint8Array(fs.readFileSync(path.join(dir, name))), { seed: SEED });
-sim.set_target_vx(speed);
+const sim = await Rat.load(async name => new Uint8Array(fs.readFileSync(path.join(dir, name))), await loadMujoco(), PARAMS);
+sim.target_vx = speed;
 sim.reset();
 for (let i = 0; i < WARMUP; i++) sim.step();
 if (sim.terminated) throw new Error('The rat fell over while warming up; try another speed.');
 
-const geoms = readGeoms();
+const geoms = sim.geoms();
 const nbody = geoms.body_names.length;
 const ROOT = 1;  // The torso, the first body under the world.
 const names = RG_UNITS.filter(u => u !== 'bc').map(u => RG_SOURCES[u]);
 // Geom poses are kept too: the renderer builds its rig from geoms and bodies at the same moment.
-type Frame = { pos: Float64Array; rows: Float64Array; activity: number[]; geoms: { xpos: Float64Array; xmat: Float64Array } };
+type Pose = Float32Array | Float64Array;
+type Frame = { pos: Pose; rows: Pose; activity: number[]; geoms: { xpos: Pose; xmat: Pose } };
 const frames: Frame[] = [];
 for (let i = 0; i < RECORD; i++) {
   sim.step();

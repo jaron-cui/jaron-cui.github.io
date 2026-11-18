@@ -1,17 +1,20 @@
 /**
- * Simulation worker: runs the actor and MuJoCo (WASM) in real time, off the main thread, and posts
- * a frame (geom poses + stats) after each batch of control steps.
+ * Simulation worker: runs the trained rat (`rat.ts`: the job's compiled env and actor on MuJoCo WASM)
+ * in real time, off the main thread, and posts a frame (geom poses + stats) after each batch of
+ * control steps.
  */
 
-import { Simulation } from '../src/app/simulation';
+import loadMujoco from '@mujoco/mujoco';
+import { Rat } from './rat';
 import { RG_SOURCES, RG_UNITS } from './protocol';
 import type { FromWorker, ToWorker } from './protocol';
-import { readGeoms } from './geoms';
 
 const CONTROL_DT = 0.03;  // (s) Matches the trained env timestep.
 const MAX_STEPS_PER_TICK = 4;  // Catch up at most this many steps per tick (then fall behind).
+// The parameters shown at first: the checkpoint picked for the demo.
+const DEFAULT_PARAMS = 'params/params_2500';
 
-let sim: Simulation | null = null;
+let sim: Rat | null = null;
 let paused = false;
 let auto_reset = false;  // Reset the moment the rat falls over.
 let rate = 1;  // Playback rate: simulated time per wall time.
@@ -75,7 +78,7 @@ function frame(snap: boolean = false) {
     body_xmat,
     position: sim.position,
     stats: {
-      time: sim.time,
+      time: sim.steps * sim.dt,
       target_vx: sim.target_vx,
       speed: sim.speed,
       heading: sim.heading,
@@ -139,12 +142,12 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
     switch (message.type) {
       case 'init': {
         const base = `${message.checkpoint.replace(/\/$/, '')}/`;
-        sim = await Simulation.load(async name => {
+        sim = await Rat.load(async name => {
           const response = await fetch(base + name);
           if (!response.ok) throw new Error(`Failed to fetch ${base + name}: ${response.status}`);
           return new Uint8Array(await response.arrayBuffer());
-        });
-        post({ type: 'ready', geoms: readGeoms() });
+        }, await loadMujoco(), DEFAULT_PARAMS);
+        post({ type: 'ready', geoms: sim.geoms() });
         step_index = 0;
         record_activity();
         restart_clock();
@@ -153,7 +156,7 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
         break;
       }
       case 'set_target_vx':
-        sim?.set_target_vx(message.value);
+        if (sim) sim.target_vx = message.value;
         break;
       case 'reset':
         reset();
@@ -164,13 +167,18 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
       case 'load_parameters': {
         try {
           if (sim === null) throw new Error('The simulation is not loaded yet.');
-          let text = message.text;
-          if (text === undefined) {
-            const response = await fetch(message.url!);
-            if (!response.ok) throw new Error(`Failed to fetch ${message.url}: ${response.status}`);
-            text = await response.text();
+          if (message.text !== undefined) {
+            sim.load_state_dict(JSON.parse(message.text));
+          } else {
+            // A preset: `<url>.json` and `<url>.bin` (graph format).
+            const read = async (url: string) => {
+              const response = await fetch(url);
+              if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`);
+              return new Uint8Array(await response.arrayBuffer());
+            };
+            const [json, bin] = await Promise.all([read(`${message.url}.json`), read(`${message.url}.bin`)]);
+            sim.load_preset(json, bin);
           }
-          sim.load_parameters(JSON.parse(text));
           post({ type: 'parameters', id: message.id, ok: true });
         } catch (error) {
           post({ type: 'parameters', id: message.id, ok: false, message: error instanceof Error ? error.message : String(error) });

@@ -1,0 +1,195 @@
+{
+ "part": "env",
+ "job_dir": "/scratch/jjc9560/ncap-quadruped-out/1_prod/1_4_flxext/2026-1022-161750-warp-ars1024-routes:goofy-porcupines/20643379_0:model.rat.pattern_formation.select_weight_id_override=local_af,seed=1",
+ "mujoco_version": "3.12.0",
+ "jax_version": "0.9.0.1",
+ "timestep": {
+  "env": 0.03,
+  "sim": 0.001,
+  "substeps": 30
+ },
+ "subtask_space": {
+  "target_vx": {
+   "shape": [
+    1
+   ],
+   "dtype": "float32",
+   "low": [
+    -5.0
+   ],
+   "high": [
+    5.0
+   ],
+   "desc": "Target linear velocity along x-axis in global frame (m/s)"
+  },
+  "reward_passive": {
+   "shape": [
+    1
+   ],
+   "dtype": "float32",
+   "low": [
+    0.0
+   ],
+   "high": [
+    1.0
+   ],
+   "desc": "Passive reward weight (unitless)"
+  },
+  "reward_vx_sparse": {
+   "shape": [
+    1
+   ],
+   "dtype": "float32",
+   "low": [
+    0.0
+   ],
+   "high": [
+    1.0
+   ],
+   "desc": "Sparse reward weight for forward velocity tracking (unitless)"
+  },
+  "reward_vx_dense": {
+   "shape": [
+    1
+   ],
+   "dtype": "float32",
+   "low": [
+    0.0
+   ],
+   "high": [
+    1.0
+   ],
+   "desc": "Dense reward weight for forward velocity tracking (unitless)"
+  },
+  "reward_pose": {
+   "shape": [
+    1
+   ],
+   "dtype": "float32",
+   "low": [
+    0.0
+   ],
+   "high": [
+    1.0
+   ],
+   "desc": "Reward weight for pose tracking (unitless)"
+  }
+ },
+ "batch": {
+  "env": 1,
+  "actor": null
+ },
+ "interface": {
+  "env": {
+   "observation": {
+    "observation/target_vx": [
+     1
+    ],
+    "observation/body/proprio_pos_limbFL": [
+     8
+    ],
+    "observation/body/proprio_pos_limbFR": [
+     8
+    ],
+    "observation/body/proprio_pos_lumbarE": [
+     1
+    ],
+    "observation/body/proprio_pos_lumbarBT": [
+     2
+    ],
+    "observation/body/proprio_pos_limbHL": [
+     6
+    ],
+    "observation/body/proprio_pos_limbHR": [
+     6
+    ],
+    "observation/body/proprio_vel_limbFL": [
+     8
+    ],
+    "observation/body/proprio_vel_limbFR": [
+     8
+    ],
+    "observation/body/proprio_vel_lumbarE": [
+     1
+    ],
+    "observation/body/proprio_vel_lumbarBT": [
+     2
+    ],
+    "observation/body/proprio_vel_limbHL": [
+     6
+    ],
+    "observation/body/proprio_vel_limbHR": [
+     6
+    ],
+    "observation/body/proprio_trq_limbFL": [
+     8
+    ],
+    "observation/body/proprio_trq_limbFR": [
+     8
+    ],
+    "observation/body/proprio_trq_lumbarE": [
+     1
+    ],
+    "observation/body/proprio_trq_lumbarBT": [
+     2
+    ],
+    "observation/body/proprio_trq_limbHL": [
+     6
+    ],
+    "observation/body/proprio_trq_limbHR": [
+     6
+    ],
+    "observation/body/tactile_limbFL": [
+     2
+    ],
+    "observation/body/tactile_limbFR": [
+     2
+    ],
+    "observation/body/tactile_limbHL": [
+     2
+    ],
+    "observation/body/tactile_limbHR": [
+     2
+    ]
+   },
+   "action": {
+    "action/body/muscle_flx_limbFL": [
+     8
+    ],
+    "action/body/muscle_ext_limbFL": [
+     8
+    ],
+    "action/body/muscle_flx_limbFR": [
+     8
+    ],
+    "action/body/muscle_ext_limbFR": [
+     8
+    ],
+    "action/body/muscle_flx_limbHL": [
+     6
+    ],
+    "action/body/muscle_ext_limbHL": [
+     6
+    ],
+    "action/body/muscle_flx_limbHR": [
+     6
+    ],
+    "action/body/muscle_ext_limbHR": [
+     6
+    ],
+    "action/body/muscle_flx_lumbarE": [
+     1
+    ],
+    "action/body/muscle_ext_lumbarE": [
+     1
+    ],
+    "action/body/muscle_flx_lumbarBT": [
+     2
+    ],
+    "action/body/muscle_ext_lumbarBT": [
+     2
+    ]
+   }
+  }
+ }
+}

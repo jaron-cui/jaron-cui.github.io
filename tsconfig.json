@@ -14,7 +14,9 @@
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    // The rat demo's compiled-graph runtime (rat-ncap/runtime) imports its modules with `.ts`.
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "vite.config.ts"],
   // The rat demo's parity tests and benchmarks run under Node against golden data on the cluster.

@@ -1,0 +1,532 @@
+{
+ "part": "actor",
+ "job_dir": "/scratch/jjc9560/ncap-quadruped-out/1_prod/1_8_generic12/2026-1027-151953-generic12:awesome-rams/21131960_9:model.rat.interface_preset=flxext_generic12,seed=1",
+ "epoch": "last",
+ "torch_version": "2.10.0+cu128",
+ "observation_space": {
+  "target_vx": {
+   "shape": [
+    1
+   ],
+   "low": [
+    -5.0
+   ],
+   "high": [
+    5.0
+   ]
+  },
+  "body/proprio_pos_limbFL": {
+   "shape": [
+    8
+   ],
+   "low": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_pos_limbFR": {
+   "shape": [
+    8
+   ],
+   "low": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_pos_lumbarE": {
+   "shape": [
+    1
+   ],
+   "low": [
+    0.0
+   ],
+   "high": [
+    1.0
+   ]
+  },
+  "body/proprio_pos_lumbarBT": {
+   "shape": [
+    2
+   ],
+   "low": [
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_pos_limbHL": {
+   "shape": [
+    6
+   ],
+   "low": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_pos_limbHR": {
+   "shape": [
+    6
+   ],
+   "low": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_vel_limbFL": {
+   "shape": [
+    8
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_vel_limbFR": {
+   "shape": [
+    8
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_vel_lumbarE": {
+   "shape": [
+    1
+   ],
+   "low": [
+    -1.0
+   ],
+   "high": [
+    1.0
+   ]
+  },
+  "body/proprio_vel_lumbarBT": {
+   "shape": [
+    2
+   ],
+   "low": [
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_vel_limbHL": {
+   "shape": [
+    6
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_vel_limbHR": {
+   "shape": [
+    6
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_trq_limbFL": {
+   "shape": [
+    8
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_trq_limbFR": {
+   "shape": [
+    8
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_trq_lumbarE": {
+   "shape": [
+    1
+   ],
+   "low": [
+    -1.0
+   ],
+   "high": [
+    1.0
+   ]
+  },
+  "body/proprio_trq_lumbarBT": {
+   "shape": [
+    2
+   ],
+   "low": [
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_trq_limbHL": {
+   "shape": [
+    6
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/proprio_trq_limbHR": {
+   "shape": [
+    6
+   ],
+   "low": [
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "high": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ]
+  },
+  "body/tactile_limbFL": {
+   "shape": [
+    2
+   ],
+   "low": [
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0
+   ]
+  },
+  "body/tactile_limbFR": {
+   "shape": [
+    2
+   ],
+   "low": [
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0
+   ]
+  },
+  "body/tactile_limbHL": {
+   "shape": [
+    2
+   ],
+   "low": [
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0
+   ]
+  },
+  "body/tactile_limbHR": {
+   "shape": [
+    2
+   ],
+   "low": [
+    0.0,
+    0.0
+   ],
+   "high": [
+    1.0,
+    1.0
+   ]
+  }
+ },
+ "interface": {
+  "actor": {
+   "observation": {
+    "observation/target_vx": [
+     1
+    ],
+    "observation/body/proprio_pos_limbFL": [
+     8
+    ],
+    "observation/body/proprio_pos_limbFR": [
+     8
+    ],
+    "observation/body/proprio_pos_lumbarE": [
+     1
+    ],
+    "observation/body/proprio_pos_lumbarBT": [
+     2
+    ],
+    "observation/body/proprio_pos_limbHL": [
+     6
+    ],
+    "observation/body/proprio_pos_limbHR": [
+     6
+    ],
+    "observation/body/proprio_vel_limbFL": [
+     8
+    ],
+    "observation/body/proprio_vel_limbFR": [
+     8
+    ],
+    "observation/body/proprio_vel_lumbarE": [
+     1
+    ],
+    "observation/body/proprio_vel_lumbarBT": [
+     2
+    ],
+    "observation/body/proprio_vel_limbHL": [
+     6
+    ],
+    "observation/body/proprio_vel_limbHR": [
+     6
+    ],
+    "observation/body/proprio_trq_limbFL": [
+     8
+    ],
+    "observation/body/proprio_trq_limbFR": [
+     8
+    ],
+    "observation/body/proprio_trq_lumbarE": [
+     1
+    ],
+    "observation/body/proprio_trq_lumbarBT": [
+     2
+    ],
+    "observation/body/proprio_trq_limbHL": [
+     6
+    ],
+    "observation/body/proprio_trq_limbHR": [
+     6
+    ],
+    "observation/body/tactile_limbFL": [
+     2
+    ],
+    "observation/body/tactile_limbFR": [
+     2
+    ],
+    "observation/body/tactile_limbHL": [
+     2
+    ],
+    "observation/body/tactile_limbHR": [
+     2
+    ]
+   },
+   "action": {
+    "action/body/muscle_flx_limbFL": [
+     8
+    ],
+    "action/body/muscle_ext_limbFL": [
+     8
+    ],
+    "action/body/muscle_flx_limbFR": [
+     8
+    ],
+    "action/body/muscle_ext_limbFR": [
+     8
+    ],
+    "action/body/muscle_flx_limbHL": [
+     6
+    ],
+    "action/body/muscle_ext_limbHL": [
+     6
+    ],
+    "action/body/muscle_flx_limbHR": [
+     6
+    ],
+    "action/body/muscle_ext_limbHR": [
+     6
+    ],
+    "action/body/muscle_flx_lumbarE": [
+     1
+    ],
+    "action/body/muscle_ext_lumbarE": [
+     1
+    ],
+    "action/body/muscle_flx_lumbarBT": [
+     2
+    ],
+    "action/body/muscle_ext_lumbarBT": [
+     2
+    ]
+   }
+  }
+ }
+}

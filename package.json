@@ -7,7 +7,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^5.18.0",
-    "@mujoco/mujoco": "^3.12.0",
+    "@mujoco/mujoco": "file:vendor/mujoco-mujoco-3.12.0-opt.tgz",
     "bootstrap": "^5.3.8",
     "katex": "^0.19.1",
     "pixi.js": "^7.4.3",

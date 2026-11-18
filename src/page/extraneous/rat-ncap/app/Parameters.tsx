@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-/** An entry in the parameter library: the export's own parameters, an epoch preset, or an upload. */
+/** An entry in the parameter library: the parameters shown first, an epoch preset, or an upload. */
 export interface ParameterEntry {
   id: string;
   name: string;
@@ -12,7 +12,7 @@ export interface ParameterEntry {
 }
 
 const SOURCE_LABELS: Record<ParameterEntry['source'], string> = {
-  export: 'Exported',
+  export: 'Default',
   preset: 'Saved epochs',
   upload: 'Uploaded',
 };

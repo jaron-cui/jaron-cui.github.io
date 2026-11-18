@@ -1,0 +1,42 @@
+[
+ {
+  "name": "epoch 0",
+  "epoch": "0",
+  "file": "params/params_0"
+ },
+ {
+  "name": "epoch 500",
+  "epoch": "500",
+  "file": "params/params_500"
+ },
+ {
+  "name": "epoch 1000",
+  "epoch": "1000",
+  "file": "params/params_1000"
+ },
+ {
+  "name": "epoch 1500",
+  "epoch": "1500",
+  "file": "params/params_1500"
+ },
+ {
+  "name": "epoch 2000",
+  "epoch": "2000",
+  "file": "params/params_2000"
+ },
+ {
+  "name": "epoch 2500",
+  "epoch": "2500",
+  "file": "params/params_2500"
+ },
+ {
+  "name": "epoch 3000",
+  "epoch": "3000",
+  "file": "params/params_3000"
+ },
+ {
+  "name": "epoch last",
+  "epoch": "last",
+  "file": "params/params_last"
+ }
+]

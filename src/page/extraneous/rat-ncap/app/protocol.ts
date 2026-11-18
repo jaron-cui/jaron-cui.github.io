@@ -9,7 +9,10 @@ export type ToWorker =
   | { type: 'set_auto_reset', value: boolean }
   /** Playback rate: simulated time per wall time (e.g. 0.1 = slow motion, 1 = real time). */
   | { type: 'set_rate', value: number }
-  /** Swap in actor parameters (a `state_dict.json`), from a URL (preset) or file contents (upload). */
+  /**
+   * Swap in actor parameters: a preset by `url` (without extension: `<url>.json` and `<url>.bin`, graph
+   * format), or an uploaded state dict JSON's `text`.
+   */
   | { type: 'load_parameters', id: string, url?: string, text?: string };
 
 /** Static geometry for rendering (MuJoCo model fields), sent once. */
