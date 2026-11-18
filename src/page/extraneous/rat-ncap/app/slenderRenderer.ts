@@ -13,6 +13,7 @@ import { DrawItem, EllipsoidItem, projectScene } from '../../../../lib/vrender/p
 import { drawItems, ellipsoidOutline } from '../../../../lib/vrender/render';
 import { addArmature } from '../../slender/rigging';
 import type { Geoms, SceneRenderer } from './protocol';
+import { loadSkin, skinNodes, type Skin } from './skin';
 
 const MM = 1000;
 const GEOM = { SPHERE: 2, CAPSULE: 3, ELLIPSOID: 4, CYLINDER: 5, BOX: 6 };
@@ -54,7 +55,20 @@ export type SlenderRendererOptions = {
   headingLag?: number;
   // Draw the parts listed in MERGED as one outlined shape rather than each outlined alone.
   mergeOutlines?: boolean;
+  // A skin GLB (see skin.ts) to draw instead of the geoms' ellipsoids. The ellipsoids still cast
+  // the shadow.
+  skin?: string;
+  // How a skin is drawn: 'filled' (each piece filled and outlined) or 'outline' (the whole rat as one
+  // unfilled mesh: only its outer outline, with nothing filled inside it).
+  skinStyle?: 'filled' | 'outline';
+  // Draw the kinematic skeleton: a black line from each body to its parent, at the bodies' origins.
+  // With a skin, the skin draws as well; without one, the ellipsoids give way to the skeleton.
+  skeleton?: boolean;
 };
+
+// The skeleton's line weight (mm, half the drawn width, as a border).
+const SKELETON_WIDTH = 0.8;
+const SKELETON_COLOR = { r: 0.08, g: 0.08, b: 0.1, a: 1 };
 
 // Body sections by MuJoCo body name, for colouring: each part takes its section's fill.
 const SECTIONS: [RegExp, (body: string) => string][] = [
@@ -344,6 +358,42 @@ export class SlenderRenderer implements SceneRenderer {
     this.geoms = geoms;
     this.rig = null;
     this.parts = null;
+    this.skin = null;
+    if (this.options.skin) {
+      loadSkin(this.options.skin, geoms.body_names).then(skin => { if (this.geoms === geoms) this.skin = skin; }, error => console.error(error));
+    }
+  }
+
+  private skin: Skin | null = null;
+
+  /** Lines from each body's origin to its parent's (the world and the bodies on it have none). */
+  private skeletonNode(xpos: ArrayLike<number>): SceneNode {
+    const parents = this.geoms?.body_parentid ?? [];
+    const vertices = Array.from({ length: xpos.length / 3 }, (_, b) => ({ x: MM * xpos[3 * b], y: MM * xpos[3 * b + 1], z: MM * xpos[3 * b + 2] }));
+    const edges: [number, number][] = [];
+    parents.forEach((parent, body) => { if (body > 0 && parent > 0) edges.push([parent, body]); });
+    return {
+      kind: 'mesh', name: 'skeleton',
+      transform: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
+      worldMatrix: { kind: 'fixed', value: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0] },
+      vertices, faces: { kind: 'fixed', value: [] }, edges: { kind: 'fixed', value: edges },
+      fill: SKELETON_COLOR, border: { color: SKELETON_COLOR, width: SKELETON_WIDTH },
+    };
+  }
+
+  /** Every body's world pose at the current display time (positions in m, row-major rotations). */
+  private bodiesAt(): { xpos: Float64Array; xmat: Float64Array } | null {
+    const [a, b] = [this.previous, this.current];
+    if (!a || !b) return null;
+    const interval = b.time - a.time;
+    const t = interval > 0 ? Math.min(1, (performance.now() - b.time) / interval) : 1;
+    const n = b.rotations.length;
+    const xpos = new Float64Array(3 * n), xmat = new Float64Array(9 * n);
+    for (let body = 0; body < n; body++) {
+      for (let k = 0; k < 3; k++) xpos[3 * body + k] = a.positions[3 * body + k] + (b.positions[3 * body + k] - a.positions[3 * body + k]) * t;
+      xmat.set(rowsFromQuaternion(slerp(a.rotations[body], b.rotations[body], t)), 9 * body);
+    }
+    return { xpos, xmat };
   }
 
   update(xpos: Float32Array, xmat: Float32Array, _position: number[], snap = false, body?: { xpos: Float32Array, xmat: Float32Array }) {
@@ -483,6 +533,13 @@ export class SlenderRenderer implements SceneRenderer {
     ctx.fillStyle = 'rgba(40, 30, 30, 0.22)';
     ctx.fill(shadowPath, 'nonzero');
 
+    const bodies = this.skin || this.options.skeleton ? this.bodiesAt() : null;
+    if (bodies) {
+      const nodes: SceneNode[] = this.skin ? skinNodes(this.skin, bodies.xpos, bodies.xmat, this.options.skinStyle === 'outline') : [];
+      if (this.options.skeleton) nodes.push(this.skeletonNode(bodies.xpos));
+      drawItems(ctx, projectScene({ background, camera, nodes }, tolerance));
+      return;
+    }
     const items = projectScene(rat, tolerance);
     if (this.options.mergeOutlines ?? true) drawSections(ctx, items, this.partsOf());
     else drawItems(ctx, shadeByDepth(items));

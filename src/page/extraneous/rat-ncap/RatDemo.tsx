@@ -1,4 +1,5 @@
-// The homepage demo: the trained NCAP rat walking in MuJoCo (drawn with Slender), its rhythm
+// The homepage demo: the trained NCAP rat walking in MuJoCo (drawn with Slender as its kinematic
+// skeleton inside the outline of its skin, public/rat-ncap/<checkpoint>/skin/rat.glb), its rhythm
 // generation circuit lit by the activity, and controls for target speed and timescale.
 //
 // Until a visitor touches a control, it plays a cached loop of recorded walking and circuit
@@ -172,7 +173,11 @@ export default function RatDemo(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    renderer.current = new SlenderRenderer(viewport.current!, { floor: false, background: '#ffffff', camera: 'side', distance: 400, pitch: -0.14, headingLag: 0 });
+    // The rat as its kinematic skeleton inside the outline of its skin.
+    renderer.current = new SlenderRenderer(viewport.current!, {
+      floor: false, background: '#ffffff', camera: 'side', distance: 400, pitch: -0.14, headingLag: 0,
+      skin: `${CHECKPOINT}/skin/rat.glb`, skinStyle: 'outline', skeleton: true,
+    });
     let cancelled = false;
     loadLoop().then(loop => {
       if (cancelled || worker.current) return;
