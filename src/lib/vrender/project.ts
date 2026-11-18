@@ -31,6 +31,8 @@ export type MeshItem = {
   marks?: Vec2[][];
   // false: the polygons are filled but not stroked.
   outline?: boolean;
+  // false: the polygons are stroked but not filled.
+  filled?: boolean;
   fill: Rgb;
   border: ProjectedStroke | null;
   highlight?: Rgb;
@@ -49,6 +51,8 @@ export type EllipsoidItem = {
   name?: string;
   depth: number;
   arcs: EllipseArc[];
+  // false: stroked but not filled.
+  filled?: boolean;
   fill: Rgb;
   border: ProjectedStroke | null;
   highlight?: Rgb;
@@ -510,6 +514,7 @@ function projectMesh(node: MeshNode, matrix: Matrix, focalLength: number, tolera
     lines,
     ...(marks.length ? { marks } : {}),
     ...(node.outline === false ? { outline: false } : {}),
+    ...(node.filled === false ? { filled: false } : {}),
     fill: node.fill,
     border: strokeOnScreen(node.border, matrix, depth, focalLength),
     highlight: node.highlight?.value,
@@ -667,6 +672,7 @@ function projectEllipsoid(node: EllipsoidNode, matrix: Matrix, focalLength: numb
     name: node.name,
     depth: center.z,
     arcs,
+    ...(node.filled === false ? { filled: false } : {}),
     fill: node.fill,
     border: strokeOnScreen(node.border, matrix, center.z, focalLength),
     highlight: node.highlight?.value,

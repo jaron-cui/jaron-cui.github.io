@@ -183,7 +183,7 @@ export const ObjectPane = ({
     );
   }
 
-  const { id, name, camera, bones, fill, border, outline, parent, constraints } = object;
+  const { id, name, camera, bones, fill, filled, border, outline, parent, constraints } = object;
 
   return (
     <div data-testid='object-pane' onPointerDown={onEndStep} style={{ height: '100%', overflowY: 'auto', background: '#1c1f27' }}>
@@ -261,6 +261,18 @@ export const ObjectPane = ({
               onChange={event => {
                 const next = hexToRgb(event.target.value);
                 onChangeStyle('fill', current => ({ ...current, fill: next }));
+              }}
+            />
+          </Row>
+          <Row label='Filled'>
+            <input
+              type='checkbox'
+              aria-label='Filled'
+              title='Off: only the outline and marked edges draw; what is behind shows through'
+              checked={filled !== false}
+              onChange={event => {
+                const on = event.target.checked;
+                onChangeStyle('filled', ({ filled: _, ...current }) => (on ? current : { ...current, filled: false }));
               }}
             />
           </Row>

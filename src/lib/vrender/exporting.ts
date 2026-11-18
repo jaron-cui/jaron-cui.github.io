@@ -46,8 +46,20 @@ function arcsData(arcs: EllipseArc[]): string {
   }).join('') + 'Z';
 }
 
+// Unfilled items mask their border with their own inside, so only its outer half shows, as the fill
+// would leave it. Each mask needs an id unique within the document.
+let nextMask = 0;
+
+function unfilledBorder(inside: string, stroke: string): string {
+  const id = `unfilled${nextMask++}`;
+  const huge = 1e6;
+  return `<mask id="${id}" maskUnits="userSpaceOnUse" x="${-huge}" y="${-huge}" width="${2 * huge}" height="${2 * huge}">`
+    + `<rect x="${-huge}" y="${-huge}" width="${2 * huge}" height="${2 * huge}" fill="white"/><path d="${inside}" fill="black"/></mask>`
+    + stroke.replace('<path ', `<path mask="url(#${id})" `);
+}
+
 // Each item as SVG, matching how render.ts draws it: a mesh's border is stroked at twice its width
-// and the fill goes over the inner half.
+// and the fill goes over the inner half (or, unfilled, a mask hides the inner half).
 function itemSvg(item: DrawItem): string {
   if (item.kind === 'shape') {
     const d = item.runs.map(({ points, closed }) => pathData(points, closed)).join('');
@@ -62,6 +74,9 @@ function itemSvg(item: DrawItem): string {
     const border = item.border && item.border.width > 0
       ? `<path d="${d}" fill="none" stroke="${color(item.border.color)}" stroke-width="${round(item.border.width * 2)}" stroke-linejoin="round"/>`
       : '';
+    if (item.filled === false) {
+      return border ? unfilledBorder(d, border) : '';
+    }
     return `${border}<path d="${d}" fill="${color(item.fill)}"/>`;
   }
   const faces = item.polygons.map(polygon => pathData(polygon, true)).join('');
@@ -76,6 +91,9 @@ function itemSvg(item: DrawItem): string {
     : '';
   // Without an outline, a thin stroke in the fill's color closes the seams between pieces.
   const seams = item.outline === false ? ` stroke="${color(item.fill)}" stroke-width="0.5" stroke-linejoin="round"` : '';
+  if (item.filled === false) {
+    return `${border && faces ? unfilledBorder(faces, border) : border}${marks}`;
+  }
   return `${border}${faces ? `<path d="${faces}" fill="${color(item.fill)}"${seams}/>` : ''}${marks}`;
 }
 

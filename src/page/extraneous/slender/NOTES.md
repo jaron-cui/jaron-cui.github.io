@@ -115,6 +115,12 @@ What's left is mostly rasterizing thick border strokes and marks; join and cap s
   - **Why:** it used to sit midway, 20–40 units from the signal pinions, and flickered against them in the sort. It curves away from a reference pinion on both sides, so it can sit close to them.
 - **Poles:** the input and output poles are their own objects. As part of their frame they sorted at the frame's middle, near the axis, so they drew over a pinion they were behind and under one they were in front of.
 
+## Fill switch (2026-11-12)
+
+- Object pane, Filled: off draws only the object's outline (the outer half of its border) and its marked edges, with what is behind showing through. Missing means filled, so older files are unchanged. vrender: `filled` on mesh and ellipsoid nodes and items. Together with the Outline switch, an object can be filled and outlined (the default), filled only, outlined only, or show only its marked edges.
+- Canvas: an unfilled item is stroked on a shared scratch canvas, its inside cut away with `destination-out`, and copied back over its bounding box only, so the cost is one extra composite of the item's own area. SVG export: the border is masked by the item's inside.
+- Not verified: unfilled objects in the Slender editor's own viewport and selection highlight were only looked at through the renderer, not clicked through in the editor.
+
 ## Saving
 
 The file is the real copy. The owner sometimes closes without saving on purpose to revert, so nothing may restore unsaved work into a new tab on its own. A refresh restores everything, including undo, from an autosave tied to the tab. Closing the tab leaves that autosave for the manual Recover Last Session command only. `projectFile.ts` is the format and `storage.ts` is IndexedDB, tab tracking, and file access. Files hold the view and panel layout but never undo history.

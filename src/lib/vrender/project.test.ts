@@ -1,4 +1,5 @@
-import { Camera, Face, fixed, MeshNode, Scene, SceneNode, ShapeNode, Transform, Vec2, Vec3 } from './model';
+import { Camera, EllipsoidNode, Face, fixed, MeshNode, Scene, SceneNode, ShapeNode, Transform, Vec2, Vec3 } from './model';
+import { svgFrame } from './exporting';
 import { MeshItem, projectPoint, projectScene, ShapeItem } from './project';
 
 // Looks along +z with +y toward the bottom of the image, which keeps flat shapes easy to reason about.
@@ -259,6 +260,23 @@ describe('marked edges', () => {
     expect(item.polygons.length).toBeGreaterThan(0);
     expect(item.marks).toHaveLength(1);
     expect(meshWith([]).outline).toBeUndefined();
+  });
+
+  it('passes an unfilled mesh and ellipsoid through, and exports only their masked borders', () => {
+    const mesh: MeshNode = { ...triangles(corners, faces), filled: false, border: { color: WHITE, width: 1 } };
+    const ellipsoid: EllipsoidNode = {
+      kind: 'ellipsoid', name: 'e', radii: { x: 5, y: 5, z: 5 }, length: 0, filled: false,
+      transform: { position: { x: 30, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
+      fill: { r: 1, g: 0, b: 0 }, border: { color: WHITE, width: 1 },
+    };
+    const items = projectScene(sceneOf([mesh, ellipsoid]), 0.25);
+    expect(items.map(item => (item as MeshItem).filled)).toEqual([false, false]);
+    expect(meshWith([]).filled).toBeUndefined();
+    const svg = svgFrame(sceneOf([mesh, ellipsoid]), { width: 200, height: 200 });
+    // Two masked borders, and nothing filled in the items' colour.
+    expect(svg.match(/<mask /g)).toHaveLength(2);
+    expect(svg.match(/mask="url\(#unfilled\d+\)"/g)).toHaveLength(2);
+    expect(svg).not.toContain('fill="rgb(255,0,0)"');
   });
 });
 

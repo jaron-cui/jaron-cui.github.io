@@ -67,6 +67,9 @@ export type MeshNode = {
   // false: no border round the silhouette. Marked edges and standalone lines still draw, so a shape
   // split into pieces can mark only the lines it wants.
   outline?: boolean;
+  // false: nothing filled inside the silhouette, so what is behind shows through and only the outer
+  // half of the border remains (as when filled), along with marked edges.
+  filled?: boolean;
   fill: Rgb;
   border: Stroke | null;
 };
@@ -85,6 +88,8 @@ export type EllipsoidNode = EllipsoidShape & {
   worldMatrix?: Fixed<number[]>;
   highlight?: Fixed<Rgb>;
   stack?: Fixed<Stack>;
+  // As on a mesh: false leaves the inside unfilled.
+  filled?: boolean;
   fill: Rgb;
   border: Stroke | null;
 };

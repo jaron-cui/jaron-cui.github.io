@@ -50,6 +50,9 @@ export type SceneObject = {
   // false: no border round the silhouette, only along marked edges and lines. For a shape built from
   // pieces, whose cuts would otherwise all be outlined. Missing means outlined.
   outline?: boolean;
+  // false: nothing filled inside the silhouette, so only the outline (and marked edges) draws and what
+  // is behind shows through. Missing means filled.
+  filled?: boolean;
   selectedVertices: Selection;
   // Set on a camera, whose mesh is only the wire shape that marks it and is never rendered.
   camera: { focalLength: number } | null;
@@ -644,6 +647,7 @@ export function toScene(document: EditorDocument, camera: Camera, time: number, 
         fill: object.fill,
         border: { color: { ...object.border.color, a: 1 }, width: object.border.width },
         ...(object.outline === false ? { outline: false } : {}),
+        ...(object.filled === false ? { filled: false } : {}),
         ...(object.stack ? { stack: fixed(object.stack) } : {}),
         ...(highlight && document.mode === 'object' && document.selectedObjects.includes(object.id)
           ? { highlight: fixed(object.id === document.activeObject ? ACTIVE_OUTLINE : SELECTED_OUTLINE) }

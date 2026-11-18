@@ -33,14 +33,92 @@ function drawShape(ctx: CanvasRenderingContext2D, { runs, fill, stroke }: ShapeI
   }
 }
 
+type Bounds = { x0: number; y0: number; x1: number; y1: number };
+
+// Unfilled items are stroked on this scratch canvas, have their inside cut away there, and are copied
+// back over their own bounds, so only the outer half of the stroke reaches the canvas, as when the
+// fill covers the inner half.
+let scratch: OffscreenCanvas | HTMLCanvasElement | null = null;
+
+function scratchFor(ctx: CanvasRenderingContext2D): CanvasRenderingContext2D {
+  const { width, height } = ctx.canvas;
+  scratch ??= typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : document.createElement('canvas');
+  if (scratch.width !== width || scratch.height !== height) {
+    scratch.width = width;
+    scratch.height = height;
+  }
+  return scratch.getContext('2d') as unknown as CanvasRenderingContext2D;
+}
+
+// Runs `paint` on the scratch canvas within `bounds` (image space), cuts away the inside of `inside`,
+// and copies the result onto `ctx`.
+function drawUnfilled(ctx: CanvasRenderingContext2D, bounds: Bounds, inside: Path2D, paint: (target: CanvasRenderingContext2D) => void) {
+  const transform = ctx.getTransform();
+  const corners = [[bounds.x0, bounds.y0], [bounds.x1, bounds.y0], [bounds.x0, bounds.y1], [bounds.x1, bounds.y1]]
+    .map(([x, y]) => transform.transformPoint({ x, y }));
+  const x0 = Math.max(0, Math.floor(Math.min(...corners.map(p => p.x))));
+  const y0 = Math.max(0, Math.floor(Math.min(...corners.map(p => p.y))));
+  const x1 = Math.min(ctx.canvas.width, Math.ceil(Math.max(...corners.map(p => p.x))));
+  const y1 = Math.min(ctx.canvas.height, Math.ceil(Math.max(...corners.map(p => p.y))));
+  if (x1 <= x0 || y1 <= y0) {
+    return;
+  }
+  const layer = scratchFor(ctx);
+  layer.save();
+  layer.setTransform(1, 0, 0, 1, 0, 0);
+  layer.clearRect(x0, y0, x1 - x0, y1 - y0);
+  layer.beginPath();
+  layer.rect(x0, y0, x1 - x0, y1 - y0);
+  layer.clip();
+  layer.setTransform(transform);
+  paint(layer);
+  layer.globalCompositeOperation = 'destination-out';
+  layer.fill(inside, 'nonzero');
+  layer.restore();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(layer.canvas, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+  ctx.restore();
+}
+
+function boundsOf(points: Iterable<{ x: number; y: number }>, pad: number): Bounds {
+  const b = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  for (const { x, y } of points) {
+    b.x0 = Math.min(b.x0, x);
+    b.y0 = Math.min(b.y0, y);
+    b.x1 = Math.max(b.x1, x);
+    b.y1 = Math.max(b.y1, y);
+  }
+  return { x0: b.x0 - pad, y0: b.y0 - pad, x1: b.x1 + pad, y1: b.y1 + pad };
+}
+
 // Strokes every triangle edge at twice the border's width, then paints the fill over everything
-// inside the silhouette. Only the outer half of the silhouette's stroke remains visible.
-function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, marks, outline: outlined, fill, border, highlight }: MeshItem) {
+// inside the silhouette. Only the outer half of the silhouette's stroke remains visible. Unfilled,
+// the inside is cut away instead (drawUnfilled).
+function drawMesh(ctx: CanvasRenderingContext2D, item: MeshItem) {
+  const { polygons, lines, border, highlight } = item;
   const path = new Path2D();
   for (const polygon of polygons) {
     polygon.forEach(({ x, y }, i) => (i === 0 ? path.moveTo(x, y) : path.lineTo(x, y)));
     path.closePath();
   }
+  const borderWidth = border?.width ?? 0;
+  if (item.filled === false) {
+    if (borderWidth > 0 || highlight) {
+      const pad = 2 * (borderWidth + (highlight ? HIGHLIGHT_WIDTH : 0)) + 1;
+      const points = [...polygons.flat(), ...lines.flat()];
+      drawUnfilled(ctx, boundsOf(points, pad), path, target => strokeMesh(target, item, path));
+    }
+  } else {
+    strokeMesh(ctx, item, path);
+    fillMesh(ctx, item, path);
+  }
+  drawMarks(ctx, item);
+}
+
+// The border (and any selection highlight) round the silhouette, at twice their widths, and the
+// standalone lines.
+function strokeMesh(ctx: CanvasRenderingContext2D, { lines, outline: outlined, border, highlight }: MeshItem, path: Path2D) {
   const borderWidth = border?.width ?? 0;
   if (borderWidth > 0 || highlight) {
     const linePath = new Path2D();
@@ -66,6 +144,9 @@ function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, marks, outli
     }
     ctx.lineCap = 'butt';
   }
+}
+
+function fillMesh(ctx: CanvasRenderingContext2D, { outline: outlined, fill }: MeshItem, path: Path2D) {
   ctx.fillStyle = toCssColor({ ...fill, a: 1 });
   ctx.fill(path, 'nonzero');
   // Without an outline, pieces that meet edge to edge would leave a faint anti-aliased seam between
@@ -77,7 +158,11 @@ function drawMesh(ctx: CanvasRenderingContext2D, { polygons, lines, marks, outli
     ctx.lineJoin = 'bevel';
     ctx.stroke(path);
   }
-  // Marked edges go over the fill at the border's width, the same weight as the visible outline.
+}
+
+// Marked edges go over the fill at the border's width, the same weight as the visible outline.
+function drawMarks(ctx: CanvasRenderingContext2D, { marks, border }: MeshItem) {
+  const borderWidth = border?.width ?? 0;
   if (marks?.length && border && borderWidth > 0) {
     const marked = new Path2D();
     for (const run of marks) {
@@ -101,9 +186,25 @@ export function ellipsoidOutline({ arcs }: Pick<EllipsoidItem, 'arcs'>): Path2D 
   return path;
 }
 
-// As a mesh draws: the border stroked at twice its width, then the opaque fill over its inner half.
+// As a mesh draws: the border stroked at twice its width, then the opaque fill over its inner half,
+// or, unfilled, the inside cut away.
 function drawEllipsoid(ctx: CanvasRenderingContext2D, item: EllipsoidItem) {
   const path = ellipsoidOutline(item);
+  if (item.filled === false) {
+    const pad = 2 * ((item.border?.width ?? 0) + (item.highlight ? HIGHLIGHT_WIDTH : 0)) + 1;
+    const extents = item.arcs.flatMap(({ x, y, radiusX, radiusY }) => {
+      const r = Math.max(radiusX, radiusY);
+      return [{ x: x - r, y: y - r }, { x: x + r, y: y + r }];
+    });
+    drawUnfilled(ctx, boundsOf(extents, pad), path, target => strokeEllipsoid(target, item, path));
+    return;
+  }
+  strokeEllipsoid(ctx, item, path);
+  ctx.fillStyle = toCssColor({ ...item.fill, a: 1 });
+  ctx.fill(path);
+}
+
+function strokeEllipsoid(ctx: CanvasRenderingContext2D, item: EllipsoidItem, path: Path2D) {
   const borderWidth = item.border?.width ?? 0;
   ctx.lineJoin = 'round';
   if (item.highlight) {
@@ -116,8 +217,6 @@ function drawEllipsoid(ctx: CanvasRenderingContext2D, item: EllipsoidItem) {
     ctx.lineWidth = borderWidth * 2;
     ctx.stroke(path);
   }
-  ctx.fillStyle = toCssColor({ ...item.fill, a: 1 });
-  ctx.fill(path);
 }
 
 // Draws projected items in order onto a context already set to image space.
