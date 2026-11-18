@@ -2,12 +2,16 @@
 // skeleton inside the outline of its skin, public/rat-ncap/generic12/skin/rat.glb), its rhythm
 // generation circuit lit by the activity, and controls for target speed and timescale.
 //
-// Until a visitor touches a control, it plays a cached loop of recorded walking and circuit
-// activity (public/rat-ncap/<bundle>/demo-loop.json, made by scripts/make_demo_loop.ts), so the
-// page does not run MuJoCo for everyone who passes by. The simulation runs the demo-only bundle
+// Until a visitor touches a control, it plays a recorded clip of walking and circuit activity
+// (public/rat-ncap/<bundle>/clips/<speed>.json, made by scripts/make_demo_loop.ts), so the page
+// does not run MuJoCo for everyone who passes by. The simulation runs the demo-only bundle
 // (app/demoSim.ts): the observation -> action -> physics loop alone, with the parameters built in.
 // Touching a control starts the simulation;
-// the loop keeps playing, shaded, until it is ready.
+// the clip keeps playing, shaded, until it is ready.
+//
+// If the simulation can't start, or can't keep up in real time (no JIT, a slow device), the demo
+// quietly goes on with the clips instead, one per speed the slider offers: moving the slider swaps
+// clips. Nothing on the page says so.
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import type { CSSProperties, JSX, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { Col, Row } from 'react-bootstrap';
@@ -27,6 +31,13 @@ const MUTED = '#5b6575';
 const DEFAULT_SPEED = 0.4;
 const DEFAULT_TIMESCALE = 1.0;
 const MAX_STEPS_PER_FRAME = 4;
+// The live simulation is judged once, after this many control steps (the first ones warm it up)...
+const JUDGE_AFTER_STEPS = 60;
+// ...and replaced by the clips if a step takes longer than this (ms; real time allows 30, and the
+// page draws on the same device).
+const SLOW_STEP_MS = 24;
+// The clips also take over if the simulation hasn't started this long after the first touch (ms).
+const LOAD_TIMEOUT_MS = 20000;
 
 const circuit = validate(JSON.parse(ncapCircuit));
 // Where each limb's foot is, for the marks left when its extensor fires.
@@ -75,7 +86,7 @@ class Timeline {
   }
 }
 
-// The cached loop, as written by scripts/make_demo_loop.ts.
+// A recorded clip, as written by scripts/make_demo_loop.ts.
 type Loop = {
   steps: number; nbody: number; units: string[]; geoms: Geoms;
   wrap: { turn: number; dx: number; dy: number };
@@ -84,9 +95,22 @@ type Loop = {
   activity: Float32Array;  // Per step: one value per unit.
 };
 
-async function loadLoop(): Promise<Loop> {
-  const response = await fetch(`${BUNDLE}/demo-loop.json`);
-  if (!response.ok) throw new Error(`No cached demo loop (${response.status}).`);
+// Each clip is fetched once, when first needed.
+const clips = new Map<string, Promise<Loop>>();
+function loadClip(speed: number): Promise<Loop> {
+  const key = speed.toFixed(1);
+  let clip = clips.get(key);
+  if (!clip) {
+    clip = fetchClip(`${BUNDLE}/clips/${key}.json`);
+    clip.catch(() => clips.delete(key));
+    clips.set(key, clip);
+  }
+  return clip;
+}
+
+async function fetchClip(url: string): Promise<Loop> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`No recorded clip (${response.status}).`);
   const raw = await response.json();
   const unpack = (text: string) => {
     const bytes = Uint8Array.from(atob(text), ch => ch.charCodeAt(0));
@@ -152,6 +176,9 @@ export default function RatDemo(): JSX.Element {
   const timeline = useRef(new Timeline());
   const extWas = useRef<Record<string, number>>({});
   const [status, setStatus] = useState<Status>('cached');
+  // Playing the clips for good, because the live simulation failed or was too slow.
+  const [fallback, setFallback] = useState(false);
+  const fallbackRef = useRef(false);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [timescale, setTimescale] = useState(DEFAULT_TIMESCALE);
   const [visible, setVisible] = useState(true);
@@ -182,7 +209,7 @@ export default function RatDemo(): JSX.Element {
       skin: SKIN, skinStyle: 'outline', skeleton: true,
     });
     let cancelled = false;
-    loadLoop().then(loop => {
+    loadClip(DEFAULT_SPEED).then(loop => {
       if (cancelled || worker.current) return;
       renderer.current!.set_geoms(loop.geoms);
       player.current = { player: new LoopPlayer(loop), loop, start: performance.now(), done: 0 };
@@ -196,29 +223,68 @@ export default function RatDemo(): JSX.Element {
   }, []);
 
   // The first touch of a control starts the simulation.
+  const fallBack = useCallback((reason: string) => {
+    if (fallbackRef.current) return;
+    if (import.meta.env.DEV) console.info(`Rat demo: playing recorded clips (${reason}).`);
+    fallbackRef.current = true;
+    worker.current?.terminate();
+    worker.current = null;
+    setStatus('cached');
+    setFallback(true);
+  }, []);
+
   const wake = useCallback(() => {
-    if (worker.current) return;
+    if (worker.current || fallbackRef.current) return;
     setStatus('loading');
     const w = new Worker(new URL('./app/worker.ts', import.meta.url), { type: 'module' });
     worker.current = w;
+    const timeout = setTimeout(() => fallBack('the simulation took too long to start'), LOAD_TIMEOUT_MS);
+    let steps = -1;  // Control steps run since ready; -1 once judged.
     w.onmessage = (event: MessageEvent<FromWorker>) => {
       const message = event.data;
       if (message.type === 'ready') {
+        clearTimeout(timeout);
+        steps = 0;
         renderer.current!.set_geoms(message.geoms);
         w.postMessage({ type: 'set_auto_reset', value: true } satisfies ToWorker);
         player.current = null;
         extWas.current = {};
         setStatus('ready');
       } else if (message.type === 'frame') {
+        if (steps >= 0) {
+          steps += message.activity.steps;
+          if (steps >= JUDGE_AFTER_STEPS) {
+            steps = -1;
+            if (message.stats.step_ms > SLOW_STEP_MS) {
+              fallBack(`${message.stats.step_ms.toFixed(1)} ms a step`);
+              return;
+            }
+          }
+        }
         if (player.current) return;
         show(message.xpos, message.xmat, { xpos: message.body_xpos, xmat: message.body_xmat }, message.activity, message.snap);
       } else if (message.type === 'error') {
-        setStatus({ error: message.message });
+        clearTimeout(timeout);
+        fallBack(message.message);
       }
     };
-    w.onerror = event => setStatus({ error: event.message || 'The simulation failed to load.' });
+    w.onerror = event => {
+      clearTimeout(timeout);
+      fallBack(event.message || 'the simulation failed to load');
+    };
     w.postMessage({ type: 'init', checkpoint: BUNDLE, demo: true } satisfies ToWorker);
-  }, [show]);
+  }, [show, fallBack]);
+
+  // In fallback, the clip follows the speed slider: a new speed swaps clips outright.
+  useEffect(() => {
+    if (!fallback) return;
+    let stale = false;
+    loadClip(speed).then(loop => {
+      if (stale) return;
+      player.current = { player: new LoopPlayer(loop), loop, start: performance.now(), done: 0 };
+    }).catch(error => console.error(error));
+    return () => { stale = true; };
+  }, [fallback, speed]);
 
   // Commands follow the controls once the simulation is ready.
   useEffect(() => {
@@ -278,7 +344,7 @@ export default function RatDemo(): JSX.Element {
   const value = (unit: string, lag = 0) => timeline.current.value(unit, display - lag);
   if (import.meta.env.DEV) {
     // Lets browser tests read the circuit's recent activity.
-    (window as unknown as Record<string, unknown>).__ratDemo = { timeline: timeline.current, send, status };
+    (window as unknown as Record<string, unknown>).__ratDemo = { timeline: timeline.current, send, status, fallback, player: player.current };
   }
   const caption = useCallback((node: string) => (node === 'bc' ? `${speed.toFixed(1)} m/s` : null), [speed]);
 
