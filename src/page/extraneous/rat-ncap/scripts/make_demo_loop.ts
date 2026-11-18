@@ -15,7 +15,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import loadMujoco from '@mujoco/mujoco';
+import loadMujocoSlim from 'mujoco-slim';
 import { DemoSim } from '../app/demoSim';
 import { RG_SOURCES, RG_UNITS } from '../app/protocol';
 import { quaternionFromRows } from '../app/slenderRenderer';
@@ -28,7 +28,7 @@ const RECORD = 400;  // Steps to search for a loop in.
 const MIN_LOOP = 60;  // Shortest loop (steps).
 const MAX_LOOP = 120;  // Longest loop (steps), to keep each clip's file small.
 
-const sim = await DemoSim.load(async name => new Uint8Array(fs.readFileSync(path.join(dir, name))), await loadMujoco());
+const sim = await DemoSim.load(async name => new Uint8Array(fs.readFileSync(path.join(dir, name))), loadMujocoSlim);
 const geoms = sim.geoms();
 const nbody = geoms.body_names.length;
 const ROOT = 1;  // The torso, the first body under the world.

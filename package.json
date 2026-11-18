@@ -10,6 +10,7 @@
     "@mujoco/mujoco": "file:vendor/mujoco-mujoco-3.12.0-opt.tgz",
     "bootstrap": "^5.3.8",
     "katex": "^0.19.1",
+    "mujoco-slim": "file:vendor/mujoco-slim-3.12.0-slim.1.tgz",
     "pixi.js": "^7.4.3",
     "react": "^19.3.1",
     "react-bootstrap": "^2.10.10",

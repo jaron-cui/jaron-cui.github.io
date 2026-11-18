@@ -40,10 +40,10 @@ export class DemoRat {
   /** Until the first step after a reset, data() reads the reset pose (mj_forward) from mjData. */
   private at_reset = false;
 
-  private constructor(mujoco: MainModule, f: DemoFiles, manifest: { data_outputs: Record<DataField, string> }) {
+  private constructor(mujoco: MainModule | WasmPhysics, f: DemoFiles, manifest: { data_outputs: Record<DataField, string> }) {
     this.env_graph = Graph.load(f.env_json, f.env_bin);
     this.actor_graph = Graph.load(f.actor_json, f.actor_bin);
-    this.physics = WasmPhysics.load(mujoco, f.mjb);
+    this.physics = mujoco instanceof WasmPhysics ? mujoco : WasmPhysics.load(mujoco, f.mjb);
     this.data_outputs = manifest.data_outputs;
     this.params = this.actor_graph.values('actor_params');
     this.env = this.env_graph.session('env_step', n => (n.startsWith('state/') ? n : undefined));
@@ -54,8 +54,12 @@ export class DemoRat {
     set_randn('zeros');  // Deterministic (the actor's oscillator noise off).
   }
 
-  /** `manifest` is the env bundle's manifest.json. */
-  static create(mujoco: MainModule, files: DemoFiles, manifest: any): DemoRat {
+  /**
+   * `mujoco`: the full MuJoCo module (loads files.mjb), or a ready physics, e.g.
+   * `await SlimPhysics.create(loadMujocoSlim, mjb)` (minimal module; then files.mjb is unused).
+   * `manifest` is the env bundle's manifest.json.
+   */
+  static create(mujoco: MainModule | WasmPhysics, files: DemoFiles, manifest: any): DemoRat {
     return new DemoRat(mujoco, files, manifest);
   }
 
@@ -103,6 +107,7 @@ export class DemoRat {
     this.steps++;
   }
 
+  /** An mjData field after the last step (batch dim 1 first; a copy). */
   /** An mjData field after the last step, or at the reset pose right after reset() ([1, ...], float32, a copy). */
   data(field: DataField): NDArray {
     if (!this.at_reset) return this.env.get(this.data_outputs[field]);

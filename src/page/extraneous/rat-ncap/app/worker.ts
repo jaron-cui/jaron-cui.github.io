@@ -4,7 +4,6 @@
  * control steps.
  */
 
-import loadMujoco from '@mujoco/mujoco';
 import { Rat } from './rat';
 import { DemoSim } from './demoSim';
 import { RG_SOURCES, RG_UNITS } from './protocol';
@@ -148,7 +147,14 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
           if (!response.ok) throw new Error(`Failed to fetch ${base + name}: ${response.status}`);
           return new Uint8Array(await response.arrayBuffer());
         };
-        sim = message.demo ? await DemoSim.load(read, await loadMujoco()) : await Rat.load(read, await loadMujoco(), DEFAULT_PARAMS);
+        // Each MuJoCo build is imported only when used: the homepage needs only the minimal one.
+        if (message.demo) {
+          const [{ default: loadMujocoSlim }, { default: wasm }] = await Promise.all([import('mujoco-slim'), import('mujoco-slim/mujoco_slim.wasm?url')]);
+          sim = await DemoSim.load(read, loadMujocoSlim, { locateFile: () => wasm });
+        } else {
+          const { default: loadMujoco } = await import('@mujoco/mujoco');
+          sim = await Rat.load(read, await loadMujoco(), DEFAULT_PARAMS);
+        }
         post({ type: 'ready', geoms: sim.geoms() });
         step_index = 0;
         record_activity();

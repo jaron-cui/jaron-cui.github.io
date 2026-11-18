@@ -20,6 +20,7 @@ extensions (`allowImportingTsExtensions` in the site's tsconfig) and take only t
 | `ndarray.ts` | Typed-array tensors |
 | `physics.ts` | The `mujoco_physics` primitive on MuJoCo WASM |
 | `demo_rat.ts` | The whole loop for a demo-only bundle (`compile_demo.py`): precomputed resets, built-in parameters |
+| `slim_physics.ts` | `WasmPhysics` on the minimal MuJoCo module (`mujoco-slim`, vendored: load an .mjb, step, forward) |
 
 The bundles it runs live in `public/rat-ncap/<model>/` (`env/`, `actor/`, `params/`) and, for the
 homepage, `public/rat-ncap/<model>-demo/` (`env/`, `actor/`); see `../app/rat.ts` and

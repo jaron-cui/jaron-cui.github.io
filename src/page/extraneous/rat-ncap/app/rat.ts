@@ -32,8 +32,15 @@ const json_of = (bytes: Uint8Array) => JSON.parse(decoder.decode(bytes));
 const mjOBJ_BODY = 1;
 const mjOBJ_GEOM = 5;
 
+/** Names of a model's elements by kind and index, as mj_id2name. */
+export type NameOf = (kind: 'body' | 'geom', id: number) => string | null;
+
+/** Name lookup through the full MuJoCo bindings. */
+export const names_of = (mujoco: MainModule, m: WasmPhysics['model']): NameOf =>
+  (kind, id) => mujoco.mj_id2name(m, kind === 'body' ? mjOBJ_BODY : mjOBJ_GEOM, id);
+
 /** Static geometry for renderers, from a MuJoCo model (a geom's colour is its material's, if it has one). */
-export function model_geoms(mujoco: MainModule, m: WasmPhysics['model']): Geoms {
+export function model_geoms(m: WasmPhysics['model'], name: NameOf): Geoms {
   const n = m.ngeom;
   const rgba: number[] = [];
   for (let i = 0; i < n; i++) {
@@ -49,8 +56,8 @@ export function model_geoms(mujoco: MainModule, m: WasmPhysics['model']): Geoms 
     group: Array.from(m.geom_group as ArrayLike<number>),
     geom_bodyid: Array.from(m.geom_bodyid as ArrayLike<number>),
     body_parentid: Array.from(m.body_parentid as ArrayLike<number>),
-    body_names: Array.from({ length: m.nbody }, (_, i) => mujoco.mj_id2name(m, mjOBJ_BODY, i) ?? `body${i}`),
-    geom_names: Array.from({ length: n }, (_, i) => mujoco.mj_id2name(m, mjOBJ_GEOM, i) ?? ''),
+    body_names: Array.from({ length: m.nbody }, (_, i) => name('body', i) ?? `body${i}`),
+    geom_names: Array.from({ length: n }, (_, i) => name('geom', i) ?? ''),
   };
 }
 
@@ -121,7 +128,7 @@ export class Rat {
   }
 
   /** Static geometry for renderers, from the MuJoCo model. */
-  geoms(): Geoms { return model_geoms(this.mujoco, this.physics.model); }
+  geoms(): Geoms { return model_geoms(this.physics.model, names_of(this.mujoco, this.physics.model)); }
 
   /** Starts a new episode: the actor's state rebuilt, the body back in its starting pose. */
   reset() {
