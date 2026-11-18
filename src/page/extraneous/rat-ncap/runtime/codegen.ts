@@ -149,8 +149,53 @@ function render_js(e: E): string {
 
 function render_stmt(s: Stmt): string {
   if (s.t === 'st') return `R[${s.i}]=${render_js(s.e)};`;
+  if (s.drop) {
+    const vs = s.terms.map((t, d) => `const s${d}=${render_js(t.e)};`).join('');
+    const ok = s.terms.map((t, d) => `s${d}>=0&&s${d}<=${t.lim}`).join('&&') || 'true';
+    const b = s.terms.map((t, d) => `s${d}*${t.stride}`).join('+') || '0';
+    return `{${vs}if(${ok}){const b=${b};${s.writes.map(([w, e]) => `R[${s.base}+b+${w}]=${render_js(e)};`).join('')}}}`;
+  }
   const terms = s.terms.map(t => `Math.min(Math.max(${render_js(t.e)},0),${t.lim})*${t.stride}`);
   return `{const b=${terms.length ? terms.join('+') : '0'};${s.writes.map(([w, e]) => `R[${s.base}+b+${w}]=${render_js(e)};`).join('')}}`;
+}
+
+/**
+ * Static layout of an XLA scatter (no batching dims, index vector dim last, update window dims
+ * trailing): per scatter index ("row"), the index elements giving each varying operand start,
+ * and the (operand offset relative to the start, update element) of every window element. Rows
+ * are in update order, so applying them in order matches the generic implementation for
+ * duplicate indices. Null when the layout is not supported.
+ */
+function scatter_plan(instr: any, type_of: (o: any) => [DType, number[]]) {
+  const p = instr.params, dn = p.dimension_numbers;
+  if ((dn.operand_batching_dims ?? []).length || (dn.scatter_indices_batching_dims ?? []).length) return null;
+  if (!['FILL_OR_DROP', 'PROMISE_IN_BOUNDS', 'CLIP'].includes(p.mode)) return null;
+  const [, osh] = type_of(instr.ins[0]), [, ish] = type_of(instr.ins[1]), [, ush] = type_of(instr.ins[2]);
+  const uwd: number[] = dn.update_window_dims, inserted: number[] = dn.inserted_window_dims, to_op: number[] = dn.scatter_dims_to_operand_dims;
+  const nsd = ush.length - uwd.length;
+  if (!uwd.every((d, k) => d === nsd + k)) return null;
+  if (ish.length !== nsd + 1) return null;
+  const nvec = ish[ish.length - 1];
+  const window_op_dims = osh.map((_, d) => d).filter(d => !inserted.includes(d));
+  const wsize = osh.map(() => 1);
+  window_op_dims.forEach((od, k) => { wsize[od] = ush[uwd[k]]; });
+  const os = strides(osh);
+  const nrows = size(ish.slice(0, -1)), wn = size(ush.slice(nsd));
+  const ws = strides(ush.slice(nsd));
+  const win: [number, number][] = [];
+  for (let j = 0; j < wn; j++) {
+    let rem = j, off = 0;
+    window_op_dims.forEach((od, k) => { const c = Math.floor(rem / ws[k]); rem -= c * ws[k]; off += c * os[od]; });
+    win.push([off, j]);
+  }
+  const rows = [];
+  for (let r = 0; r < nrows; r++) {
+    rows.push({ index_elems: to_op.map((_, k) => r * nvec + k), writes: win.map(([off, j]) => [off, r * wn + j] as [number, number]) });
+  }
+  return {
+    rows, drop: p.mode !== 'CLIP', writes_total: nrows * wn,
+    lims: to_op.map(od => osh[od] - wsize[od]), strides: to_op.map(od => os[od]),
+  };
 }
 
 /** Flat input index for each output position of a numpy-style broadcast. */
@@ -549,6 +594,28 @@ export class CompiledProgram {
         items.push({ ir: stmts });
         this.stats.unrolled++;
         return;
+      }
+      if (instr.op === 'scatter' && instr.kind === 'op' && reg[so] !== undefined) {
+        // Scatter (replace) of small update windows with runtime indices, FILL_OR_DROP: copy the
+        // operand, then per scatter index one 'dyn' statement in drop mode (applied in order, so
+        // later duplicates win, as the generic implementation does).
+        const plan = scatter_plan(instr, type_of);
+        if (plan && plan.writes_total <= 4 * MAX_UNROLL && nel <= 4 * MAX_UNROLL) {
+          const [operand, indices, updates] = instr.ins;
+          const base = reg[so];
+          const stmts: Stmt[] = [];
+          if (!this.in_place.has(so)) for (let i = 0; i < nel; i++) stmts.push({ t: 'st', i: base + i, e: elem(operand, i) });
+          for (const row of plan.rows) {
+            stmts.push({
+              t: 'dyn', drop: plan.drop, base,
+              terms: row.index_elems.map((ie, d) => ({ e: elem(indices, ie), lim: plan.lims[d], stride: plan.strides[d] })),
+              writes: row.writes.map(([w, u]) => [w, elem(updates, u)] as [number, E]),
+            });
+          }
+          items.push({ ir: stmts });
+          this.stats.unrolled++;
+          return;
+        }
       }
       if (instr.kind === 'physics') {
         // Direct copies between registers/slots and mjData (see `phys`), falling back to the

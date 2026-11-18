@@ -20,7 +20,10 @@ export type E =
 
 export type Stmt =
   | { t: 'st'; i: number; e: E }                // R[i] = e
-  | { t: 'dyn'; base: number; terms: { e: E; lim: number; stride: number }[]; writes: [number, E][] };
+  | { t: 'dyn'; base: number; terms: { e: E; lim: number; stride: number }[]; writes: [number, E][]; drop?: boolean };
+// 'dyn': R[base + b + w] = e for each write, b = sum_d start_d * stride_d with start_d clamped to
+// [0, lim_d] (dynamic_update_slice), or, with `drop`, no writes at all when any start_d is outside
+// [0, lim_d] (scatter FILL_OR_DROP). Starts are integer-valued.
 
 export const n = (v: number): E => ({ t: 'n', v });
 export const op = (o: string, ...a: E[]): E => ({ t: 'op', op: o, a });
@@ -281,6 +284,28 @@ class Body {
       return;
     }
     // b = sum_d min(max(start_d, 0), lim_d) * stride_d   (i32 local 0), then R[base + b + w] = e.
+    if (s.drop) {
+      // block; per term: t = start (f64 local); exit the block unless 0 <= t <= lim; b += t * stride.
+      this.b(0x02, 0x40);
+      this.i32(0); this.set(0);
+      for (const t of s.terms) {
+        const l = this.local();
+        this.expr(t.e); this.b(LOCAL_TEE); uleb(this.code, l);
+        this.f64(0); this.b(F64_LT);
+        this.get(l); this.f64(t.lim); this.b(F64_GT, I32_OR);
+        this.b(0x0d, 0);  // br_if 0
+        this.get(0); this.get(l); this.b(...I32_TRUNC_SAT_F64_S); this.i32(t.stride); this.b(I32_MUL, I32_ADD);
+        this.set(0);
+        this.release(l);
+      }
+      for (const [w, e] of s.writes) {
+        this.get(0); this.i32(3); this.b(I32_SHL);
+        this.expr(e);
+        this.b(F64_STORE, 3); uleb(this.code, (s.base + w) * 8);
+      }
+      this.b(0x0b);
+      return;
+    }
     this.i32(0);
     for (const t of s.terms) {
       this.expr(t.e); this.f64(0); this.b(F64_MAX); this.f64(t.lim); this.b(F64_MIN);

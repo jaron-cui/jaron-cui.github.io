@@ -1,10 +1,12 @@
 // The homepage demo: the trained NCAP rat walking in MuJoCo (drawn with Slender as its kinematic
-// skeleton inside the outline of its skin, public/rat-ncap/<checkpoint>/skin/rat.glb), its rhythm
+// skeleton inside the outline of its skin, public/rat-ncap/generic12/skin/rat.glb), its rhythm
 // generation circuit lit by the activity, and controls for target speed and timescale.
 //
 // Until a visitor touches a control, it plays a cached loop of recorded walking and circuit
-// activity (public/rat-ncap/<checkpoint>/demo-loop.json, made by scripts/make_demo_loop.ts), so the
-// page does not run MuJoCo for everyone who passes by. Touching a control starts the simulation;
+// activity (public/rat-ncap/<bundle>/demo-loop.json, made by scripts/make_demo_loop.ts), so the
+// page does not run MuJoCo for everyone who passes by. The simulation runs the demo-only bundle
+// (app/demoSim.ts): the observation -> action -> physics loop alone, with the parameters built in.
+// Touching a control starts the simulation;
 // the loop keeps playing, shaded, until it is ready.
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import type { CSSProperties, JSX, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
@@ -16,7 +18,8 @@ import { RG_UNITS } from './app/protocol';
 import type { Activity, FromWorker, Geoms, ToWorker } from './app/protocol';
 import { rowsFromQuaternion, SlenderRenderer } from './app/slenderRenderer';
 
-const CHECKPOINT = `${import.meta.env.BASE_URL}rat-ncap/generic12`;
+const BUNDLE = `${import.meta.env.BASE_URL}rat-ncap/generic12-demo`;
+const SKIN = `${import.meta.env.BASE_URL}rat-ncap/generic12/skin/rat.glb`;
 const CONTROL_DT = 0.03;  // (s) One control step, which is also one circuit tick.
 const PANEL_HEIGHT = 300;
 const INK = '#1d2330';
@@ -82,7 +85,7 @@ type Loop = {
 };
 
 async function loadLoop(): Promise<Loop> {
-  const response = await fetch(`${CHECKPOINT}/demo-loop.json`);
+  const response = await fetch(`${BUNDLE}/demo-loop.json`);
   if (!response.ok) throw new Error(`No cached demo loop (${response.status}).`);
   const raw = await response.json();
   const unpack = (text: string) => {
@@ -176,7 +179,7 @@ export default function RatDemo(): JSX.Element {
     // The rat as its kinematic skeleton inside the outline of its skin.
     renderer.current = new SlenderRenderer(viewport.current!, {
       floor: false, background: '#ffffff', camera: 'side', distance: 400, pitch: -0.14, headingLag: 0,
-      skin: `${CHECKPOINT}/skin/rat.glb`, skinStyle: 'outline', skeleton: true,
+      skin: SKIN, skinStyle: 'outline', skeleton: true,
     });
     let cancelled = false;
     loadLoop().then(loop => {
@@ -214,7 +217,7 @@ export default function RatDemo(): JSX.Element {
       }
     };
     w.onerror = event => setStatus({ error: event.message || 'The simulation failed to load.' });
-    w.postMessage({ type: 'init', checkpoint: CHECKPOINT } satisfies ToWorker);
+    w.postMessage({ type: 'init', checkpoint: BUNDLE, demo: true } satisfies ToWorker);
   }, [show]);
 
   // Commands follow the controls once the simulation is ready.

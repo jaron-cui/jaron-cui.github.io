@@ -1,0 +1,42 @@
+{
+ "part": "env-demo",
+ "job_dir": "/scratch/jjc9560/ncap-quadruped-out/1_prod/1_8_generic12/2026-1027-151953-generic12:awesome-rams/21131960_9:model.rat.interface_preset=flxext_generic12,seed=1",
+ "mujoco_version": "3.12.0",
+ "jax_version": "0.9.0.1",
+ "timestep": {
+  "env": 0.03,
+  "sim": 0.001,
+  "substeps": 30
+ },
+ "external_observations": [
+  "observation/target_vx"
+ ],
+ "reset_subtask": {
+  "target_vx": [
+   0.4000000059604645
+  ],
+  "reward_passive": [
+   0.0
+  ],
+  "reward_vx_sparse": [
+   0.0
+  ],
+  "reward_vx_dense": [
+   0.0
+  ],
+  "reward_pose": [
+   0.0
+  ]
+ },
+ "resets": 4,
+ "data_outputs": {
+  "qpos": "state/mjx_data/qpos",
+  "qvel": "state/mjx_data/qvel",
+  "xpos": "state/mjx_data/xpos",
+  "xquat": "state/mjx_data/xquat",
+  "xmat": "data/xmat",
+  "geom_xpos": "data/geom_xpos",
+  "geom_xmat": "data/geom_xmat"
+ },
+ "model": "textures and skins removed; all other mjModel arrays identical to the job model"
+}

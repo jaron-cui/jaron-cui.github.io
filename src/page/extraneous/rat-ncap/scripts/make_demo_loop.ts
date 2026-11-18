@@ -6,25 +6,24 @@
  * The loop is cut where the rat's posture and circuit state best repeat. Playback stitches the
  * copies end to end with a rigid move in the ground plane (`wrap`), so the rat keeps walking.
  *
- * Rerun whenever the model, body, or parameters change (the checkpoint in public/rat-ncap):
+ * Rerun whenever the model, body, or parameters change (the demo bundle in public/rat-ncap):
  *   npm run demo-loop
- * Usage: tsx make_demo_loop.ts [checkpoint dir] [speed m/s]
+ * Usage: tsx make_demo_loop.ts [demo bundle dir] [speed m/s]
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import loadMujoco from '@mujoco/mujoco';
-import { Rat } from '../app/rat';
+import { DemoSim } from '../app/demoSim';
 import { RG_SOURCES, RG_UNITS } from '../app/protocol';
 import { quaternionFromRows } from '../app/slenderRenderer';
 
-const dir = process.argv[2] ?? 'public/rat-ncap/generic12';
+const dir = process.argv[2] ?? 'public/rat-ncap/generic12-demo';  // A demo-only bundle, as the homepage runs.
 const speed = Number(process.argv[3] ?? 0.4);
-const PARAMS = 'params/params_2500';  // As the live demo starts with (worker.ts).
 const WARMUP = 200;  // Steps (6 s) to settle into a steady gait.
 const RECORD = 260;  // Steps to search for a loop in.
 const MIN_LOOP = 60;  // Shortest loop (steps).
 
-const sim = await Rat.load(async name => new Uint8Array(fs.readFileSync(path.join(dir, name))), await loadMujoco(), PARAMS);
+const sim = await DemoSim.load(async name => new Uint8Array(fs.readFileSync(path.join(dir, name))), await loadMujoco());
 sim.target_vx = speed;
 sim.reset();
 for (let i = 0; i < WARMUP; i++) sim.step();

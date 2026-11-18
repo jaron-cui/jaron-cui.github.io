@@ -140,9 +140,20 @@ export class Graph {
    * output feeds on the next step (e.g. 'state/...' -> itself). Inputs are set by name; outputs are
    * read by name on demand. Shares the program's registers: do not `run` the same entry meanwhile.
    */
-  session(name: string, carry: (output: string) => string | undefined) {
+  session(name: string, carry: (output: string) => string | undefined, fixed?: Map<string, NDArray>) {
     const entry = this.entry(name);
-    const compiled = this.compiled_of(this.program(entry.function));
+    let program = this.program(entry.function);
+    if (fixed?.size) {
+      // Inputs that never change (e.g. parameters): everything computed from them and constants
+      // alone is evaluated once here and becomes a constant of a specialized program.
+      const by_index = new Map<number, NDArray>();
+      entry.inputs.forEach((i, k) => {
+        const a = fixed.get(i.name);
+        if (a) by_index.set(k, a.dtype === i.dtype ? a : astype(a, i.dtype));
+      });
+      program = program.fold(by_index);
+    }
+    const compiled = this.compiled_of(program);
     const in_index = new Map(entry.inputs.map((i, k) => [i.name, k]));
     const out_index = new Map(entry.outputs.map((o, k) => [o.name, k]));
     const pairs: [number, number][] = [];
@@ -356,6 +367,34 @@ export class Program {
     this.input_types = fn.inputs.map(v => fn.vars[v]);
     this.inputs.forEach((slot, k) => this.slot_types.set(slot, this.input_types[k]));
     this.outputs = fn.dialect === 'torch' ? this.flatten_torch(fid, ins) : this.flatten(fid, ins);
+  }
+
+  /**
+   * A copy with the given inputs fixed (by input index): instructions whose operands are all
+   * constants or fixed values are evaluated now and replaced by their results. Random ops, scans
+   * and physics are never evaluated. Fixed inputs stay inputs (now unused).
+   */
+  fold(fixed: Map<number, NDArray>): Program {
+    const p = Object.create(Program.prototype) as Program;
+    Object.assign(p, this);
+    p.stats = { ...this.stats, folded: 0 };
+    const known = new Map<number, NDArray>();
+    fixed.forEach((a, k) => known.set(this.inputs[k], a));
+    const resolve = (o: Operand): Operand => (typeof o === 'number' && known.has(o) ? known.get(o)! : o);
+    p.instrs = [];
+    for (const instr of this.instrs) {
+      const ins = instr.ins.map(resolve);
+      if (instr.kind === 'op' && instr.f && !/rand|normal|bernoulli|uniform|rng/i.test(instr.op)
+          && ins.every(o => typeof o !== 'number')) {
+        const outs = instr.f(ins as NDArray[], instr.params, instr.out_types);
+        outs.forEach((a, k) => known.set(instr.outs[k], a.clone()));
+        p.stats.folded++;
+        continue;
+      }
+      p.instrs.push({ ...instr, ins, args: new Array(ins.length) });
+    }
+    p.outputs = this.outputs.map(resolve);
+    return p;
   }
 
   /**

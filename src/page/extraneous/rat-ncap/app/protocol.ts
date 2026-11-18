@@ -1,7 +1,7 @@
 /** Messages between the UI (main thread) and the simulation worker. */
 
 export type ToWorker =
-  | { type: 'init', checkpoint: string }
+  | { type: 'init', checkpoint: string; demo?: boolean }  // `demo`: a demo-only bundle (demoSim.ts)
   | { type: 'set_target_vx', value: number }
   | { type: 'reset' }
   | { type: 'pause', value: boolean }

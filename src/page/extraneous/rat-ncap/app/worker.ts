@@ -1,11 +1,12 @@
 /**
- * Simulation worker: runs the trained rat (`rat.ts`: the job's compiled env and actor on MuJoCo WASM)
- * in real time, off the main thread, and posts a frame (geom poses + stats) after each batch of
+ * Simulation worker: runs the trained rat (`rat.ts`: the job's compiled env and actor on MuJoCo WASM;
+ * or, for the homepage, `demoSim.ts` on a demo-only bundle) in real time, off the main thread, and posts a frame (geom poses + stats) after each batch of
  * control steps.
  */
 
 import loadMujoco from '@mujoco/mujoco';
 import { Rat } from './rat';
+import { DemoSim } from './demoSim';
 import { RG_SOURCES, RG_UNITS } from './protocol';
 import type { FromWorker, ToWorker } from './protocol';
 
@@ -14,7 +15,7 @@ const MAX_STEPS_PER_TICK = 4;  // Catch up at most this many steps per tick (the
 // The parameters shown at first: the checkpoint picked for the demo.
 const DEFAULT_PARAMS = 'params/params_2500';
 
-let sim: Rat | null = null;
+let sim: Rat | DemoSim | null = null;
 let paused = false;
 let auto_reset = false;  // Reset the moment the rat falls over.
 let rate = 1;  // Playback rate: simulated time per wall time.
@@ -142,11 +143,12 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
     switch (message.type) {
       case 'init': {
         const base = `${message.checkpoint.replace(/\/$/, '')}/`;
-        sim = await Rat.load(async name => {
+        const read = async (name: string) => {
           const response = await fetch(base + name);
           if (!response.ok) throw new Error(`Failed to fetch ${base + name}: ${response.status}`);
           return new Uint8Array(await response.arrayBuffer());
-        }, await loadMujoco(), DEFAULT_PARAMS);
+        };
+        sim = message.demo ? await DemoSim.load(read, await loadMujoco()) : await Rat.load(read, await loadMujoco(), DEFAULT_PARAMS);
         post({ type: 'ready', geoms: sim.geoms() });
         step_index = 0;
         record_activity();
@@ -167,6 +169,7 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
       case 'load_parameters': {
         try {
           if (sim === null) throw new Error('The simulation is not loaded yet.');
+          if (!(sim instanceof Rat)) throw new Error('The demo bundle has its parameters built in.');
           if (message.text !== undefined) {
             sim.load_state_dict(JSON.parse(message.text));
           } else {
