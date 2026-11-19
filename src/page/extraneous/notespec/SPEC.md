@@ -4,7 +4,8 @@ A score editor that works on notes directly, the way a MIDI editor does, rather 
 notation. Editing conventions follow Blender. Sound is computed from the notes in `sound.ts`; a
 waveform editor for building instruments from component functions comes later.
 
-Items marked **Open** are not decided yet.
+Items marked **Open** are not decided yet. "Rulings made while building" at the end lists choices the code
+had to make that the user hasn't reviewed yet.
 
 ## Defaults and page
 
@@ -179,3 +180,24 @@ side (`-----| |-----`). In object mode, selecting a segment and pressing G moves
 - Waveform editor: instruments built from sine, sawtooth or arbitrary functions.
 - Dynamics: curves like animation curves, for example a Bezier crescendo across a section, per-note
   curves, possibly generalized to other attributes such as pitch bend.
+
+## Rulings made while building
+
+Choices the code needed that this spec didn't settle. Each stands until reviewed.
+
+### Model (`score.ts`, `editing.ts`, `music.ts`, `lengths.ts`)
+
+- Tempo is in quarter notes per minute, whatever the time signature.
+- A new score's global section is 32 bars long.
+- A note whose letter the key signature alters, but which is natural, is drawn with a natural sign
+  (♮). Sharp and flat symbols alone can't show it.
+- A note placed outside every section of its track joins the nearest section, and is drawn red.
+- Splitting a global section also splits each track section that spans the split point, so every
+  track's part after it moves with the new global section.
+- Time snapping counts the grid from the start of the track section at that point.
+- G with snapping on moves by whole grid steps, so notes off the grid stay off it by the same amount.
+- Alt+scroll on a note whose length isn't standard moves it to the next standard length in that
+  direction.
+- Untying (Alt+J) clears the ties out of and into the selected notes.
+- Copy keeps ties between copied notes; paste puts the copy at the timeline cursor on the active
+  track.
