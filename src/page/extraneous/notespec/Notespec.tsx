@@ -9,6 +9,7 @@ import { DEFAULT_VIEW, HEADER_WIDTH, Lane, layoutLanes, lanesHeight, PitchLock, 
 import { DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTime, stepLength } from './lengths';
 import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators';
 import { attributesAt, locateNotes, trackNotes, trackRows } from './score';
+import { renderScore, TempoMap, tempoMap } from './sound';
 import { EditorState, initialState, sameSection, tidy } from './state';
 import './notespec.css';
 
@@ -39,6 +40,10 @@ export const Notespec = () => {
     invalidateRef.current();
     setVersion(version => version + 1);
   }), []);
+
+  // Playback: the source playing, when it started (audio clock) and the tick it started from.
+  const audioRef = useRef<AudioContext | null>(null);
+  const playRef = useRef<{ source: AudioBufferSourceNode; startedAt: number; from: number; time: TempoMap; frame: number } | null>(null);
 
   const shown = () => previewRef.current ?? historyRef.current.present;
   const committed = () => historyRef.current.present;
@@ -205,6 +210,59 @@ export const Notespec = () => {
 
   const toggleLengthMode = (mode: LengthMode) => setSettings({ lengthMode: settingsRef.current.lengthMode === mode ? 'normal' : mode });
 
+  const playhead = (): number | null => {
+    const playing = playRef.current;
+    const audio = audioRef.current;
+    if (!playing || !audio) {
+      return null;
+    }
+    return playing.time.tick(playing.time.seconds(playing.from) + Math.max(0, audio.currentTime - playing.startedAt));
+  };
+
+  const stop = () => {
+    const playing = playRef.current;
+    if (!playing) {
+      return;
+    }
+    playRef.current = null;
+    playing.source.onended = null;
+    playing.source.stop();
+    cancelAnimationFrame(playing.frame);
+    refresh();
+  };
+
+  // Space: plays every audible track from the cursor, or stops.
+  const togglePlay = () => {
+    if (playRef.current) {
+      stop();
+      return;
+    }
+    const { score } = committed();
+    const audio = audioRef.current ?? new AudioContext();
+    audioRef.current = audio;
+    void audio.resume();
+    const samples = renderScore(score, audio.sampleRate, cursorRef.current);
+    if (samples.length === 0) {
+      return;
+    }
+    const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
+    buffer.copyToChannel(samples, 0);
+    const source = audio.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audio.destination);
+    const startedAt = audio.currentTime + 0.05;
+    source.start(startedAt);
+    source.onended = stop;
+    const follow = () => {
+      if (playRef.current) {
+        playRef.current.frame = requestAnimationFrame(follow);
+        invalidateRef.current();
+      }
+    };
+    playRef.current = { source, startedAt, from: cursorRef.current, time: tempoMap(score), frame: requestAnimationFrame(follow) };
+    refresh();
+  };
+
   const onKey = (input: KeyInput): boolean => {
     if (interaction.key(input)) {
       return true;
@@ -229,6 +287,10 @@ export const Notespec = () => {
     }
     if (key === 'Tab') {
       select({ ...state, mode: state.mode === 'edit' ? 'object' : 'edit' });
+      return true;
+    }
+    if (key === ' ') {
+      togglePlay();
       return true;
     }
     if (key === 'd' && !input.shift) {
@@ -309,13 +371,15 @@ export const Notespec = () => {
   const { canvasRef, invalidate } = useCanvas(interaction, (context, frame, size) => {
     sizeRef.current = size;
     drawScore(context, frame, size, {
-      state: shown(), view: viewRef.current, lanes: lanes(), cursor: cursorRef.current, playhead: null, box: boxRef.current, actions,
+      state: shown(), view: viewRef.current, lanes: lanes(), cursor: cursorRef.current, playhead: playhead(), box: boxRef.current, actions,
     });
   });
   invalidateRef.current = invalidate;
 
   const onKeyRef = useRef(onKey);
   onKeyRef.current = onKey;
+  const stopRef = useRef(stop);
+  stopRef.current = stop;
   const handleKey = useCallback((event: KeyboardEvent) => {
     const target = event.target as HTMLElement;
     if (target.tagName === 'SELECT' || target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && ['number', 'text'].includes((target as HTMLInputElement).type))) {
@@ -337,6 +401,8 @@ export const Notespec = () => {
     return () => {
       window.removeEventListener('keydown', handleKey);
       document.documentElement.style.overflow = overflow;
+      stopRef.current();
+      void audioRef.current?.close();
     };
   }, [handleKey]);
 
@@ -344,7 +410,7 @@ export const Notespec = () => {
   useEffect(() => {
     if (import.meta.env.DEV) {
       (window as unknown as { __notespec: object }).__notespec = {
-        state: () => shown(), view: () => viewRef.current, lanes: () => lanes(), cursor: () => cursorRef.current, settings: () => settingsRef.current,
+        state: () => shown(), view: () => viewRef.current, lanes: () => lanes(), cursor: () => cursorRef.current, settings: () => settingsRef.current, playhead,
       };
     }
   });
@@ -352,13 +418,16 @@ export const Notespec = () => {
   const state = shown();
   const modal = interaction.activeModal;
   const status = modal?.describe?.() ?? (state.mode === 'edit'
-    ? ['Edit mode', 'Click: place a note', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Alt+scroll: length', 'Tab: object mode'].join('  ·  ')
-    : ['Object mode', 'Click a section line to select it', 'G: move', 'S: split at cursor', 'Click a note: select its track', 'Tab: edit mode'].join('  ·  '));
+    ? ['Edit mode', 'Click: place a note', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Alt+scroll: length', 'Space: play', 'Tab: object mode'].join('  ·  ')
+    : ['Object mode', 'Click a section line to select it', 'G: move', 'S: split at cursor', 'Click a note: select its track', 'Space: play', 'Tab: edit mode'].join('  ·  '));
 
   return (
     <div className='notespec'>
       <div className='notespec-toolbar'>
         <div className='notespec-group'>
+          <div className='notespec-segments' role='group' aria-label='Playback'>
+            <button aria-pressed={playRef.current !== null} onClick={togglePlay} title='Play from the cursor (Space)'>{playRef.current ? '■ Stop' : '▶ Play'}</button>
+          </div>
           <div className='notespec-segments' role='group' aria-label='Mode'>
             <button aria-pressed={state.mode === 'object'} onClick={() => select({ ...committed(), mode: 'object' })}>Object</button>
             <button aria-pressed={state.mode === 'edit'} onClick={() => select({ ...committed(), mode: 'edit' })}>Edit</button>

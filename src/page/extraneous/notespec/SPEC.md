@@ -222,3 +222,13 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - Notes move only with G and the arrow keys, not by dragging.
 - **Open:** how a section's length is changed (needed to bring a stray note back inside without
   moving it).
+
+### Sound (`sound.ts`)
+
+- A tie's voice is one sine wave that changes frequency at each tied note without restarting its
+  phase. It fades in over 5 ms and out over 40 ms after its last note ends.
+- Between global sections, and where they overlap, the tempo is that of the section that started
+  most recently; before the first section, the first section's tempo.
+- Space renders every audible track from the cursor to the last release and plays it. Edits made
+  while it plays are heard from the next play. The view doesn't scroll to follow the playhead.
+- The mix is scaled down only if it would clip.
