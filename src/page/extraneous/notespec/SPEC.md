@@ -201,3 +201,24 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - Untying (Alt+J) clears the ties out of and into the selected notes.
 - Copy keeps ties between copied notes; paste puts the copy at the timeline cursor on the active
   track.
+
+### First screen (`Notespec.tsx`, `draw.ts`, `layout.ts`, `operators.ts`)
+
+- The score area is drawn like paper: light background, black staff lines, and the global section
+  line in thick black as described. Toolbars and panels keep Slender's dark style.
+- A click places the note on the staff step under the pointer. With the key lock it is that step's
+  scale tone (the letter as the key signature alters it); with chromatic it is the natural, and the
+  arrow keys reach sharps and flats. "None" is shown but disabled until fractional pitches exist.
+- A placed note starts at the grid line at or before the click.
+- Selecting (clicks, A, Alt+A, B) and switching modes or the active track don't add undo steps.
+- In edit mode, a click on blank space in another track's lane, or on the ruler, places the cursor;
+  in object mode a click on blank space also clears the section selection.
+- B adds the notes in the box to the selection; Shift held when the drag starts removes them.
+- Starting settings: snap 1/8, placement length 1/4, key lock.
+- Notes above or below their staff get ledger lines.
+- Bar numbers count through the whole score, in the order global sections start.
+- S in object mode: with any global section selected, the global line splits at the cursor; with a
+  track's section selected, that track's section at the cursor splits.
+- Notes move only with G and the arrow keys, not by dragging.
+- **Open:** how a section's length is changed (needed to bring a stray note back inside without
+  moving it).

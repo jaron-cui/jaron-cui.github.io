@@ -30,13 +30,15 @@ function gridOrigin(score: Score, track: Track | undefined, tick: number): numbe
   return global?.start ?? 0;
 }
 
-export function snapTime(score: Score, track: Track | undefined, tick: number, snap: Snap): number {
+// A time on the grid: the nearest line, or with 'floor' the line at or before it (where a click in
+// a grid cell places a note).
+export function snapTime(score: Score, track: Track | undefined, tick: number, snap: Snap, rounding: 'round' | 'floor' = 'round'): number {
   if (!snap) {
     return Math.round(tick);
   }
   const grid = snapTicks(snap);
   const origin = gridOrigin(score, track, tick);
-  return origin + Math.round((tick - origin) / grid) * grid;
+  return origin + Math[rounding]((tick - origin) / grid) * grid;
 }
 
 // An offset rounded to the grid, for moves: notes keep where they sit relative to the grid.

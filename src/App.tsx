@@ -29,6 +29,7 @@ const RatPage = lazy(() => import('./page/extraneous/rat-ncap/RatPage'));
 const Rat2Page = lazy(() => import('./page/extraneous/rat-ncap/Rat2Page'));
 const GraphEd = lazy(() => import('./page/extraneous/graphed/GraphEd'));
 const GearTool = lazy(() => import('./page/extraneous/gears/GearTool'));
+const Notespec = lazy(() => import('./page/extraneous/notespec/Notespec'));
 
 const paths = [
   ['/', () => <Home />],
@@ -52,10 +53,11 @@ const paths = [
   ['/#/rat2', () => <Rat2Page/>],
   ['/#/graphed', () => <GraphEd/>],
   ['/#/gears', () => <GearTool/>],
+  ['/#/notespec', () => <Notespec/>],
 ]
 
 // Full-screen pages that render without the site navigation bar.
-const fullScreenPrefixes = ['/#/slender', '/#/rat', '/#/graphed'];
+const fullScreenPrefixes = ['/#/slender', '/#/rat', '/#/graphed', '/#/notespec'];
 
 function App() {
   const { pathname, hash } = useLocation();

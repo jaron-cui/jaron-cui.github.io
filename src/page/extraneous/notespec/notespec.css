@@ -1,0 +1,113 @@
+/* Slender's look (slender.css), under notespec's own names. */
+.notespec {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  color: #d6d9e0;
+  background: #1c1f27;
+  font: 13px system-ui, sans-serif;
+  user-select: none;
+}
+
+.notespec-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 5px 10px;
+  border-bottom: 1px solid #2a2e39;
+}
+
+.notespec-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notespec-label {
+  opacity: 0.65;
+}
+
+.notespec-segments {
+  display: inline-flex;
+  border: 1px solid #3a3f4d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.notespec-segments button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  color: inherit;
+  background: #232731;
+  border: none;
+}
+
+.notespec-segments button + button {
+  border-left: 1px solid #3a3f4d;
+}
+
+.notespec-segments button:hover:not(:disabled) {
+  background: #3a4560;
+}
+
+.notespec-segments button[aria-pressed='true'] {
+  color: #fff;
+  background: #3d6fb4;
+}
+
+.notespec-segments button:disabled {
+  opacity: 0.45;
+}
+
+.notespec-icon-button {
+  padding: 0 2px;
+  line-height: 1;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  opacity: 0.8;
+}
+
+.notespec-icon-button:hover {
+  opacity: 1;
+  background: #47506a;
+}
+
+.notespec-row:hover {
+  background: #2a3040;
+}
+
+.notespec-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.notespec-canvas {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.notespec-side {
+  display: flex;
+  flex-direction: column;
+  width: 260px;
+  border-left: 1px solid #2a2e39;
+}
+
+.notespec-status {
+  padding: 3px 10px;
+  border-top: 1px solid #2a2e39;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
