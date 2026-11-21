@@ -4,8 +4,8 @@ import { Interaction, KeyInput, Rect, WheelInput } from './canvas/interaction';
 import { useCanvas } from './canvas/useCanvas';
 import { drawScore, ScoreActions } from './draw';
 import {
-  addFolder, addTrack, deleteFolder, deleteNotes, deleteTrack, moveItems, moveNotes, placeNote, setDurations, setFolder, setTrack, splitGlobal,
-  splitNotes, splitTrackSection,
+  addFolder, addTrack, deleteFolder, deleteNotes, deleteTrack, moveItems, moveNotes, placeNote, setDurations, setFolder, setGlobal, setTrack,
+  setTrackSection, splitGlobal, splitNotes, splitTrackSection,
 } from './editing';
 import { commit as commitHistory, History, redo, startHistory, undo } from './history';
 import { DEFAULT_VIEW, HEADER_WIDTH, Lane, layoutLanes, lanesHeight, PitchLock, placementPitch, SCORE_TOP, View, xTick } from './layout';
@@ -13,6 +13,7 @@ import { DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTime, stepLe
 import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators';
 import { attributesAt, locateNotes, trackNotes, trackRows } from './score';
 import { ItemKind, Outliner } from './Outliner';
+import { Properties } from './Properties';
 import { renderScore, TempoMap, tempoMap } from './sound';
 import { EditorState, initialState, sameSection, tidy } from './state';
 import './notespec.css';
@@ -530,6 +531,14 @@ export const Notespec = () => {
             onAddTrack={newTrack}
             onAddFolder={newFolder}
             onMove={(id, drop) => commit({ ...committed(), score: moveItems(committed().score, [id], drop) })}
+          />
+          <Properties
+            score={state.score}
+            section={state.mode === 'object' ? state.sections.at(-1) ?? null : null}
+            activeTrack={state.activeTrack}
+            onGlobal={(id, changes) => commit({ ...committed(), score: setGlobal(committed().score, id, changes) }, `global:${id}:${Object.keys(changes).join()}`)}
+            onOverride={(track, id, overrides) => commit({ ...committed(), score: setTrackSection(committed().score, track, id, { overrides }) }, `section:${id}`)}
+            onMargins={(track, margins) => commit({ ...committed(), score: setTrack(committed().score, track, { margins }) }, `margins:${track}`)}
           />
         </div>
       </div>

@@ -242,3 +242,13 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
   the solo, mute and hide toggles, are undo steps.
 - A hidden track can stay active; its lane just isn't shown.
 - Lane headers show "muted" and "solo" when a track has them, itself or through a folder.
+
+### Sections (`Properties.tsx`)
+
+- A Properties panel under the outliner edits the last selected section (object mode) and the
+  active track. A global section has tempo, key, time signature and clef. A track section has a
+  checkbox per key, time signature and clef: checked, it overrides the global section, starting
+  from the global section's value; unchecked, it follows it.
+- The active track's margins above and below its staffs are set there too.
+- Typing in a number field is one undo step per field, however many digits are typed.
+- The key signature itself isn't drawn on the staff; each section line's label names the key.
