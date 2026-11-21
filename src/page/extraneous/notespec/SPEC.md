@@ -252,3 +252,16 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - The active track's margins above and below its staffs are set there too.
 - Typing in a number field is one undo step per field, however many digits are typed.
 - The key signature itself isn't drawn on the staff; each section line's label names the key.
+
+### Ties, copying, spelling and files
+
+- Copy and paste use notespec's own clipboard, not the system's, and work in edit mode.
+- Shift+D copies the selection in place and starts G on the copies; cancelling removes them.
+- The sharp and flat buttons are pressed when every selected note has that tag; clicking a pressed
+  one removes the tag, so the notes follow the key again.
+- Files are JSON with the extension `.notespec`, holding a format name and version. Opening a newer
+  version's file, or something else, says what's wrong instead of opening.
+- The toolbar has New, Open and Save. New isn't in the shortcut list; without it, autosave would
+  always bring the last score back.
+- Autosave keeps one session per browser (Slender keeps one per tab): the score, its file's name and
+  handle, and whether it was saved. It is restored when the page opens.

@@ -4,14 +4,17 @@ import { Interaction, KeyInput, Rect, WheelInput } from './canvas/interaction';
 import { useCanvas } from './canvas/useCanvas';
 import { drawScore, ScoreActions } from './draw';
 import {
-  addFolder, addTrack, deleteFolder, deleteNotes, deleteTrack, moveItems, moveNotes, placeNote, setDurations, setFolder, setGlobal, setTrack,
-  setTrackSection, splitGlobal, splitNotes, splitTrackSection,
+  addFolder, addTrack, Clip, copyNotes, deleteFolder, deleteNotes, deleteTrack, moveItems, moveNotes, pasteNotes, placeNote, setDurations,
+  setFolder, setGlobal, setSpelling, setTrack, setTrackSection, splitGlobal, splitNotes, splitTrackSection, tieNotes, untieNotes,
 } from './editing';
+import { FileHandle, isCancel, pickFileToOpen, saveText } from '../../../lib/psave/files';
+import { keyValueStore } from '../../../lib/psave/store';
+import { FILE_TYPE, parseScore, serializeScore } from './projectFile';
 import { commit as commitHistory, History, redo, startHistory, undo } from './history';
 import { DEFAULT_VIEW, HEADER_WIDTH, Lane, layoutLanes, lanesHeight, PitchLock, placementPitch, SCORE_TOP, View, xTick } from './layout';
 import { DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTime, stepLength } from './lengths';
 import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators';
-import { attributesAt, locateNotes, trackNotes, trackRows } from './score';
+import { attributesAt, locateNotes, newScore, Score, trackNotes, trackRows } from './score';
 import { ItemKind, Outliner } from './Outliner';
 import { Properties } from './Properties';
 import { renderScore, TempoMap, tempoMap } from './sound';
@@ -25,6 +28,13 @@ const MIN_SCALE = 2 / 960;
 const MAX_SCALE = 400 / 960;
 // How far left of the score's start the view can scroll, in ticks.
 const START_MARGIN = 960;
+
+// The working state kept between visits: the score, the file it belongs to, and whether it matches
+// that file.
+type Session = { score: Score; file: { name: string; handle: FileHandle | null } | null; saved: boolean };
+const sessions = keyValueStore<Session>('notespec');
+const SESSION_KEY = 'session';
+const AUTOSAVE_MS = 1000;
 
 const keyInput = (event: KeyboardEvent): KeyInput => ({
   key: event.key, code: event.code, repeat: event.repeat, shift: event.shiftKey, ctrl: event.ctrlKey || event.metaKey, alt: event.altKey,
@@ -49,6 +59,12 @@ export const Notespec = () => {
   // Playback: the source playing, when it started (audio clock) and the tick it started from.
   const audioRef = useRef<AudioContext | null>(null);
   const playRef = useRef<{ source: AudioBufferSourceNode; startedAt: number; from: number; time: TempoMap; frame: number } | null>(null);
+
+  // The file the score belongs to, and the score as last saved to it (or opened from it).
+  const fileRef = useRef<{ name: string; handle: FileHandle | null } | null>(null);
+  const savedScoreRef = useRef<Score>(historyRef.current.present.score);
+  const clipboardRef = useRef<Clip | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const shown = () => previewRef.current ?? historyRef.current.present;
   const committed = () => historyRef.current.present;
@@ -215,6 +231,62 @@ export const Notespec = () => {
 
   const toggleLengthMode = (mode: LengthMode) => setSettings({ lengthMode: settingsRef.current.lengthMode === mode ? 'normal' : mode });
 
+  // ---- Files ----
+
+  const unsaved = () => committed().score !== savedScoreRef.current;
+
+  const save = async (as: boolean) => {
+    const { score } = committed();
+    try {
+      const name = fileRef.current?.name ?? `score${FILE_TYPE.extension}`;
+      const result = await saveText(FILE_TYPE, serializeScore(score), name, as ? null : fileRef.current?.handle ?? null);
+      if (result) {
+        fileRef.current = { name: result.name, handle: result.handle };
+        savedScoreRef.current = score;
+        setMessage(result.downloaded ? `Downloaded ${result.name}` : `Saved ${result.name}`);
+        refresh();
+      }
+    } catch (error) {
+      if (!isCancel(error)) {
+        setMessage(`Could not save: ${(error as Error).message}`);
+      }
+    }
+  };
+
+  const replaceScore = (score: Score, file: { name: string; handle: FileHandle | null } | null, saved: boolean) => {
+    stop();
+    historyRef.current = startHistory(initialState(score));
+    previewRef.current = null;
+    fileRef.current = file;
+    // An unsaved score compares unequal to any other object, so it shows as unsaved.
+    savedScoreRef.current = saved ? score : newScore();
+    cursorRef.current = 0;
+    refresh();
+  };
+
+  const open = async () => {
+    if (unsaved() && !window.confirm('Discard unsaved changes?')) {
+      return;
+    }
+    try {
+      const opened = await pickFileToOpen(FILE_TYPE);
+      if (opened) {
+        replaceScore(parseScore(opened.text), { name: opened.name, handle: opened.handle }, true);
+        setMessage(`Opened ${opened.name}`);
+      }
+    } catch (error) {
+      setMessage(`Could not open: ${(error as Error).message}`);
+    }
+  };
+
+  const startNew = () => {
+    if (unsaved() && !window.confirm('Discard unsaved changes?')) {
+      return;
+    }
+    replaceScore(newScore(), null, true);
+    setMessage(null);
+  };
+
   const playhead = (): number | null => {
     const playing = playRef.current;
     const audio = audioRef.current;
@@ -288,7 +360,31 @@ export const Notespec = () => {
         refresh();
         return true;
       }
-      return false;
+      if (key === 's') {
+        void save(input.shift);
+        return true;
+      }
+      if (key === 'o') {
+        void open();
+        return true;
+      }
+      if (state.mode === 'edit') {
+        if (key === 'j' && state.notes.length > 0) {
+          commit({ ...state, score: tieNotes(state.score, state.notes) });
+          return true;
+        }
+        if (key === 'c' && state.notes.length > 0) {
+          clipboardRef.current = copyNotes(state.score, state.notes);
+          return true;
+        }
+        if (key === 'v' && clipboardRef.current && state.score.tracks[state.activeTrack]) {
+          const pasted = pasteNotes(state.score, state.activeTrack, cursorRef.current, clipboardRef.current);
+          commit({ ...state, score: pasted.score, notes: pasted.ids });
+          return true;
+        }
+      }
+      // Ctrl+J would open the browser's downloads.
+      return key === 'j';
     }
     if (key === 'Tab') {
       select({ ...state, mode: state.mode === 'edit' ? 'object' : 'edit' });
@@ -298,7 +394,7 @@ export const Notespec = () => {
       togglePlay();
       return true;
     }
-    if (key === 'd' && !input.shift) {
+    if (key === 'd' && !input.shift && !input.alt) {
       toggleLengthMode('dotted');
       return true;
     }
@@ -329,6 +425,18 @@ export const Notespec = () => {
     }
     if ((key === 'ArrowUp' || key === 'ArrowDown') && state.notes.length > 0) {
       commit({ ...state, score: moveNotes(state.score, state.notes, 0, key === 'ArrowUp' ? 1 : -1) });
+      return true;
+    }
+    if (key === 'j' && input.alt && state.notes.length > 0) {
+      commit({ ...state, score: untieNotes(state.score, state.notes) });
+      return true;
+    }
+    // Shift+D: copies of the selection, then moving them; cancelling the move removes them.
+    if (key === 'd' && input.shift && state.notes.length > 0) {
+      const clip = copyNotes(state.score, state.notes);
+      const origin = Math.min(...locateNotes(state.score, state.notes).map(item => item.start));
+      const pasted = pasteNotes(state.score, state.activeTrack, origin, clip);
+      interaction.startModal(grabNotes(operatorContext, interaction.pointer, { ...state, score: pasted.score, notes: pasted.ids }, state));
       return true;
     }
     if (key === 's' && state.notes.length > 0) {
@@ -449,6 +557,39 @@ export const Notespec = () => {
     };
   }, [handleKey]);
 
+  // Restore the last session's score, once.
+  const replaceRef = useRef(replaceScore);
+  replaceRef.current = replaceScore;
+  useEffect(() => {
+    let cancelled = false;
+    sessions.get(SESSION_KEY).then(session => {
+      if (!cancelled && session?.score) {
+        replaceRef.current(session.score, session.file, session.saved);
+      }
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Autosave the score a second after it last changed.
+  const autosaved = useRef<Score | null>(null);
+  const currentScore = historyRef.current.present.score;
+  useEffect(() => {
+    if (autosaved.current === currentScore) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      autosaved.current = currentScore;
+      const session: Session = { score: currentScore, file: fileRef.current, saved: currentScore === savedScoreRef.current };
+      // If the file handle can't be stored, keep the score and the file's name without it.
+      sessions.put(SESSION_KEY, session)
+        .catch(() => sessions.put(SESSION_KEY, { ...session, file: session.file && { name: session.file.name, handle: null } }))
+        .catch(() => {});
+    }, AUTOSAVE_MS);
+    return () => clearTimeout(timer);
+  });
+
   // For checks in development: the state, the view, the lanes and the cursor.
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -461,12 +602,20 @@ export const Notespec = () => {
   const state = shown();
   const modal = interaction.activeModal;
   const status = modal?.describe?.() ?? (state.mode === 'edit'
-    ? ['Edit mode', 'Click: place a note', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Alt+scroll: length', 'Space: play', 'Tab: object mode'].join('  ·  ')
+    ? ['Edit mode', 'Click: place a note', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Space: play', 'Tab: object mode'].join('  ·  ')
     : ['Object mode', 'Click a section line to select it', 'G: move', 'S: split at cursor', 'Click a note: select its track', 'Space: play', 'Tab: edit mode'].join('  ·  '));
 
   return (
     <div className='notespec'>
       <div className='notespec-toolbar'>
+        <div className='notespec-group'>
+          <div className='notespec-segments' role='group' aria-label='File'>
+            <button onClick={startNew} title='New score'>New</button>
+            <button onClick={() => void open()} title='Open (Ctrl+O)'>Open</button>
+            <button onClick={() => void save(false)} title='Save (Ctrl+S; Shift+Ctrl+S: save as)'>Save</button>
+          </div>
+          <span className='notespec-label' data-testid='file-name'>{fileRef.current?.name ?? 'Unsaved score'}{unsaved() ? ' •' : ''}</span>
+        </div>
         <div className='notespec-group'>
           <div className='notespec-segments' role='group' aria-label='Playback'>
             <button aria-pressed={playRef.current !== null} onClick={togglePlay} title='Play from the cursor (Space)'>{playRef.current ? '■ Stop' : '▶ Play'}</button>
@@ -517,6 +666,27 @@ export const Notespec = () => {
           </div>
           <span className='notespec-label'>{lengthLabel(settings.division, settings.lengthMode)}</span>
         </div>
+        <div className='notespec-group'>
+          <span className='notespec-label'>Spell</span>
+          <div className='notespec-segments' role='group' aria-label='Spelling'>
+            {(['sharp', 'flat'] as const).map(spelling => {
+              const notes = state.mode === 'edit' ? locateNotes(state.score, state.notes) : [];
+              const pressed = notes.length > 0 && notes.every(item => item.note.spelling === spelling);
+              return (
+                <button
+                  key={spelling}
+                  aria-label={`Spell as ${spelling}s`}
+                  aria-pressed={pressed}
+                  disabled={notes.length === 0}
+                  title={`Draw the selected notes with ${spelling}s; click again to follow the key`}
+                  onClick={() => commit({ ...committed(), score: setSpelling(committed().score, committed().notes, pressed ? undefined : spelling) })}
+                >
+                  {spelling === 'sharp' ? '♯' : '♭'}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
       <div className='notespec-main'>
         <canvas ref={canvasRef} className='notespec-canvas' data-testid='score' />
@@ -542,7 +712,7 @@ export const Notespec = () => {
           />
         </div>
       </div>
-      <div className='notespec-status'>{status}</div>
+      <div className='notespec-status'>{message ? `${message}  ·  ${status}` : status}</div>
     </div>
   );
 };
