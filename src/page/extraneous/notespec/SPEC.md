@@ -232,3 +232,13 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - Space renders every audible track from the cursor to the last release and plays it. Edits made
   while it plays are heard from the next play. The view doesn't scroll to follow the playhead.
 - The mix is scaled down only if it would clip.
+
+### Outliner (`Outliner.tsx`)
+
+- Dragging onto a folder puts the item at the end of that folder; onto a track, just above that
+  track; onto the empty space below, at the end of the top level.
+- New tracks are named "Track N", go at the end and become active. New folders go at the end.
+- Deleting a folder keeps what it held, in its place. Deleting a track deletes its notes. Both, and
+  the solo, mute and hide toggles, are undo steps.
+- A hidden track can stay active; its lane just isn't shown.
+- Lane headers show "muted" and "solo" when a track has them, itself or through a folder.

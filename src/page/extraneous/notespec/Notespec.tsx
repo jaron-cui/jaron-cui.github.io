@@ -3,12 +3,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Interaction, KeyInput, Rect, WheelInput } from './canvas/interaction';
 import { useCanvas } from './canvas/useCanvas';
 import { drawScore, ScoreActions } from './draw';
-import { deleteNotes, moveNotes, placeNote, setDurations, splitGlobal, splitNotes, splitTrackSection } from './editing';
+import {
+  addFolder, addTrack, deleteFolder, deleteNotes, deleteTrack, moveItems, moveNotes, placeNote, setDurations, setFolder, setTrack, splitGlobal,
+  splitNotes, splitTrackSection,
+} from './editing';
 import { commit as commitHistory, History, redo, startHistory, undo } from './history';
 import { DEFAULT_VIEW, HEADER_WIDTH, Lane, layoutLanes, lanesHeight, PitchLock, placementPitch, SCORE_TOP, View, xTick } from './layout';
 import { DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTime, stepLength } from './lengths';
 import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators';
 import { attributesAt, locateNotes, trackNotes, trackRows } from './score';
+import { ItemKind, Outliner } from './Outliner';
 import { renderScore, TempoMap, tempoMap } from './sound';
 import { EditorState, initialState, sameSection, tidy } from './state';
 import './notespec.css';
@@ -108,7 +112,7 @@ export const Notespec = () => {
       setCursor(snappedCursor(xTick(viewRef.current, input.x)));
       return { move: move => setCursor(snappedCursor(xTick(viewRef.current, move.x))) };
     },
-    pressHeader: lane => select({ ...committed(), activeTrack: lane.track.id }),
+    pressHeader: lane => activate(lane.track.id),
     pressNote: (lane, id, input) => {
       const state = committed();
       if (input.button !== 0) {
@@ -368,6 +372,44 @@ export const Notespec = () => {
     }
   };
 
+  // ---- Outliner ----
+
+  const activate = (track: string) => {
+    const state = committed();
+    select({ ...state, activeTrack: track, notes: track === state.activeTrack ? state.notes : [] });
+  };
+
+  const toggleItem = (kind: ItemKind, id: string, flag: 'hidden' | 'muted' | 'solo') => {
+    const state = committed();
+    const item = kind === 'track' ? state.score.tracks[id] : state.score.folders[id];
+    const score = kind === 'track' ? setTrack(state.score, id, { [flag]: !item[flag] }) : setFolder(state.score, id, { [flag]: !item[flag] });
+    commit({ ...state, score });
+  };
+
+  const renameItem = (kind: ItemKind, id: string, name: string) => {
+    const state = committed();
+    const current = kind === 'track' ? state.score.tracks[id]?.name : state.score.folders[id]?.name;
+    if (current !== undefined && current !== name) {
+      commit({ ...state, score: kind === 'track' ? setTrack(state.score, id, { name }) : setFolder(state.score, id, { name }) });
+    }
+  };
+
+  const deleteItem = (kind: ItemKind, id: string) => {
+    const state = committed();
+    commit({ ...state, score: kind === 'track' ? deleteTrack(state.score, id) : deleteFolder(state.score, id) });
+  };
+
+  const newTrack = () => {
+    const state = committed();
+    const added = addTrack(state.score, `Track ${Object.keys(state.score.tracks).length + 1}`);
+    commit({ ...state, score: added.score, activeTrack: added.id, notes: [] });
+  };
+
+  const newFolder = () => {
+    const state = committed();
+    commit({ ...state, score: addFolder(state.score, 'Folder').score });
+  };
+
   const { canvasRef, invalidate } = useCanvas(interaction, (context, frame, size) => {
     sizeRef.current = size;
     drawScore(context, frame, size, {
@@ -477,6 +519,19 @@ export const Notespec = () => {
       </div>
       <div className='notespec-main'>
         <canvas ref={canvasRef} className='notespec-canvas' data-testid='score' />
+        <div className='notespec-side'>
+          <Outliner
+            score={state.score}
+            activeTrack={state.activeTrack}
+            onActivate={activate}
+            onToggle={toggleItem}
+            onRename={renameItem}
+            onDelete={deleteItem}
+            onAddTrack={newTrack}
+            onAddFolder={newFolder}
+            onMove={(id, drop) => commit({ ...committed(), score: moveItems(committed().score, [id], drop) })}
+          />
+        </div>
       </div>
       <div className='notespec-status'>{status}</div>
     </div>
