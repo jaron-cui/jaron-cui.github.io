@@ -1,6 +1,6 @@
 // Where things are on the canvas: time across, staff steps down each track's lane.
 import { Rect } from './canvas/interaction';
-import { Key, signatureAlterations, spell, staffRange, stepPitch } from './music';
+import { Key, signatureAlterations, spell, Spelling, staffRange, stepPitch } from './music';
 import { Located, Score, sectionAttributes, Track, TrackRow } from './score';
 
 export const RULER_HEIGHT = 22;
@@ -89,8 +89,10 @@ export function placementPitch(step: number, key: Key, lock: PitchLock): number 
 
 // A note's box: from its start to its end, one space tall around its staff step.
 export function noteRect(score: Score, lane: Lane, view: View, { section, note, start }: Located): Rect {
-  const { key } = sectionAttributes(score, section);
-  const y = stepY(lane, spell(note.pitch, key, note.spelling).step);
-  const x = tickX(view, start);
-  return { x, y: y - STEP + 1, width: Math.max(3, note.duration * view.scale - 1), height: 2 * STEP - 2 };
+  return noteBox(lane, view, sectionAttributes(score, section).key, start, note.pitch, note.duration, note.spelling);
+}
+
+export function noteBox(lane: Lane, view: View, key: Key, start: number, pitch: number, duration: number, spelling?: Spelling): Rect {
+  const y = stepY(lane, spell(pitch, key, spelling).step);
+  return { x: tickX(view, start), y: y - STEP + 1, width: Math.max(3, duration * view.scale - 1), height: 2 * STEP - 2 };
 }

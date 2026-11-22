@@ -3,11 +3,11 @@
 import { Drag, Frame, PointerInput, Rect, WheelInput } from './canvas/interaction';
 import { Size } from './canvas/useCanvas';
 import {
-  GLOBAL_LINE_HEIGHT, HEADER_WIDTH, Lane, noteRect, RULER_HEIGHT, SCORE_TOP, SECTION_LINE_HEIGHT, stepY, tickX, View, xTick, yStep,
+  GLOBAL_LINE_HEIGHT, HEADER_WIDTH, Lane, noteBox, noteRect, RULER_HEIGHT, SCORE_TOP, SECTION_LINE_HEIGHT, stepY, tickX, View, xTick, yStep,
 } from './layout';
 import { accidental, Clef, spell, staffLines, tonicName } from './music';
 import {
-  GlobalSection, overlappingGlobals, overlappingSections, Score, sectionAttributes, sectionStart, strayNotes, ticksPerBar, ticksPerBeat,
+  attributesAt, GlobalSection, overlappingGlobals, overlappingSections, Score, sectionAttributes, sectionStart, strayNotes, ticksPerBar, ticksPerBeat,
   trackNotes, TrackSection,
 } from './score';
 import { EditorState, sameSection, SectionRef } from './state';
@@ -38,15 +38,20 @@ export type ScoreActions = {
   pressHeader(lane: Lane, input: PointerInput): void;
   pressNote(lane: Lane, id: string, input: PointerInput): void;
   // A press on a lane away from its notes, at a time and staff step.
-  pressLane(lane: Lane, tick: number, step: number, input: PointerInput): void;
+  pressLane(lane: Lane, tick: number, step: number, input: PointerInput): Drag | void;
   pressSection(ref: SectionRef, input: PointerInput): void;
   // A press below the lanes or anywhere else on the score; a drag moves the cursor.
   pressBlank(tick: number, input: PointerInput): Drag | void;
   wheel(input: WheelInput): boolean;
 };
 
+// Where a click would place a note, drawn faded while placing notes.
+export type Ghost = { track: string; start: number; pitch: number; duration: number };
+
 export type ScoreModel = {
   state: EditorState;
+  placing: boolean;
+  ghost: Ghost | null;
   view: View;
   lanes: Lane[];
   cursor: number;
@@ -250,7 +255,9 @@ function drawLane(context: CanvasRenderingContext2D, frame: Frame, size: Size, m
   context.fillRect(HEADER_WIDTH, lane.top, size.width - HEADER_WIDTH, lane.height);
   frame.region({
     rect: { x: HEADER_WIDTH, y: lane.top, width: size.width - HEADER_WIDTH, height: lane.height },
-    cursor: 'crosshair',
+    // Named so the editor can tell the pointer is over blank lane space, where a note would go.
+    key: `lane:${lane.track.id}`,
+    cursor: model.placing ? 'crosshair' : undefined,
     press: input => actions.pressLane(lane, xTick(view, input.x), Math.round(yStep(lane, input.y)), input),
   });
 
@@ -260,6 +267,27 @@ function drawLane(context: CanvasRenderingContext2D, frame: Frame, size: Size, m
   }
   drawSectionLine(context, frame, model, lane, overlaps);
   drawNotes(context, frame, model, lane);
+  if (model.ghost?.track === lane.track.id) {
+    drawGhost(context, model, lane, model.ghost);
+  }
+}
+
+function drawGhost(context: CanvasRenderingContext2D, { state, view }: ScoreModel, lane: Lane, ghost: Ghost) {
+  const { key } = attributesAt(state.score, lane.track, ghost.start);
+  const rect = noteBox(lane, view, key, ghost.start, ghost.pitch, ghost.duration);
+  context.globalAlpha = 0.4;
+  context.fillStyle = COLORS.note;
+  context.fillRect(rect.x, rect.y, rect.width, rect.height);
+  const symbol = accidental(spell(ghost.pitch, key), key);
+  if (symbol) {
+    context.fillStyle = COLORS.text;
+    context.font = '12px system-ui, sans-serif';
+    context.textBaseline = 'middle';
+    context.textAlign = 'right';
+    context.fillText(symbol, rect.x - 2, rect.y + rect.height / 2);
+    context.textAlign = 'left';
+  }
+  context.globalAlpha = 1;
 }
 
 // A track section's staff lines, bar and beat lines, and its clef, key and time signature.

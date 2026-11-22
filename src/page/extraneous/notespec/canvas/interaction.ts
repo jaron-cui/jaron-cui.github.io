@@ -73,8 +73,9 @@ export class Interaction {
   pointer: Point = { x: 0, y: 0 };
   hovered: string | null = null;
 
-  // `changed` is called whenever something drawing depends on changes (hover, modal state).
-  constructor(private readonly changed: () => void = () => {}) {}
+  // `changed` is called whenever something drawing depends on changes (hover, modal state); `moved`
+  // on every pointer move over the canvas, for drawing that follows the pointer.
+  constructor(private readonly changed: () => void = () => {}, private readonly moved: () => void = () => {}) {}
 
   // A new frame; its regions replace the last frame's once it has been drawn.
   frame(): Frame {
@@ -158,6 +159,7 @@ export class Interaction {
       return;
     }
     this.updateHover();
+    this.moved();
   }
 
   pointerUp(input: PointerInput) {

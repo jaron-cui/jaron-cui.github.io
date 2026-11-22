@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Interaction, KeyInput, Rect, WheelInput } from './canvas/interaction';
 import { useCanvas } from './canvas/useCanvas';
-import { drawScore, ScoreActions } from './draw';
+import { drawScore, Ghost, ScoreActions } from './draw';
 import {
   addFolder, addTrack, Clip, copyNotes, deleteFolder, deleteNotes, deleteTrack, moveItems, moveNotes, pasteNotes, placeNote, setDurations,
   setFolder, setGlobal, setSpelling, setTrack, setTrackSection, splitGlobal, splitNotes, splitTrackSection, tieNotes, untieNotes,
@@ -11,7 +11,7 @@ import { FileHandle, isCancel, pickFileToOpen, saveText } from '../../../lib/psa
 import { keyValueStore } from '../../../lib/psave/store';
 import { FILE_TYPE, parseScore, serializeScore } from './projectFile';
 import { commit as commitHistory, History, redo, startHistory, undo } from './history';
-import { DEFAULT_VIEW, HEADER_WIDTH, Lane, layoutLanes, lanesHeight, PitchLock, placementPitch, SCORE_TOP, View, xTick } from './layout';
+import { DEFAULT_VIEW, HEADER_WIDTH, Lane, layoutLanes, lanesHeight, PitchLock, placementPitch, SCORE_TOP, View, xTick, yStep } from './layout';
 import { DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTime, stepLength } from './lengths';
 import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators';
 import { attributesAt, locateNotes, newScore, Score, trackNotes, trackRows } from './score';
@@ -21,9 +21,10 @@ import { auditionSamples, renderScore, TempoMap, tempoMap } from './sound';
 import { EditorState, initialState, sameSection, tidy } from './state';
 import './notespec.css';
 
-type Settings = { pitchLock: PitchLock; snap: Snap; division: number; lengthMode: LengthMode };
+// `placing` is note-placing mode (Tab): a click on blank lane space places a note.
+type Settings = { pitchLock: PitchLock; snap: Snap; division: number; lengthMode: LengthMode; placing: boolean };
 
-const DEFAULT_SETTINGS: Settings = { pitchLock: 'key', snap: { division: 8, triplet: false }, division: 4, lengthMode: 'normal' };
+const DEFAULT_SETTINGS: Settings = { pitchLock: 'key', snap: { division: 8, triplet: false }, division: 4, lengthMode: 'normal', placing: false };
 const MIN_SCALE = 2 / 960;
 const MAX_SCALE = 400 / 960;
 // How far left of the score's start the view can scroll, in ticks.
@@ -54,6 +55,11 @@ export const Notespec = () => {
   const interaction = useMemo(() => new Interaction(() => {
     invalidateRef.current();
     setVersion(version => version + 1);
+  }, () => {
+    // The placement preview follows the pointer.
+    if (settingsRef.current.placing) {
+      invalidateRef.current();
+    }
   }), []);
 
   // Playback: the source playing, when it started (audio clock) and the tick it started from.
@@ -161,12 +167,20 @@ export const Notespec = () => {
         select({ ...state, activeTrack: lane.track.id, notes: [id], sections: [] });
       }
     },
+    // Blank lane space: places a note while placing notes; otherwise clears the selection and places
+    // (or drags) the cursor.
     pressLane: (lane, tick, step, input) => {
-      const state = committed();
       if (input.button !== 0) {
         return;
       }
-      placeAt(lane, tick, step);
+      if (settingsRef.current.placing) {
+        placeAt(lane, tick, step);
+        return;
+      }
+      if (!input.shift) {
+        select({ ...committed(), notes: [], sections: [] });
+      }
+      return scrub(input.x);
     },
     pressSection: (ref, input) => {
       const state = committed();
@@ -196,12 +210,30 @@ export const Notespec = () => {
     return { move: (move: { x: number }) => setCursor(snappedCursor(xTick(viewRef.current, move.x))) };
   };
 
+  // Where a click at a time and staff step of a lane places a note, and how long it is.
+  const placement = (lane: Lane, tick: number, step: number) => {
+    const { score } = committed();
+    const { snap, pitchLock, division, lengthMode } = settingsRef.current;
+    const start = snapTime(score, lane.track, tick, snap, 'floor');
+    const { key } = attributesAt(score, lane.track, start);
+    return { track: lane.track.id, start, pitch: placementPitch(step, key, pitchLock), duration: lengthTicks(division, lengthMode) };
+  };
+
+  // The note a click would place, while placing notes and the pointer is over blank lane space.
+  const ghost = (): Ghost | null => {
+    const hovered = interaction.hovered;
+    if (!settingsRef.current.placing || interaction.busy || !hovered?.startsWith('lane:')) {
+      return null;
+    }
+    const lane = lanes().find(other => `lane:${other.track.id}` === hovered);
+    const { x, y } = interaction.pointer;
+    return lane ? placement(lane, xTick(viewRef.current, x), Math.round(yStep(lane, y))) : null;
+  };
+
   const placeAt = (lane: Lane, tick: number, step: number) => {
     const state = committed();
-    const { snap, pitchLock, division, lengthMode } = settingsRef.current;
-    const start = snapTime(state.score, lane.track, tick, snap, 'floor');
-    const { key } = attributesAt(state.score, lane.track, start);
-    const placed = placeNote(state.score, lane.track.id, start, placementPitch(step, key, pitchLock), lengthTicks(division, lengthMode));
+    const { start, pitch, duration } = placement(lane, tick, step);
+    const placed = placeNote(state.score, lane.track.id, start, pitch, duration);
     if (placed.id) {
       const next = { ...state, score: placed.score, activeTrack: lane.track.id, notes: [placed.id], sections: [] };
       commit(next);
@@ -405,6 +437,16 @@ export const Notespec = () => {
       togglePlay();
       return true;
     }
+    if (key === 'Tab') {
+      setSettings({ placing: !settingsRef.current.placing });
+      invalidateRef.current();
+      return true;
+    }
+    if (key === 'Escape' && settingsRef.current.placing) {
+      setSettings({ placing: false });
+      invalidateRef.current();
+      return true;
+    }
     if (key === 'd' && !input.shift && !input.alt) {
       toggleLengthMode('dotted');
       return true;
@@ -532,7 +574,7 @@ export const Notespec = () => {
   const { canvasRef, invalidate } = useCanvas(interaction, (context, frame, size) => {
     sizeRef.current = size;
     drawScore(context, frame, size, {
-      state: shown(), view: viewRef.current, lanes: lanes(), cursor: cursorRef.current, playhead: playhead(), box: boxRef.current, actions,
+      state: shown(), placing: settingsRef.current.placing, ghost: ghost(), view: viewRef.current, lanes: lanes(), cursor: cursorRef.current, playhead: playhead(), box: boxRef.current, actions,
     });
   });
   invalidateRef.current = invalidate;
@@ -611,9 +653,11 @@ export const Notespec = () => {
 
   const state = shown();
   const modal = interaction.activeModal;
-  const status = modal?.describe?.() ?? (state.sections.length > 0
+  const status = modal?.describe?.() ?? (settings.placing
+    ? ['Placing notes: click a lane', 'Tab or Esc: stop placing', 'Alt+scroll: length', 'D / T: dotted / triplet', 'Space: play']
+    : state.sections.length > 0
     ? ['Sections', 'G: move (bounds: resize)', 'S: split at cursor', 'Alt+A: deselect', 'Space: play']
-    : ['Click a lane: place a note', 'Click a section line or bound: select it', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Drag the ruler: cursor', 'Space: play']).join('  ·  ');
+    : ['Tab: place notes', 'Click a note, section line or bound: select it', 'Drag a lane or the ruler: cursor', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Space: play']).join('  ·  ');
 
   return (
     <div className='notespec'>
@@ -627,6 +671,11 @@ export const Notespec = () => {
           <span className='notespec-label' data-testid='file-name'>{fileRef.current?.name ?? 'Unsaved score'}{unsaved() ? ' •' : ''}</span>
         </div>
         <div className='notespec-group'>
+          <div className='notespec-segments' role='group' aria-label='Placing'>
+            <button aria-pressed={settings.placing} onClick={() => { setSettings({ placing: !settings.placing }); invalidateRef.current(); }} title='Place notes by clicking a lane (Tab; Esc stops)'>
+              Place notes
+            </button>
+          </div>
           <div className='notespec-segments' role='group' aria-label='Playback'>
             <button aria-pressed={playRef.current !== null} onClick={togglePlay} title='Play from the cursor (Space)'>{playRef.current ? '■ Stop' : '▶ Play'}</button>
           </div>

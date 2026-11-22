@@ -39,6 +39,14 @@ describe('Interaction', () => {
     expect(ended).toBe(true);
   });
 
+  it('reports every free pointer move', () => {
+    let moves = 0;
+    const interaction = new Interaction(() => {}, () => { moves++; });
+    interaction.pointerMove(at(1, 1));
+    interaction.pointerMove(at(2, 1));
+    expect(moves).toBe(2);
+  });
+
   it('tracks hover by key', () => {
     const interaction = new Interaction();
     drawn(interaction, [{ rect: { x: 0, y: 0, width: 10, height: 10 }, key: 'note-1', cursor: 'pointer' }]);

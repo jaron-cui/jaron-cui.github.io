@@ -80,6 +80,10 @@ There are no object and edit modes (dropped after trying them: switching was a c
 section lines can always be clicked. Selecting notes clears the section selection and the other way
 round, so keys like G and S act on whichever is selected.
 
+Note-placing mode (Tab, like MuseScore's N) is the one mode, and it excludes nothing: while it's on,
+a click on blank lane space places a note, and a faded note shows where the click would place one.
+Tab again or Escape turns it off.
+
 ## Layout
 
 - Tracks are stacked lanes, each with its own pitch range. Ranges are configurable; the defaults
@@ -114,7 +118,8 @@ Holding Ctrl does not disable snapping.
 
 ## Placing notes and note length
 
-- A click on a lane's blank space places a note of the current placement length on that track.
+- In note-placing mode, a click on a lane's blank space places a note of the current placement
+  length on that track.
 - Placement lengths are whole to 1/32. D turns on dotted mode and T turns on triplet mode. They
   are exclusive: turning one on turns the other off. Pressing the same key again goes back to
   normal lengths.
@@ -125,6 +130,7 @@ Holding Ctrl does not disable snapping.
 
 | Key | Action |
 | --- | --- |
+| Tab / Escape | Note-placing mode on and off / off |
 | Ctrl+Z / Ctrl+Shift+Z | Undo / redo |
 | Left click, Shift+click | Select, extend selection |
 | A / Alt+A | Select all / none |
@@ -143,8 +149,8 @@ Holding Ctrl does not disable snapping.
 | Ctrl+scroll | Zoom time |
 | Alt+scroll | Change placement length, or the selected notes' durations |
 
-Clicking or dragging on the ruler, or on the blank area below the lanes, places the timeline cursor
-(dragging scrubs it). Blank space in a lane places a note instead (see "Without modes").
+Clicking or dragging on the ruler, on blank lane space (outside note-placing mode), or on the blank
+area below the lanes places the timeline cursor; dragging scrubs it.
 
 ## Section handles
 
@@ -277,9 +283,12 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 
 ### Without modes
 
-- A click on blank lane space places a note on that lane's track and makes it the active track.
+- In note-placing mode, a click on blank lane space places a note on that lane's track and makes it
+  the active track. The faded preview shows over blank lane space only, not over notes or section
+  lines, and not while G or B runs. A "Place notes" toolbar button shows and toggles the mode.
 - Selected notes always share one track. Shift+click adds within the active track; clicking a note
   on another track starts a new selection there. B selects in the lane the drag starts in.
-- The cursor is placed, or scrubbed by dragging, on the ruler or the blank area below the lanes.
-  A click there also clears the selection (Shift keeps it).
+- The cursor is placed, or scrubbed by dragging, on the ruler, on blank lane space outside
+  note-placing mode, or on the blank area below the lanes. A click on blank space also clears the
+  selection (Shift keeps it).
 - Alt+A clears notes and sections alike; A selects all of the active track's notes.
