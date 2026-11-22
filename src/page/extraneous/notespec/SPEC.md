@@ -274,3 +274,9 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
   tracks' sections still fill it.
 - A track section whose start bound lands in another global section joins that one, as when the
   section is moved.
+
+### Hearing edits
+
+- Placing a note, the arrow keys, and G then Z (at each new pitch as it's reached) play the notes
+  concerned on their own: each for its own length, at most one second, a chord together. Moving in
+  time, pasting and duplicating don't play anything.

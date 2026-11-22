@@ -17,7 +17,7 @@ import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators
 import { attributesAt, locateNotes, newScore, Score, trackNotes, trackRows } from './score';
 import { ItemKind, Outliner } from './Outliner';
 import { Properties } from './Properties';
-import { renderScore, TempoMap, tempoMap } from './sound';
+import { auditionSamples, renderScore, TempoMap, tempoMap } from './sound';
 import { EditorState, initialState, sameSection, tidy } from './state';
 import './notespec.css';
 
@@ -105,6 +105,27 @@ export const Notespec = () => {
       boxRef.current = rect;
       refresh();
     },
+    audition: (state, ids) => audition(state, ids),
+  };
+
+  // Plays notes on their own (a placed note, or notes whose pitch changed), cutting off the last ones.
+  const auditionRef = useRef<AudioBufferSourceNode | null>(null);
+  const audition = (state: EditorState, ids: string[]) => {
+    const audio = audioRef.current ?? new AudioContext();
+    audioRef.current = audio;
+    void audio.resume();
+    const samples = auditionSamples(state.score, ids, audio.sampleRate);
+    if (samples.length === 0) {
+      return;
+    }
+    auditionRef.current?.stop();
+    const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
+    buffer.copyToChannel(samples, 0);
+    const source = audio.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audio.destination);
+    source.start();
+    auditionRef.current = source;
   };
 
   const setCursor = (tick: number) => {
@@ -188,7 +209,9 @@ export const Notespec = () => {
     const { key } = attributesAt(state.score, lane.track, start);
     const placed = placeNote(state.score, lane.track.id, start, placementPitch(step, key, pitchLock), lengthTicks(division, lengthMode));
     if (placed.id) {
-      commit({ ...state, score: placed.score, notes: [placed.id] });
+      const next = { ...state, score: placed.score, notes: [placed.id] };
+      commit(next);
+      audition(next, [placed.id]);
     }
   };
 
@@ -424,7 +447,9 @@ export const Notespec = () => {
       return true;
     }
     if ((key === 'ArrowUp' || key === 'ArrowDown') && state.notes.length > 0) {
-      commit({ ...state, score: moveNotes(state.score, state.notes, 0, key === 'ArrowUp' ? 1 : -1) });
+      const next = { ...state, score: moveNotes(state.score, state.notes, 0, key === 'ArrowUp' ? 1 : -1) };
+      commit(next);
+      audition(next, state.notes);
       return true;
     }
     if (key === 'j' && input.alt && state.notes.length > 0) {

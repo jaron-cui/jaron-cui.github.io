@@ -2,7 +2,7 @@
 // notes, such as bowing); for now each tie (a chain of tied notes) becomes one sine voice that
 // steps from pitch to pitch, with a short fade in and a release past its end.
 import { frequency } from './music';
-import { audibleTracks, Score, trackNotes, Track, TICKS_PER_QUARTER } from './score';
+import { audibleTracks, locateNotes, Score, trackNotes, Track, TICKS_PER_QUARTER } from './score';
 
 export const ATTACK = 0.005;
 export const RELEASE = 0.04;
@@ -99,6 +99,29 @@ export function renderTrack(score: Score, track: Track, rate: number, time: Temp
     }
   }
   return out;
+}
+
+// The longest a note sounds when auditioned.
+export const AUDITION_SECONDS = 1;
+
+// Notes played on their own, all starting together, as when one is placed or its pitch changes:
+// each for its own length, at most AUDITION_SECONDS.
+export function auditionSamples(score: Score, ids: Iterable<string>, rate: number): Float32Array<ArrayBuffer> {
+  const time = tempoMap(score);
+  const notes = locateNotes(score, ids).map(({ note, start }) => ({
+    pitch: note.pitch,
+    seconds: Math.min(AUDITION_SECONDS, time.seconds(start + note.duration) - time.seconds(start)),
+  }));
+  const voices = notes.map(({ pitch, seconds }) => sineTie([{ start: 0, end: seconds, pitch }], rate).samples);
+  const mix = new Float32Array(Math.max(0, ...voices.map(voice => voice.length)));
+  // Chords are scaled so they never clip.
+  const gain = Math.min(1, 4 / Math.max(1, voices.length));
+  for (const voice of voices) {
+    for (let i = 0; i < voice.length; i++) {
+      mix[i] += voice[i] * gain;
+    }
+  }
+  return mix;
 }
 
 // Every audible track mixed, from a tick on, scaled down if it would clip.

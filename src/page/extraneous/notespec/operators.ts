@@ -22,6 +22,8 @@ export type OperatorContext = {
   snap(): Snap;
   // A rectangle to draw over the score (box select), or none.
   overlay(rect: Rect | null): void;
+  // Plays notes of a state, as when their pitch changes.
+  audition(state: EditorState, ids: string[]): void;
 };
 
 const ends = (input: PointerInput) => (input.button === 0 ? 'confirm' : input.button === 2 ? 'cancel' : 'handled');
@@ -44,6 +46,7 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
   const beat = first ? beatTicks(base.score, first.track, first.start) : ticksPerBeat({ beats: 4, unit: 4 });
   const lane = () => context.lanes().find(other => other.track.id === base.activeTrack);
   let offset = 0;
+  let heard = 0;
 
   const apply = () => {
     const view = context.view();
@@ -55,6 +58,11 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
     }
     result = { ...base, score: axis === 'time' ? moveNotes(base.score, base.notes, offset, 0) : moveNotes(base.score, base.notes, 0, offset) };
     context.preview(result);
+    // Moving in pitch plays each new pitch as it's reached.
+    if (axis === 'pitch' && offset !== heard) {
+      heard = offset;
+      context.audition(result, base.notes);
+    }
   };
   apply();
 
@@ -73,6 +81,7 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
     key: input => {
       if (input.key === 'z' || input.key === 'Z') {
         axis = axis === 'time' ? 'pitch' : 'time';
+        heard = 0;
         apply();
         return 'handled';
       }

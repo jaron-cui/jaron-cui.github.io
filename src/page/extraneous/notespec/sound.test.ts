@@ -1,6 +1,6 @@
 import { placeNote, setGlobal, setTrack, splitGlobal, tieNotes } from './editing';
 import { newScore, Score, WHOLE } from './score';
-import { ATTACK, RELEASE, renderScore, sineTie, tempoMap, trackTies } from './sound';
+import { ATTACK, AUDITION_SECONDS, auditionSamples, RELEASE, renderScore, sineTie, tempoMap, trackTies } from './sound';
 
 const Q = WHOLE / 4;
 const RATE = 8000;
@@ -49,6 +49,15 @@ describe('ties', () => {
     expect(zeroCrossings(samples, RATE / 2, RATE)).toBeGreaterThan(870);
     expect(samples[samples.length - 1]).toBeCloseTo(0, 2);
     expect(ATTACK).toBeLessThan(0.02);
+  });
+});
+
+describe('audition', () => {
+  it('plays notes together, each for its length up to a second', () => {
+    const short = placeNote(newScore(), trackId(newScore()), 0, 60, Q / 2);
+    const long = placeNote(short.score, trackId(short.score), 0, 64, 4 * WHOLE);
+    expect(auditionSamples(short.score, [short.id], RATE).length).toBe(Math.ceil((0.25 + RELEASE) * RATE));
+    expect(auditionSamples(long.score, [short.id, long.id], RATE).length).toBe(Math.ceil((AUDITION_SECONDS + RELEASE) * RATE));
   });
 });
 
