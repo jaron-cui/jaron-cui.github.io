@@ -1,7 +1,7 @@
 // Modal operators, Blender style: they start from a key, follow the pointer or a typed number, and
 // end with a click or Enter (keep) or a right click or Escape (undo).
 import { KeyInput, Modal, Point, PointerInput, Rect } from './canvas/interaction';
-import { moveGlobals, moveNotes, moveTrackSections } from './editing';
+import { moveGlobals, moveNotes, moveTrackSections, resizeGlobal, resizeTrackSection } from './editing';
 import { beatTicks, Snap, snapOffset } from './lengths';
 import { Lane, noteRect, View, yStep } from './layout';
 import { pitchAtStep } from './music';
@@ -97,8 +97,9 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
   };
 }
 
-// G in object mode: moves the selected section lines' sections in time. Typed numbers are beats of
-// the earliest selected section's time signature.
+// G in object mode: moves the selected section lines' sections in time, and the selected bounds
+// (which grows or shrinks their sections). Typed numbers are beats of the earliest selected
+// section's time signature.
 export function grabSections(context: OperatorContext, start: Point): Modal {
   const base = context.state();
   let typed: TypedInput | null = null;
@@ -125,7 +126,7 @@ export function grabSections(context: OperatorContext, start: Point): Modal {
 
   return {
     cursor: 'ew-resize',
-    describe: () => [`Move sections: ${typed ? describeTyped(typed, 'beats') : `${+(offset / beat).toFixed(3)} beats`}`, 'Click or Enter: keep', 'Right click or Esc: cancel'].join('  ·  '),
+    describe: () => [`Move ${base.sections.every(ref => ref.edge) ? 'bounds' : 'sections'}: ${typed ? describeTyped(typed, 'beats') : `${+(offset / beat).toFixed(3)} beats`}`, 'Click or Enter: keep', 'Right click or Esc: cancel'].join('  ·  '),
     move: input => {
       pointer = input;
       apply();
@@ -145,15 +146,21 @@ export function grabSections(context: OperatorContext, start: Point): Modal {
 }
 
 function moveSections(score: EditorState['score'], refs: SectionRef[], ticks: number) {
-  let next = moveGlobals(score, refs.filter(ref => ref.kind === 'global').map(ref => ref.id), ticks);
+  const moved = refs.filter(ref => !ref.edge);
+  let next = moveGlobals(score, moved.filter(ref => ref.kind === 'global').map(ref => ref.id), ticks);
   const byTrack = new Map<string, string[]>();
-  for (const ref of refs) {
+  for (const ref of moved) {
     if (ref.kind === 'track') {
       byTrack.set(ref.track, [...(byTrack.get(ref.track) ?? []), ref.id]);
     }
   }
   for (const [track, ids] of byTrack) {
     next = moveTrackSections(next, track, ids, ticks);
+  }
+  for (const ref of refs) {
+    if (ref.edge) {
+      next = ref.kind === 'global' ? resizeGlobal(next, ref.id, ref.edge, ticks) : resizeTrackSection(next, ref.track, ref.id, ref.edge, ticks);
+    }
   }
   return next;
 }

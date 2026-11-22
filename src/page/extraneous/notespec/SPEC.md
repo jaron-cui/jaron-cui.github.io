@@ -220,8 +220,6 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - S in object mode: with any global section selected, the global line splits at the cursor; with a
   track's section selected, that track's section at the cursor splits.
 - Notes move only with G and the arrow keys, not by dragging.
-- **Open:** how a section's length is changed (needed to bring a stray note back inside without
-  moving it).
 
 ### Sound (`sound.ts`)
 
@@ -265,3 +263,14 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
   always bring the last score back.
 - Autosave keeps one session per browser (Slender keeps one per tab): the score, its file's name and
   handle, and whether it was saved. It is restored when the page opens.
+
+### Section bounds
+
+- In object mode, the bars at each end of a section line are its bounds. A bound can be selected
+  on its own (Shift adds to the selection), and G moves it, growing or shrinking the section.
+  Notes keep their place in time. A section can't shrink below one tick.
+- Each bound's click area lies on its own section's side, so neighboring bounds can be told apart.
+- Moving a global section's bound also moves the bound of each track section that sat on it, so the
+  tracks' sections still fill it.
+- A track section whose start bound lands in another global section joins that one, as when the
+  section is moved.

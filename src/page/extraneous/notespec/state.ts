@@ -3,7 +3,8 @@ import { newScore, Score, trackRows } from './score';
 
 export type Mode = 'object' | 'edit';
 
-export type SectionRef = { kind: 'global'; id: string } | { kind: 'track'; track: string; id: string };
+// A selected section line, or with `edge` one of its bounds (the bars at its ends).
+export type SectionRef = ({ kind: 'global'; id: string } | { kind: 'track'; track: string; id: string }) & { edge?: 'start' | 'end' };
 
 export type EditorState = {
   score: Score;
@@ -14,7 +15,7 @@ export type EditorState = {
   sections: SectionRef[];
 };
 
-export const sameSection = (a: SectionRef, b: SectionRef) => a.kind === b.kind && a.id === b.id;
+export const sameSection = (a: SectionRef, b: SectionRef) => a.kind === b.kind && a.id === b.id && (a.edge ?? null) === (b.edge ?? null);
 
 export function initialState(score: Score = newScore()): EditorState {
   return { score, mode: 'object', activeTrack: trackRows(score)[0]?.track.id ?? '', notes: [], sections: [] };

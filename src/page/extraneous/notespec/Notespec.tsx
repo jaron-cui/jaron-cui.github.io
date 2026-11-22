@@ -603,7 +603,7 @@ export const Notespec = () => {
   const modal = interaction.activeModal;
   const status = modal?.describe?.() ?? (state.mode === 'edit'
     ? ['Edit mode', 'Click: place a note', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Space: play', 'Tab: object mode'].join('  ·  ')
-    : ['Object mode', 'Click a section line to select it', 'G: move', 'S: split at cursor', 'Click a note: select its track', 'Space: play', 'Tab: edit mode'].join('  ·  '));
+    : ['Object mode', 'Click a section line, or a bound at its end, to select it', 'G: move', 'S: split at cursor', 'Click a note: select its track', 'Space: play', 'Tab: edit mode'].join('  ·  '));
 
   return (
     <div className='notespec'>

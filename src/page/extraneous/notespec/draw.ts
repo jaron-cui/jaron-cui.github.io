@@ -172,6 +172,7 @@ function drawGlobalLine(context: CanvasRenderingContext2D, frame: Frame, size: S
     const rect = drawSegment(context, view, global.start, global.length, y, 4, selected ? COLORS.selected : overlaps.has(global.id) ? COLORS.stray : COLORS.line);
     if (state.mode === 'object') {
       frame.region({ rect: { ...rect, y: RULER_HEIGHT, height: GLOBAL_LINE_HEIGHT }, key: `global:${global.id}`, cursor: 'pointer', press: input => actions.pressSection(ref, input) });
+      drawBounds(context, frame, state, actions, ref, rect, RULER_HEIGHT, GLOBAL_LINE_HEIGHT, y);
     }
   }
   context.restore();
@@ -198,6 +199,27 @@ function drawSegment(context: CanvasRenderingContext2D, view: View, start: numbe
   context.fillRect(x0, y - 5, 1.5, 10);
   context.fillRect(x1 - 1.5, y - 5, 1.5, 10);
   return { x: x0, y: y - 6, width: Math.max(4, x1 - x0), height: 12 };
+}
+
+// A section line's bounds, the bars at its ends: each can be selected (and moved with G) on its own.
+// A selected bound is drawn as a thick orange bar.
+const BOUND_HIT = 4;
+function drawBounds(context: CanvasRenderingContext2D, frame: Frame, state: EditorState, actions: ScoreActions, ref: SectionRef, rect: Rect, top: number, height: number, y: number) {
+  for (const edge of ['start', 'end'] as const) {
+    const bound: SectionRef = { ...ref, edge };
+    const x = edge === 'start' ? rect.x : rect.x + rect.width;
+    if (state.sections.some(other => sameSection(other, bound))) {
+      context.fillStyle = COLORS.selected;
+      context.fillRect(x - (edge === 'start' ? 0 : 3), y - 6, 3, 12);
+    }
+    frame.region({
+      // Each bound's hit area lies on its own section's side, so neighbors' bounds don't overlap.
+      rect: { x: edge === 'start' ? x - 2 : x - BOUND_HIT - 3, y: top, width: BOUND_HIT + 5, height },
+      key: `bound:${ref.id}:${edge}`,
+      cursor: 'ew-resize',
+      press: input => actions.pressSection(bound, input),
+    });
+  }
 }
 
 function shadeOverlap(context: CanvasRenderingContext2D, view: View, start: number, length: number, top: number, height: number) {
@@ -303,6 +325,7 @@ function drawSectionLine(context: CanvasRenderingContext2D, frame: Frame, { stat
     }
     if (state.mode === 'object') {
       frame.region({ rect: { ...rect, y: lane.top, height: SECTION_LINE_HEIGHT }, key: `section:${section.id}`, cursor: 'pointer', press: input => actions.pressSection(ref, input) });
+      drawBounds(context, frame, state, actions, ref, rect, lane.top, SECTION_LINE_HEIGHT, y);
     }
   }
 }

@@ -296,6 +296,62 @@ export function moveTrackSections(score: Score, trackId: string, ids: Iterable<s
   return pruneTies(next);
 }
 
+export type Edge = 'start' | 'end';
+// The shortest a section can be made by moving its bounds.
+export const MIN_SECTION_TICKS = 1;
+
+// Moves one bound of a global section, and the bound of each track section that sat on it, so the
+// tracks' subdivisions still fill it. Everything else keeps its place in time, notes included.
+export function resizeGlobal(score: Score, id: string, edge: Edge, ticks: number): Score {
+  const global = globalById(score, id);
+  if (!global) {
+    return score;
+  }
+  const shift = edge === 'end' ? Math.max(ticks, MIN_SECTION_TICKS - global.length) : Math.min(ticks, global.length - MIN_SECTION_TICKS);
+  let next = setGlobal(score, id, edge === 'end' ? { length: global.length + shift } : { start: global.start + shift, length: global.length - shift });
+  for (const track of Object.values(next.tracks)) {
+    if (!track.sections.some(section => section.global === id)) {
+      continue;
+    }
+    next = updateSections(next, track.id, sections => sections.map(section => {
+      if (section.global !== id) {
+        return section;
+      }
+      if (edge === 'end') {
+        return section.start + section.length === global.length ? { ...section, length: Math.max(MIN_SECTION_TICKS, section.length + shift) } : section;
+      }
+      if (section.start === 0) {
+        const cut = Math.min(shift, section.length - MIN_SECTION_TICKS);
+        return { ...section, start: shift - cut, length: section.length - cut, notes: section.notes.map(note => ({ ...note, start: note.start - cut })) };
+      }
+      return { ...section, start: section.start - shift };
+    }));
+  }
+  return next;
+}
+
+// Moves one bound of a track section, keeping its notes where they are in time. A start that lands
+// in another global section joins it, as when moving the section.
+export function resizeTrackSection(score: Score, trackId: string, id: string, edge: Edge, ticks: number): Score {
+  const section = score.tracks[trackId]?.sections.find(other => other.id === id);
+  if (!section) {
+    return score;
+  }
+  if (edge === 'end') {
+    return setTrackSection(score, trackId, id, { length: Math.max(MIN_SECTION_TICKS, section.length + ticks) });
+  }
+  const shift = Math.min(ticks, section.length - MIN_SECTION_TICKS);
+  const start = sectionStart(score, section) + shift;
+  const target = globalAt(score, start) ?? globalById(score, section.global)!;
+  return updateSections(score, trackId, sections => sections.map(other => (other.id === id ? {
+    ...other,
+    global: target.id,
+    start: start - target.start,
+    length: other.length - shift,
+    notes: other.notes.map(note => ({ ...note, start: note.start - shift })),
+  } : other)));
+}
+
 export function setGlobal(score: Score, id: string, changes: Partial<Omit<GlobalSection, 'id'>>): Score {
   return { ...score, globals: score.globals.map(global => (global.id === id ? { ...global, ...changes } : global)) };
 }

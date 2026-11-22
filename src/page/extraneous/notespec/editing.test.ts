@@ -1,6 +1,7 @@
 import {
   addFolder, addTrack, copyNotes, deleteFolder, deleteNotes, moveGlobals, moveItems, moveNotes, moveTrackSections,
-  pasteNotes, placeNote, setDurations, setFolder, splitGlobal, splitNotes, splitTrackSection, tieNotes, untieNotes,
+  pasteNotes, placeNote, resizeGlobal, resizeTrackSection, setDurations, setFolder, splitGlobal, splitNotes, splitTrackSection, tieNotes,
+  untieNotes,
 } from './editing';
 import {
   allNotes, audibleTracks, locateNotes, newScore, overlappingGlobals, Score, sectionStart, strayNotes, trackRows, WHOLE,
@@ -123,6 +124,40 @@ describe('sections', () => {
     const moved = firstTrack(score).sections.find(section => section.id === split.id)!;
     expect(moved.global).toBe(score.globals[1].id);
     expect(sectionStart(score, moved)).toBe(5 * Q);
+  });
+});
+
+describe('section bounds', () => {
+  it('moves a global section\'s start without moving what it holds', () => {
+    const placed = place(newScore(), 4 * Q, 60);
+    const id = placed.score.globals[0].id;
+    const score = resizeGlobal(placed.score, id, 'start', 2 * Q);
+    expect(score.globals[0]).toMatchObject({ start: 2 * Q, length: 126 * Q });
+    expect(at(score, placed.id).start).toBe(4 * Q);
+    // The track's section, which filled the global section, still does.
+    const [section] = firstTrack(score).sections;
+    expect([sectionStart(score, section), section.length]).toEqual([2 * Q, 126 * Q]);
+    const shorter = resizeGlobal(score, id, 'end', -6 * Q);
+    expect(shorter.globals[0].length).toBe(120 * Q);
+    expect(firstTrack(shorter).sections[0].length).toBe(120 * Q);
+  });
+
+  it('brings a stray note back inside by extending its section', () => {
+    const track = firstTrack(newScore());
+    const split = splitTrackSection(newScore(), track.id, 4 * Q);
+    const placed = place(split.score, Q, 60);
+    const first = firstTrack(placed.score).sections[0].id;
+    // Shrink the first section to two beats: the note at beat two is now outside.
+    let score = resizeTrackSection(placed.score, track.id, first, 'end', -2 * Q);
+    expect(strayNotes(firstTrack(score)).size).toBe(0);
+    score = resizeTrackSection(score, track.id, first, 'end', -Q);
+    expect(strayNotes(firstTrack(score)).has(placed.id)).toBe(true);
+    score = resizeTrackSection(score, track.id, first, 'end', Q);
+    expect(strayNotes(firstTrack(score)).size).toBe(0);
+    // Moving the start keeps the note where it is; a section never shrinks below a tick.
+    score = resizeTrackSection(score, track.id, first, 'start', Q / 2);
+    expect(at(score, placed.id).start).toBe(Q);
+    expect(resizeTrackSection(score, track.id, first, 'start', 100 * Q).tracks[track.id].sections[0].length).toBe(1);
   });
 });
 
