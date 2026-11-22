@@ -74,15 +74,11 @@ be dragged in and out of folders.
 - A folder's hide, mute and solo apply to everything in it.
 - Solo: if anything is soloed, only soloed items sound.
 
-## Modes
+## Selection (no modes)
 
-- **Object mode**: clicking a note selects its track. Section lines can be selected and edited only
-  here; notes cannot be selected.
-- **Edit mode** (Tab): only the active track's notes can be selected and edited; other visible
-  tracks are drawn faded. Clicking places a note on the active track. Section lines cannot be
-  selected.
-
-Because notes and section lines are never selectable in the same mode, S can mean "split" for both.
+There are no object and edit modes (dropped after trying them: switching was a chore). Notes and
+section lines can always be clicked. Selecting notes clears the section selection and the other way
+round, so keys like G and S act on whichever is selected.
 
 ## Layout
 
@@ -118,7 +114,7 @@ Holding Ctrl does not disable snapping.
 
 ## Placing notes and note length
 
-- A click in edit mode places a note of the current placement length.
+- A click on a lane's blank space places a note of the current placement length on that track.
 - Placement lengths are whole to 1/32. D turns on dotted mode and T turns on triplet mode. They
   are exclusive: turning one on turns the other off. Pressing the same key again goes back to
   normal lengths.
@@ -129,7 +125,6 @@ Holding Ctrl does not disable snapping.
 
 | Key | Action |
 | --- | --- |
-| Tab | Toggle edit mode |
 | Ctrl+Z / Ctrl+Shift+Z | Undo / redo |
 | Left click, Shift+click | Select, extend selection |
 | A / Alt+A | Select all / none |
@@ -137,7 +132,7 @@ Holding Ctrl does not disable snapping.
 | G | Move selected notes in time. Mouse, or type an offset in beats. Click or Enter confirms; right-click or Esc cancels. |
 | G then Z | Move in pitch instead; Z again returns to time. Typed offsets are chromatic semitones and ignore the pitch lock. |
 | Up / Down | Move selected notes one semitone (chromatic regardless of the lock) |
-| S | Edit mode: split selected notes at the timeline cursor. Object mode: split the selected section lines (global, or the selected tracks') at the timeline cursor |
+| S | Split the selected notes at the timeline cursor, or with section lines selected, split those lines (global, or the selected tracks') at the timeline cursor |
 | Ctrl+J / Alt+J | Tie touching notes in the selection / untie |
 | D / T | Toggle dotted / triplet placement |
 | Ctrl+S / Shift+Ctrl+S / Ctrl+O | Save / save as / open (the session also autosaves locally, as in Slender) |
@@ -148,13 +143,14 @@ Holding Ctrl does not disable snapping.
 | Ctrl+scroll | Zoom time |
 | Alt+scroll | Change placement length, or the selected notes' durations |
 
-Clicking the ruler, or blank space in a track or section, places the timeline cursor.
+Clicking or dragging on the ruler, or on the blank area below the lanes, places the timeline cursor
+(dragging scrubs it). Blank space in a lane places a note instead (see "Without modes").
 
 ## Section handles
 
 Sections are drawn as horizontal lines used as compact handles. A thick black line across the top
 of the score is the global sections. A split leaves a small gap with a short vertical bar on each
-side (`-----| |-----`). In object mode, selecting a segment and pressing G moves that section.
+side (`-----| |-----`). Selecting a segment and pressing G moves that section.
 
 ## Sound (`sound.ts`)
 
@@ -210,15 +206,13 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
   scale tone (the letter as the key signature alters it); with chromatic it is the natural, and the
   arrow keys reach sharps and flats. "None" is shown but disabled until fractional pitches exist.
 - A placed note starts at the grid line at or before the click.
-- Selecting (clicks, A, Alt+A, B) and switching modes or the active track don't add undo steps.
-- In edit mode, a click on blank space in another track's lane, or on the ruler, places the cursor;
-  in object mode a click on blank space also clears the section selection.
+- Selecting (clicks, A, Alt+A, B) and switching the active track don't add undo steps.
 - B adds the notes in the box to the selection; Shift held when the drag starts removes them.
 - Starting settings: snap 1/8, placement length 1/4, key lock.
 - Notes above or below their staff get ledger lines.
 - Bar numbers count through the whole score, in the order global sections start.
-- S in object mode: with any global section selected, the global line splits at the cursor; with a
-  track's section selected, that track's section at the cursor splits.
+- S with sections selected: with any global section selected, the global line splits at the cursor;
+  with a track's section selected, that track's section at the cursor splits.
 - Notes move only with G and the arrow keys, not by dragging.
 
 ### Sound (`sound.ts`)
@@ -243,7 +237,7 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 
 ### Sections (`Properties.tsx`)
 
-- A Properties panel under the outliner edits the last selected section (object mode) and the
+- A Properties panel under the outliner edits the last selected section and the
   active track. A global section has tempo, key, time signature and clef. A track section has a
   checkbox per key, time signature and clef: checked, it overrides the global section, starting
   from the global section's value; unchecked, it follows it.
@@ -253,7 +247,7 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 
 ### Ties, copying, spelling and files
 
-- Copy and paste use notespec's own clipboard, not the system's, and work in edit mode.
+- Copy and paste use notespec's own clipboard, not the system's.
 - Shift+D copies the selection in place and starts G on the copies; cancelling removes them.
 - The sharp and flat buttons are pressed when every selected note has that tag; clicking a pressed
   one removes the tag, so the notes follow the key again.
@@ -266,7 +260,7 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 
 ### Section bounds
 
-- In object mode, the bars at each end of a section line are its bounds. A bound can be selected
+- The bars at each end of a section line are its bounds. A bound can be selected
   on its own (Shift adds to the selection), and G moves it, growing or shrinking the section.
   Notes keep their place in time. A section can't shrink below one tick.
 - Each bound's click area lies on its own section's side, so neighboring bounds can be told apart.
@@ -280,3 +274,12 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - Placing a note, the arrow keys, and G then Z (at each new pitch as it's reached) play the notes
   concerned on their own: each for its own length, at most one second, a chord together. Moving in
   time, pasting and duplicating don't play anything.
+
+### Without modes
+
+- A click on blank lane space places a note on that lane's track and makes it the active track.
+- Selected notes always share one track. Shift+click adds within the active track; clicking a note
+  on another track starts a new selection there. B selects in the lane the drag starts in.
+- The cursor is placed, or scrubbed by dragging, on the ruler or the blank area below the lanes.
+  A click there also clears the selection (Shift keeps it).
+- Alt+A clears notes and sections alike; A selects all of the active track's notes.

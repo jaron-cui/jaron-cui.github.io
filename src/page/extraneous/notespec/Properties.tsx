@@ -1,4 +1,4 @@
-// Properties of the selected section (object mode) and of the active track. A global section has
+// Properties of the selected section and of the active track. A global section has
 // tempo, key, time signature and clef; a track section follows its global section's key, time
 // signature and clef unless one is overridden. A track has the margins of its lane.
 import type { ReactNode } from 'react';

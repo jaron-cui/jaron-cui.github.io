@@ -106,7 +106,7 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
   };
 }
 
-// G in object mode: moves the selected section lines' sections in time, and the selected bounds
+// G with sections selected: moves the selected section lines' sections in time, and the selected bounds
 // (which grows or shrinks their sections). Typed numbers are beats of the earliest selected
 // section's time signature.
 export function grabSections(context: OperatorContext, start: Point): Modal {
@@ -174,10 +174,12 @@ function moveSections(score: EditorState['score'], refs: SectionRef[], ticks: nu
   return next;
 }
 
-// B: drag a box over the active track's notes to add them to the selection; Shift when the drag
-// starts removes them instead.
+// B: drag a box over a lane's notes to add them to the selection; Shift when the drag starts removes
+// them instead. The lane the drag starts in becomes the active track; starting in another track's
+// lane starts a new selection there.
 export function boxSelect(context: OperatorContext): Modal {
   let anchor: Point | null = null;
+  let lane: Lane | undefined;
   let removing = false;
   let box: Rect | null = null;
   const base = context.state();
@@ -194,6 +196,8 @@ export function boxSelect(context: OperatorContext): Modal {
       }
       anchor = input;
       removing = input.shift;
+      lane = context.lanes().find(other => input.y >= other.top && input.y < other.top + other.height)
+        ?? context.lanes().find(other => other.track.id === base.activeTrack);
       box = rectFrom(input, input);
       context.overlay(box);
       return 'handled';
@@ -216,16 +220,16 @@ export function boxSelect(context: OperatorContext): Modal {
       if (!confirmed || !box) {
         return;
       }
-      const lane = context.lanes().find(other => other.track.id === base.activeTrack);
-      if (!lane) {
+      const target = lane;
+      if (!target) {
         return;
       }
       const view = context.view();
       const area = box;
-      const hit = trackNotes(base.score, lane.track).filter(item => intersects(area, noteRect(base.score, lane, view, item))).map(item => item.note.id);
-      const selected = new Set(base.notes);
+      const hit = trackNotes(base.score, target.track).filter(item => intersects(area, noteRect(base.score, target, view, item))).map(item => item.note.id);
+      const selected = new Set(target.track.id === base.activeTrack ? base.notes : []);
       hit.forEach(id => (removing ? selected.delete(id) : selected.add(id)));
-      context.select({ ...base, notes: [...selected] });
+      context.select({ ...base, activeTrack: target.track.id, notes: [...selected], sections: [] });
     },
   };
 }

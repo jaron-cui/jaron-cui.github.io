@@ -146,22 +146,19 @@ export const Notespec = () => {
   };
 
   const actions: ScoreActions = {
-    pressRuler: input => {
-      setCursor(snappedCursor(xTick(viewRef.current, input.x)));
-      return { move: move => setCursor(snappedCursor(xTick(viewRef.current, move.x))) };
-    },
+    pressRuler: input => scrub(input.x),
     pressHeader: lane => activate(lane.track.id),
     pressNote: (lane, id, input) => {
       const state = committed();
       if (input.button !== 0) {
         return;
       }
-      if (state.mode === 'object') {
-        select({ ...state, activeTrack: lane.track.id, sections: [] });
-      } else if (input.shift) {
-        select({ ...state, notes: state.notes.includes(id) ? state.notes.filter(other => other !== id) : [...state.notes, id] });
+      // Selected notes share a track: Shift+click adds within the active track, and a note on another
+      // track starts a new selection there.
+      if (input.shift && lane.track.id === state.activeTrack) {
+        select({ ...state, notes: state.notes.includes(id) ? state.notes.filter(other => other !== id) : [...state.notes, id], sections: [] });
       } else {
-        select({ ...state, notes: [id] });
+        select({ ...state, activeTrack: lane.track.id, notes: [id], sections: [] });
       }
     },
     pressLane: (lane, tick, step, input) => {
@@ -169,14 +166,7 @@ export const Notespec = () => {
       if (input.button !== 0) {
         return;
       }
-      if (state.mode === 'edit' && lane.track.id === state.activeTrack) {
-        placeAt(lane, tick, step);
-      } else {
-        setCursor(snappedCursor(tick));
-        if (state.mode === 'object' && !input.shift) {
-          select({ ...state, sections: [] });
-        }
-      }
+      placeAt(lane, tick, step);
     },
     pressSection: (ref, input) => {
       const state = committed();
@@ -185,21 +175,25 @@ export const Notespec = () => {
       }
       const has = state.sections.some(other => sameSection(other, ref));
       const sections = input.shift ? (has ? state.sections.filter(other => !sameSection(other, ref)) : [...state.sections, ref]) : [ref];
-      select({ ...state, sections, activeTrack: ref.kind === 'track' ? ref.track : state.activeTrack });
+      select({ ...state, sections, notes: [], activeTrack: ref.kind === 'track' ? ref.track : state.activeTrack });
     },
-    pressBlank: (tick, input) => {
+    // Blank space below the lanes: clears the selection, and places (or drags) the cursor.
+    pressBlank: (_, input) => {
       if (input.button !== 0) {
         return;
       }
-      if (input.x > HEADER_WIDTH) {
-        setCursor(snappedCursor(tick));
-      }
-      const state = committed();
       if (!input.shift) {
-        select({ ...state, sections: state.mode === 'object' ? [] : state.sections });
+        select({ ...committed(), notes: [], sections: [] });
       }
+      return input.x > HEADER_WIDTH ? scrub(input.x) : undefined;
     },
     wheel: input => wheel(input),
+  };
+
+  // Places the cursor at a point and follows the pointer until release.
+  const scrub = (x: number) => {
+    setCursor(snappedCursor(xTick(viewRef.current, x)));
+    return { move: (move: { x: number }) => setCursor(snappedCursor(xTick(viewRef.current, move.x))) };
   };
 
   const placeAt = (lane: Lane, tick: number, step: number) => {
@@ -209,7 +203,7 @@ export const Notespec = () => {
     const { key } = attributesAt(state.score, lane.track, start);
     const placed = placeNote(state.score, lane.track.id, start, placementPitch(step, key, pitchLock), lengthTicks(division, lengthMode));
     if (placed.id) {
-      const next = { ...state, score: placed.score, notes: [placed.id] };
+      const next = { ...state, score: placed.score, activeTrack: lane.track.id, notes: [placed.id], sections: [] };
       commit(next);
       audition(next, [placed.id]);
     }
@@ -236,11 +230,11 @@ export const Notespec = () => {
     return true;
   };
 
-  // Alt+scroll: the selected notes' lengths in edit mode, otherwise the placement length. Up is longer.
+  // Alt+scroll: the selected notes' lengths, or with none selected the placement length. Up is longer.
   const changeLength = (steps: number) => {
     const state = committed();
     const { division, lengthMode } = settingsRef.current;
-    if (state.mode === 'edit' && state.notes.length > 0) {
+    if (state.notes.length > 0) {
       let score = state.score;
       for (const { note } of locateNotes(score, state.notes)) {
         score = setDurations(score, [note.id], stepLength(note.duration, steps, lengthMode));
@@ -391,27 +385,21 @@ export const Notespec = () => {
         void open();
         return true;
       }
-      if (state.mode === 'edit') {
-        if (key === 'j' && state.notes.length > 0) {
-          commit({ ...state, score: tieNotes(state.score, state.notes) });
-          return true;
-        }
-        if (key === 'c' && state.notes.length > 0) {
-          clipboardRef.current = copyNotes(state.score, state.notes);
-          return true;
-        }
-        if (key === 'v' && clipboardRef.current && state.score.tracks[state.activeTrack]) {
-          const pasted = pasteNotes(state.score, state.activeTrack, cursorRef.current, clipboardRef.current);
-          commit({ ...state, score: pasted.score, notes: pasted.ids });
-          return true;
-        }
+      if (key === 'j' && state.notes.length > 0) {
+        commit({ ...state, score: tieNotes(state.score, state.notes) });
+        return true;
+      }
+      if (key === 'c' && state.notes.length > 0) {
+        clipboardRef.current = copyNotes(state.score, state.notes);
+        return true;
+      }
+      if (key === 'v' && clipboardRef.current && state.score.tracks[state.activeTrack]) {
+        const pasted = pasteNotes(state.score, state.activeTrack, cursorRef.current, clipboardRef.current);
+        commit({ ...state, score: pasted.score, notes: pasted.ids, sections: [] });
+        return true;
       }
       // Ctrl+J would open the browser's downloads.
       return key === 'j';
-    }
-    if (key === 'Tab') {
-      select({ ...state, mode: state.mode === 'edit' ? 'object' : 'edit' });
-      return true;
     }
     if (key === ' ') {
       togglePlay();
@@ -425,13 +413,13 @@ export const Notespec = () => {
       toggleLengthMode('triplet');
       return true;
     }
-    return state.mode === 'edit' ? editKey(state, key, input) : objectKey(state, key, input);
+    return sectionKey(state, key) || noteKey(state, key, input);
   };
 
-  const editKey = (state: EditorState, key: string, input: KeyInput): boolean => {
+  const noteKey = (state: EditorState, key: string, input: KeyInput): boolean => {
     const track = state.score.tracks[state.activeTrack];
     if (key === 'a') {
-      select({ ...state, notes: input.alt || !track ? [] : trackNotes(state.score, track).map(item => item.note.id) });
+      select({ ...state, notes: input.alt || !track ? [] : trackNotes(state.score, track).map(item => item.note.id), sections: [] });
       return true;
     }
     if (key === 'g' && state.notes.length > 0) {
@@ -474,11 +462,8 @@ export const Notespec = () => {
     return false;
   };
 
-  const objectKey = (state: EditorState, key: string, input: KeyInput): boolean => {
-    if (key === 'a' && input.alt) {
-      select({ ...state, sections: [] });
-      return true;
-    }
+  // Keys for selected section lines and bounds.
+  const sectionKey = (state: EditorState, key: string): boolean => {
     if (key === 'g' && state.sections.length > 0) {
       interaction.startModal(grabSections(operatorContext, interaction.pointer));
       return true;
@@ -490,7 +475,7 @@ export const Notespec = () => {
     return false;
   };
 
-  // S in object mode: splits each selected line (the global one, or a track's) at the cursor.
+  // S with sections selected: splits each selected line (the global one, or a track's) at the cursor.
   const splitSelectedLines = (state: EditorState) => {
     let score = state.score;
     const cursor = cursorRef.current;
@@ -626,9 +611,9 @@ export const Notespec = () => {
 
   const state = shown();
   const modal = interaction.activeModal;
-  const status = modal?.describe?.() ?? (state.mode === 'edit'
-    ? ['Edit mode', 'Click: place a note', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Space: play', 'Tab: object mode'].join('  ·  ')
-    : ['Object mode', 'Click a section line, or a bound at its end, to select it', 'G: move', 'S: split at cursor', 'Click a note: select its track', 'Space: play', 'Tab: edit mode'].join('  ·  '));
+  const status = modal?.describe?.() ?? (state.sections.length > 0
+    ? ['Sections', 'G: move (bounds: resize)', 'S: split at cursor', 'Alt+A: deselect', 'Space: play']
+    : ['Click a lane: place a note', 'Click a section line or bound: select it', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Drag the ruler: cursor', 'Space: play']).join('  ·  ');
 
   return (
     <div className='notespec'>
@@ -644,10 +629,6 @@ export const Notespec = () => {
         <div className='notespec-group'>
           <div className='notespec-segments' role='group' aria-label='Playback'>
             <button aria-pressed={playRef.current !== null} onClick={togglePlay} title='Play from the cursor (Space)'>{playRef.current ? '■ Stop' : '▶ Play'}</button>
-          </div>
-          <div className='notespec-segments' role='group' aria-label='Mode'>
-            <button aria-pressed={state.mode === 'object'} onClick={() => select({ ...committed(), mode: 'object' })}>Object</button>
-            <button aria-pressed={state.mode === 'edit'} onClick={() => select({ ...committed(), mode: 'edit' })}>Edit</button>
           </div>
         </div>
         <div className='notespec-group'>
@@ -695,7 +676,7 @@ export const Notespec = () => {
           <span className='notespec-label'>Spell</span>
           <div className='notespec-segments' role='group' aria-label='Spelling'>
             {(['sharp', 'flat'] as const).map(spelling => {
-              const notes = state.mode === 'edit' ? locateNotes(state.score, state.notes) : [];
+              const notes = locateNotes(state.score, state.notes);
               const pressed = notes.length > 0 && notes.every(item => item.note.spelling === spelling);
               return (
                 <button
@@ -729,7 +710,7 @@ export const Notespec = () => {
           />
           <Properties
             score={state.score}
-            section={state.mode === 'object' ? state.sections.at(-1) ?? null : null}
+            section={state.sections.at(-1) ?? null}
             activeTrack={state.activeTrack}
             onGlobal={(id, changes) => commit({ ...committed(), score: setGlobal(committed().score, id, changes) }, `global:${id}:${Object.keys(changes).join()}`)}
             onOverride={(track, id, overrides) => commit({ ...committed(), score: setTrackSection(committed().score, track, id, { overrides }) }, `section:${id}`)}

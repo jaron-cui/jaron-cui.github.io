@@ -40,8 +40,8 @@ export type ScoreActions = {
   // A press on a lane away from its notes, at a time and staff step.
   pressLane(lane: Lane, tick: number, step: number, input: PointerInput): void;
   pressSection(ref: SectionRef, input: PointerInput): void;
-  // A press below the lanes or anywhere else on the score.
-  pressBlank(tick: number, input: PointerInput): void;
+  // A press below the lanes or anywhere else on the score; a drag moves the cursor.
+  pressBlank(tick: number, input: PointerInput): Drag | void;
   wheel(input: WheelInput): boolean;
 };
 
@@ -170,10 +170,8 @@ function drawGlobalLine(context: CanvasRenderingContext2D, frame: Frame, size: S
       shadeOverlap(context, view, global.start, global.length, RULER_HEIGHT, size.height - RULER_HEIGHT);
     }
     const rect = drawSegment(context, view, global.start, global.length, y, 4, selected ? COLORS.selected : overlaps.has(global.id) ? COLORS.stray : COLORS.line);
-    if (state.mode === 'object') {
-      frame.region({ rect: { ...rect, y: RULER_HEIGHT, height: GLOBAL_LINE_HEIGHT }, key: `global:${global.id}`, cursor: 'pointer', press: input => actions.pressSection(ref, input) });
-      drawBounds(context, frame, state, actions, ref, rect, RULER_HEIGHT, GLOBAL_LINE_HEIGHT, y);
-    }
+    frame.region({ rect: { ...rect, y: RULER_HEIGHT, height: GLOBAL_LINE_HEIGHT }, key: `global:${global.id}`, cursor: 'pointer', press: input => actions.pressSection(ref, input) });
+    drawBounds(context, frame, state, actions, ref, rect, RULER_HEIGHT, GLOBAL_LINE_HEIGHT, y);
   }
   context.restore();
   drawGlobalLabels(context, view, state.score.globals);
@@ -247,13 +245,12 @@ function drawHeader(context: CanvasRenderingContext2D, frame: Frame, { state, ac
 function drawLane(context: CanvasRenderingContext2D, frame: Frame, size: Size, model: ScoreModel, lane: Lane) {
   const { state, view, actions } = model;
   const { score } = state;
-  const editing = state.mode === 'edit';
   const active = lane.track.id === state.activeTrack;
-  context.fillStyle = editing && active ? COLORS.activeLane : COLORS.lane;
+  context.fillStyle = active ? COLORS.activeLane : COLORS.lane;
   context.fillRect(HEADER_WIDTH, lane.top, size.width - HEADER_WIDTH, lane.height);
   frame.region({
     rect: { x: HEADER_WIDTH, y: lane.top, width: size.width - HEADER_WIDTH, height: lane.height },
-    cursor: editing && active ? 'crosshair' : undefined,
+    cursor: 'crosshair',
     press: input => actions.pressLane(lane, xTick(view, input.x), Math.round(yStep(lane, input.y)), input),
   });
 
@@ -306,7 +303,7 @@ function drawStaff(context: CanvasRenderingContext2D, size: Size, view: View, sc
   }
 }
 
-// The lane's track sections as a line along its top, selectable in object mode.
+// The lane's track sections as a line along its top; each section and bound can be selected.
 function drawSectionLine(context: CanvasRenderingContext2D, frame: Frame, { state, view, actions }: ScoreModel, lane: Lane, overlaps: Set<string>) {
   const { score } = state;
   const y = lane.top + SECTION_LINE_HEIGHT / 2 + 1;
@@ -323,10 +320,8 @@ function drawSectionLine(context: CanvasRenderingContext2D, frame: Frame, { stat
       context.fillStyle = COLORS.faint;
       context.fillText(sectionLabel(clef, key, time), rect.x + 6, y + 9);
     }
-    if (state.mode === 'object') {
-      frame.region({ rect: { ...rect, y: lane.top, height: SECTION_LINE_HEIGHT }, key: `section:${section.id}`, cursor: 'pointer', press: input => actions.pressSection(ref, input) });
-      drawBounds(context, frame, state, actions, ref, rect, lane.top, SECTION_LINE_HEIGHT, y);
-    }
+    frame.region({ rect: { ...rect, y: lane.top, height: SECTION_LINE_HEIGHT }, key: `section:${section.id}`, cursor: 'pointer', press: input => actions.pressSection(ref, input) });
+    drawBounds(context, frame, state, actions, ref, rect, lane.top, SECTION_LINE_HEIGHT, y);
   }
 }
 
@@ -337,13 +332,10 @@ function isStraySection(score: Score, section: TrackSection): boolean {
 
 function drawNotes(context: CanvasRenderingContext2D, frame: Frame, { state, view, actions }: ScoreModel, lane: Lane) {
   const { score } = state;
-  const active = lane.track.id === state.activeTrack;
-  const faded = state.mode === 'edit' && !active;
-  const selected = new Set(active && state.mode === 'edit' ? state.notes : []);
+  const selected = new Set(state.notes);
   const stray = strayNotes(lane.track);
   const notes = trackNotes(score, lane.track);
   const rects = new Map(notes.map(item => [item.note.id, noteRect(score, lane, view, item)]));
-  context.globalAlpha = faded ? 0.35 : 1;
   // Ties first, under the notes: a short curve from one note's end to the next one's start.
   context.strokeStyle = COLORS.text;
   context.lineWidth = 1.2;
@@ -369,7 +361,7 @@ function drawNotes(context: CanvasRenderingContext2D, frame: Frame, { state, vie
     const rect = rects.get(note.id)!;
     const key = `note:${note.id}`;
     const isSelected = selected.has(note.id);
-    context.fillStyle = stray.has(note.id) ? COLORS.stray : isSelected ? COLORS.selected : frame.isHovered(key) && !faded ? COLORS.noteHover : COLORS.note;
+    context.fillStyle = stray.has(note.id) ? COLORS.stray : isSelected ? COLORS.selected : frame.isHovered(key) ? COLORS.noteHover : COLORS.note;
     context.fillRect(rect.x, rect.y, rect.width, rect.height);
     const { key: musicKey } = sectionAttributes(score, section);
     const symbol = accidental(spell(note.pitch, musicKey, note.spelling), musicKey, note.spelling);
@@ -379,11 +371,8 @@ function drawNotes(context: CanvasRenderingContext2D, frame: Frame, { state, vie
       context.fillText(symbol, rect.x - 2, rect.y + rect.height / 2);
       context.textAlign = 'left';
     }
-    if (!faded) {
-      frame.region({ rect, key, cursor: 'pointer', press: input => actions.pressNote(lane, note.id, input) });
-    }
+    frame.region({ rect, key, cursor: 'pointer', press: input => actions.pressNote(lane, note.id, input) });
   }
-  context.globalAlpha = 1;
 }
 
 // Short lines through and toward notes above or below their section's staff.
