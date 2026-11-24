@@ -172,10 +172,16 @@ export const Notespec = () => {
       }
       // Selected notes share a track: Shift+click adds within the active track, and a note on another
       // track starts a new selection there.
+      // Selecting a note plays it; Shift+click taking one out of the selection doesn't.
       if (input.shift && lane.track.id === state.activeTrack) {
-        select({ ...state, notes: state.notes.includes(id) ? state.notes.filter(other => other !== id) : [...state.notes, id], sections: [] });
+        const removing = state.notes.includes(id);
+        select({ ...state, notes: removing ? state.notes.filter(other => other !== id) : [...state.notes, id], sections: [] });
+        if (!removing) {
+          audition(state, [id]);
+        }
       } else {
         select({ ...state, activeTrack: lane.track.id, notes: [id], sections: [] });
+        audition(state, [id]);
       }
     },
     // Blank lane space: places a note while placing notes; otherwise clears the selection and places

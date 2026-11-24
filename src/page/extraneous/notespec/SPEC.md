@@ -282,7 +282,9 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 
 - Placing a note, the arrow keys, and G then Z play the notes concerned on their own: each for its
   own length, at most one second, a chord together. G then Z plays once, when the move is kept, not
-  at each pitch passed on the way. Moving in time, pasting and duplicating don't play anything.
+  at each pitch passed on the way. Clicking a note to select it plays it too (Shift+click taking one
+  out of the selection doesn't); selecting with A or B plays nothing. Moving in time, pasting and
+  duplicating don't play anything.
 
 ### Without modes
 
