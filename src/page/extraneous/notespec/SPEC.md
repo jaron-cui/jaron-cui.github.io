@@ -141,6 +141,8 @@ Holding Ctrl does not disable snapping.
 | G | Move selected notes in time. Mouse, or type an offset in beats. Click or Enter confirms; right-click or Esc cancels. |
 | G then Z | Move in pitch instead; Z again returns to time. Typed offsets are chromatic semitones and ignore the pitch lock. |
 | Up / Down | Move selected notes one semitone (chromatic regardless of the lock) |
+| Left / Right | With notes selected, move them one time-snap step. Otherwise move the cursor to the next beat line; Ctrl: bar line; Ctrl+Alt: section boundary |
+| Shift + those cursor moves | Also select the active track's notes between where the Shift moves began and the cursor |
 | S | Split the selected notes at the timeline cursor, or with section lines selected, split those lines (global, or the selected tracks') at the timeline cursor |
 | Ctrl+J / Alt+J | Tie touching notes in the selection / untie |
 | D / T | Toggle dotted / triplet placement |
@@ -327,3 +329,16 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - Every sound played (playback and auditions) fades in over 10 ms, and stopping one (Stop, or a new
   audition cutting off the last) fades it out over 15 ms. Starting playback partway through a note,
   or stopping it, would otherwise click. `playback.ts` does this with a gain per sound.
+
+### Arrow keys
+
+- Beats and bars are counted from the start of the section at the cursor (its track section on the
+  active track, else the global section), so the next line in 6/8 after 4/4 is an eighth into the
+  new section, and a section's end always counts as a line. Section boundaries are the global
+  sections' and the active track's.
+- With notes selected and snapping off, Left/Right move them a beat. Ctrl or Shift with notes
+  selected moves the cursor instead.
+- Shift-selecting works like extending a text selection: the first Shift move sets an anchor where
+  the cursor was, and the selection becomes the active track's notes starting between the anchor
+  and the cursor, so moving back shrinks it. Moving the cursor or selecting any other way starts over.
+- When the keyboard moves the cursor out of view, the view scrolls to show it.

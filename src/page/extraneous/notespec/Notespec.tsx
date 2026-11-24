@@ -15,7 +15,7 @@ import {
   DEFAULT_VIEW, Lane, layoutLanes, lanesHeight, MAX_HEADER_WIDTH, MIN_HEADER_WIDTH, PitchLock, placementPitch, SCORE_TOP, View, xTick, yStep,
 } from './layout';
 import { PaneDivider } from './PaneDivider';
-import { DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTime, stepLength } from './lengths';
+import { beatTicks, DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTicks, snapTime, stepCursor, stepLength } from './lengths';
 import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators';
 import { attributesAt, locateNotes, newScore, Score, trackNotes, trackRows } from './score';
 import { ItemKind, Outliner } from './Outliner';
@@ -74,6 +74,9 @@ export const Notespec = () => {
   const fileRef = useRef<{ name: string; handle: FileHandle | null } | null>(null);
   const savedScoreRef = useRef<Score>(historyRef.current.present.score);
   const clipboardRef = useRef<Clip | null>(null);
+  // Where Shift+arrow selecting began, and the cursor and selection it left, to tell whether the
+  // next Shift+arrow continues it.
+  const shiftRef = useRef<{ anchor: number; cursor: number; notes: string[] } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   // The side panel's width and the outliner's height in it, both dragged by their borders.
   const [sideWidth, setSideWidth] = useState(260);
@@ -315,6 +318,48 @@ export const Notespec = () => {
     invalidateRef.current();
   };
 
+  // Left/Right: with notes selected (and no Ctrl or Shift), moves them one time-snap step, or a beat
+  // with snapping off. Otherwise moves the cursor to the next beat line, with Ctrl the next bar line,
+  // with Ctrl+Alt the next section boundary. With Shift it also selects, like extending a text
+  // selection: the active track's notes starting between where the Shift moves began (the anchor)
+  // and the cursor.
+  const arrowAcross = (state: EditorState, direction: 1 | -1, input: KeyInput) => {
+    if (state.notes.length > 0 && !input.ctrl && !input.shift) {
+      const { snap } = settingsRef.current;
+      const [first] = locateNotes(state.score, state.notes).sort((a, b) => a.start - b.start);
+      const step = snap ? snapTicks(snap) : beatTicks(state.score, first.track, first.start);
+      commit({ ...state, score: moveNotes(state.score, state.notes, direction * step, 0) });
+      return;
+    }
+    const track = state.score.tracks[state.activeTrack];
+    const from = cursorRef.current;
+    const to = stepCursor(state.score, track, from, input.ctrl && input.alt ? 'section' : input.ctrl ? 'bar' : 'beat', direction);
+    setCursor(to);
+    revealCursor();
+    if (input.shift && track) {
+      // A Shift move continues the last one only if nothing has moved the cursor or the selection since.
+      const last = shiftRef.current;
+      const anchor = last && last.cursor === from && last.notes === state.notes ? last.anchor : from;
+      const [low, high] = [Math.min(anchor, to), Math.max(anchor, to)];
+      const notes = trackNotes(state.score, track).filter(item => item.start >= low && item.start < high).map(item => item.note.id);
+      const next = { ...state, notes, sections: [] };
+      select(next);
+      shiftRef.current = { anchor, cursor: to, notes: committed().notes };
+    }
+  };
+
+  // Scrolls time so the cursor is in view, after the keyboard moves it.
+  const revealCursor = () => {
+    const view = viewRef.current;
+    const width = sizeRef.current.width - view.header;
+    const x = (cursorRef.current - view.start) * view.scale;
+    if (x < 0 || x > width - 20) {
+      view.start = cursorRef.current - (width / 3) / view.scale;
+      clampView();
+      refresh();
+    }
+  };
+
   const toggleLengthMode = (mode: LengthMode) => setSettings({ lengthMode: settingsRef.current.lengthMode === mode ? 'normal' : mode });
 
   // ---- Files ----
@@ -431,6 +476,10 @@ export const Notespec = () => {
     }
     const state = committed();
     const key = input.key.length === 1 ? input.key.toLowerCase() : input.key;
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      arrowAcross(state, key === 'ArrowRight' ? 1 : -1, input);
+      return true;
+    }
     if (input.ctrl) {
       if (key === 'z') {
         historyRef.current = input.shift ? redo(historyRef.current) : undo(historyRef.current);
@@ -474,6 +523,7 @@ export const Notespec = () => {
       togglePlacing();
       return true;
     }
+
     if (key === 'Escape' && settingsRef.current.placing) {
       setSettings({ placing: false });
       invalidateRef.current();
@@ -689,7 +739,7 @@ export const Notespec = () => {
     ? ['Placing notes: click a lane', 'Tab or Esc: stop placing', 'Alt+scroll: length', 'D / T: dotted / triplet', 'Space: play']
     : state.sections.length > 0
     ? ['Sections', 'G: move (bounds: resize)', 'S: split at cursor', 'Alt+A: deselect', 'Space: play']
-    : ['Tab: place notes', 'Click a note, section line or bound: select it', 'Drag a lane or the ruler: cursor', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Space: play']).join('  ·  ');
+    : ['Tab: place notes', 'Click a note, section line or bound: select it', 'Drag a lane or the ruler: cursor', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', '←→: by grid, or move the cursor (Ctrl: bar, Ctrl+Alt: section, Shift: select)', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Space: play']).join('  ·  ');
 
   return (
     <div className='notespec'>
