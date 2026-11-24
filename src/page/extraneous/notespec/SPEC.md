@@ -85,7 +85,7 @@ round, so keys like G and S act on whichever is selected.
 
 Note-placing mode (Tab, like MuseScore's N) is the one mode, and it excludes nothing: while it's on,
 a click on blank lane space places a note, and a faded note shows where the click would place one.
-Tab again or Escape turns it off.
+Tab again or Escape turns it off. Turning it on clears the note selection.
 
 ## Layout
 
@@ -280,9 +280,9 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 
 ### Hearing edits
 
-- Placing a note, the arrow keys, and G then Z (at each new pitch as it's reached) play the notes
-  concerned on their own: each for its own length, at most one second, a chord together. Moving in
-  time, pasting and duplicating don't play anything.
+- Placing a note, the arrow keys, and G then Z play the notes concerned on their own: each for its
+  own length, at most one second, a chord together. G then Z plays once, when the move is kept, not
+  at each pitch passed on the way. Moving in time, pasting and duplicating don't play anything.
 
 ### Without modes
 

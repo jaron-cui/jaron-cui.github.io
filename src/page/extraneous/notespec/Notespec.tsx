@@ -301,6 +301,17 @@ export const Notespec = () => {
     setSettings({ division: DIVISIONS[Math.max(0, Math.min(DIVISIONS.length - 1, index - steps))] });
   };
 
+  // Note-placing mode on or off. Turning it on clears the note selection, so what's placed next
+  // isn't confused with what was selected.
+  const togglePlacing = () => {
+    const placing = !settingsRef.current.placing;
+    setSettings({ placing });
+    if (placing && committed().notes.length > 0) {
+      select({ ...committed(), notes: [] });
+    }
+    invalidateRef.current();
+  };
+
   const toggleLengthMode = (mode: LengthMode) => setSettings({ lengthMode: settingsRef.current.lengthMode === mode ? 'normal' : mode });
 
   // ---- Files ----
@@ -461,8 +472,7 @@ export const Notespec = () => {
       return true;
     }
     if (key === 'Tab') {
-      setSettings({ placing: !settingsRef.current.placing });
-      invalidateRef.current();
+      togglePlacing();
       return true;
     }
     if (key === 'Escape' && settingsRef.current.placing) {
@@ -695,7 +705,7 @@ export const Notespec = () => {
         </div>
         <div className='notespec-group'>
           <div className='notespec-segments' role='group' aria-label='Placing'>
-            <button aria-pressed={settings.placing} onClick={() => { setSettings({ placing: !settings.placing }); invalidateRef.current(); }} title='Place notes by clicking a lane (Tab; Esc stops)'>
+            <button aria-pressed={settings.placing} onClick={togglePlacing} title='Place notes by clicking a lane (Tab; Esc stops)'>
               Place notes
             </button>
           </div>

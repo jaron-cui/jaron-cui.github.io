@@ -46,7 +46,6 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
   const beat = first ? beatTicks(base.score, first.track, first.start) : ticksPerBeat({ beats: 4, unit: 4 });
   const lane = () => context.lanes().find(other => other.track.id === base.activeTrack);
   let offset = 0;
-  let heard = 0;
 
   const apply = () => {
     const view = context.view();
@@ -58,11 +57,6 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
     }
     result = { ...base, score: axis === 'time' ? moveNotes(base.score, base.notes, offset, 0) : moveNotes(base.score, base.notes, 0, offset) };
     context.preview(result);
-    // Moving in pitch plays each new pitch as it's reached.
-    if (axis === 'pitch' && offset !== heard) {
-      heard = offset;
-      context.audition(result, base.notes);
-    }
   };
   apply();
 
@@ -81,7 +75,6 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
     key: input => {
       if (input.key === 'z' || input.key === 'Z') {
         axis = axis === 'time' ? 'pitch' : 'time';
-        heard = 0;
         apply();
         return 'handled';
       }
@@ -97,6 +90,10 @@ export function grabNotes(context: OperatorContext, start: Point, base = context
     finish: confirmed => {
       if (confirmed) {
         context.commit(result);
+        // A move in pitch plays the notes once, where they ended up (not each pitch passed on the way).
+        if (axis === 'pitch' && offset !== 0) {
+          context.audition(result, base.notes);
+        }
       } else if (cancelled) {
         context.commit(cancelled);
       } else {
