@@ -1,5 +1,5 @@
 import {
-  addFolder, addTrack, copyNotes, deleteFolder, deleteNotes, moveGlobals, moveItems, moveNotes, moveTrackSections,
+  addFolder, addTrack, carveOverlaps, copyNotes, deleteFolder, deleteNotes, moveGlobals, moveItems, moveNotes, moveTrackSections,
   pasteNotes, placeNote, resizeGlobal, resizeTrackSection, setDurations, setFolder, splitGlobal, splitNotes, splitTrackSection, tieNotes,
   untieNotes,
 } from './editing';
@@ -37,6 +37,35 @@ describe('notes', () => {
     expect(at(split.score, split.created[0])).toMatchObject({ start: Q, duration: Q, tie: null });
     // A time outside the note splits nothing.
     expect(splitNotes(score, [id], 3 * Q).created).toHaveLength(0);
+  });
+});
+
+describe('same-pitch overlaps', () => {
+  const pieces = (score: Score) => allNotes(score).map(({ note, start }) => [start, note.duration, note.pitch]).sort((a, b) => a[0] - b[0] || a[2] - b[2]);
+
+  it('lets a placed note take over the middle of a longer one, splitting it', () => {
+    const long = place(newScore(), 0, 60, 4 * Q);
+    const short = place(long.score, Q, 60, Q);
+    expect(pieces(short.score)).toEqual([[0, Q, 60], [Q, Q, 60], [2 * Q, 2 * Q, 60]]);
+    // Another pitch is left alone.
+    expect(pieces(place(long.score, Q, 62, Q).score)).toEqual([[0, 4 * Q, 60], [Q, Q, 62]]);
+  });
+
+  it('trims a note covered at one end and removes one covered entirely', () => {
+    const first = place(newScore(), 0, 60, 2 * Q);
+    expect(pieces(place(first.score, Q, 60, 2 * Q).score)).toEqual([[0, Q, 60], [Q, 2 * Q, 60]]);
+    expect(pieces(place(first.score, 0, 60, 4 * Q).score)).toEqual([[0, 4 * Q, 60]]);
+  });
+
+  it('applies to moves, pastes and length changes', () => {
+    const a = place(newScore(), 0, 60, Q);
+    const b = place(a.score, 2 * Q, 60, 2 * Q);
+    expect(pieces(moveNotes(b.score, [a.id], 2 * Q, 0))).toEqual([[2 * Q, Q, 60], [3 * Q, Q, 60]]);
+    expect(pieces(setDurations(b.score, [a.id], 3 * Q))).toEqual([[0, 3 * Q, 60], [3 * Q, Q, 60]]);
+    const pasted = pasteNotes(b.score, firstTrack(b.score).id, 3 * Q, copyNotes(b.score, [a.id]));
+    expect(pieces(pasted.score)).toEqual([[0, Q, 60], [2 * Q, Q, 60], [3 * Q, Q, 60]]);
+    // Notes that don't overlap stay as they are.
+    expect(carveOverlaps(b.score, [a.id])).toBe(b.score);
   });
 });
 

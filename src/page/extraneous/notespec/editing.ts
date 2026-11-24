@@ -2,7 +2,7 @@
 import { Spelling } from './music';
 import {
   allNotes, emptyTrack, Folder, GlobalSection, globalAt, globalById, locateNotes, newId, Note, Score, sectionStart, Track,
-  TrackSection, trackSectionAt, TreeNode,
+  trackNotes, TrackSection, trackSectionAt, TreeNode,
 } from './score';
 
 // ---- Low-level updates ----
@@ -92,9 +92,43 @@ function locateNotesWhere(score: Score, test: (note: Note) => boolean): string[]
 
 // ---- Notes ----
 
+// A track never has two notes of the same pitch sounding at once. The given notes (just placed,
+// moved, pasted or lengthened) take over the time they cover from other notes of the same pitch on
+// their track: a note they cover entirely is removed, one they cover at an end keeps the rest, and
+// one they cover in the middle becomes two notes, the second with a new id and the tie out.
+export function carveOverlaps(score: Score, ids: Iterable<string>): Score {
+  const winners = new Set(ids);
+  let next = score;
+  for (const winner of locateNotes(score, winners)) {
+    const start = winner.start;
+    const end = start + winner.note.duration;
+    const losers = trackNotes(next, next.tracks[winner.track.id]).filter(other => (
+      !winners.has(other.note.id) && other.note.pitch === winner.note.pitch && other.start < end && other.start + other.note.duration > start
+    ));
+    for (const loser of losers) {
+      const loserEnd = loser.start + loser.note.duration;
+      const pieces: Note[] = [];
+      if (loser.start < start) {
+        pieces.push({ ...loser.note, duration: start - loser.start, tie: loserEnd > end ? null : loser.note.tie });
+      }
+      if (loserEnd > end) {
+        let id = loser.note.id;
+        if (loser.start < start) {
+          [id, next] = newId(next, 'n');
+        }
+        pieces.push({ ...loser.note, id, start: loser.note.start + (end - loser.start), duration: loserEnd - end });
+      }
+      next = updateSections(next, winner.track.id, sections => sections.map(section => (
+        section.id === loser.section.id ? { ...section, notes: section.notes.flatMap(note => (note.id === loser.note.id ? pieces : [note])) } : section
+      )));
+    }
+  }
+  return pruneTies(next);
+}
+
 // Places a note at an absolute time on a track. It belongs to the track section there, or, outside
 // every section, to the nearest one (where it shows as stray).
-export function placeNote(score: Score, trackId: string, start: number, pitch: number, duration: number): { score: Score; id: string } {
+export function placeNote(score: Score, trackId: string, start: number, pitch: number, duration: number, carve = true): { score: Score; id: string } {
   const [id, next] = newId(score, 'n');
   const track = next.tracks[trackId];
   const section = trackSectionAt(next, track, start) ?? nearestSection(next, track, start);
@@ -102,7 +136,8 @@ export function placeNote(score: Score, trackId: string, start: number, pitch: n
     return { score, id: '' };
   }
   const note: Note = { id, pitch, start: start - sectionStart(next, section), duration, tie: null };
-  return { score: updateSections(next, trackId, sections => sections.map(other => (other === section ? { ...other, notes: [...other.notes, note] } : other))), id };
+  const placed = updateSections(next, trackId, sections => sections.map(other => (other === section ? { ...other, notes: [...other.notes, note] } : other)));
+  return { score: carve ? carveOverlaps(placed, [id]) : placed, id };
 }
 
 function nearestSection(score: Score, track: Track, tick: number): TrackSection | undefined {
@@ -147,11 +182,12 @@ export function moveNotes(score: Score, ids: Iterable<string>, ticks: number, se
     }
     next = withTrack(next, { ...track, sections });
   }
-  return pruneTies(next);
+  return carveOverlaps(next, located.map(item => item.note.id));
 }
 
 export function setDurations(score: Score, ids: Iterable<string>, duration: number): Score {
-  return pruneTies(updateNotes(score, new Set(ids), note => ({ ...note, duration })));
+  const changed = new Set(ids);
+  return carveOverlaps(updateNotes(score, changed, note => ({ ...note, duration })), changed);
 }
 
 export function setSpelling(score: Score, ids: Iterable<string>, spelling: Spelling | undefined): Score {
@@ -201,11 +237,13 @@ export function copyNotes(score: Score, ids: Iterable<string>): Clip {
   };
 }
 
-export function pasteNotes(score: Score, trackId: string, time: number, clip: Clip): { score: Score; ids: string[] } {
+// `carve` false leaves overlaps with same-pitch notes for a following move to settle (Shift+D pastes
+// copies on top of their originals, then moves them).
+export function pasteNotes(score: Score, trackId: string, time: number, clip: Clip, carve = true): { score: Score; ids: string[] } {
   let next = score;
   const ids: string[] = [];
   for (const item of clip.notes) {
-    const placed = placeNote(next, trackId, time + item.offset, item.pitch, item.duration);
+    const placed = placeNote(next, trackId, time + item.offset, item.pitch, item.duration, false);
     next = placed.score;
     ids.push(placed.id);
   }
@@ -213,7 +251,7 @@ export function pasteNotes(score: Score, trackId: string, time: number, clip: Cl
     const item = clip.notes[ids.indexOf(note.id)];
     return { ...note, ...(item.spelling ? { spelling: item.spelling } : {}), tie: item.tie === null ? null : ids[item.tie] };
   });
-  return { score: pruneTies(next), ids };
+  return { score: carve ? carveOverlaps(next, ids) : pruneTies(next), ids };
 }
 
 // ---- Sections ----

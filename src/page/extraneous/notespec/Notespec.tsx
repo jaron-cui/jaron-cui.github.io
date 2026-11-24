@@ -159,6 +159,11 @@ export const Notespec = () => {
       if (input.button !== 0) {
         return;
       }
+      // While placing notes, a click on a note places one there too (taking over a same-pitch note).
+      if (settingsRef.current.placing) {
+        placeAt(lane, xTick(viewRef.current, input.x), Math.round(yStep(lane, input.y)));
+        return;
+      }
       // Selected notes share a track: Shift+click adds within the active track, and a note on another
       // track starts a new selection there.
       if (input.shift && lane.track.id === state.activeTrack) {
@@ -219,14 +224,15 @@ export const Notespec = () => {
     return { track: lane.track.id, start, pitch: placementPitch(step, key, pitchLock), duration: lengthTicks(division, lengthMode) };
   };
 
-  // The note a click would place, while placing notes and the pointer is over blank lane space.
+  // The note a click would place, while placing notes and the pointer is over a lane's staff area
+  // (blank space or a note; not a section line).
   const ghost = (): Ghost | null => {
     const hovered = interaction.hovered;
-    if (!settingsRef.current.placing || interaction.busy || !hovered?.startsWith('lane:')) {
+    if (!settingsRef.current.placing || interaction.busy || !(hovered?.startsWith('lane:') || hovered?.startsWith('note:'))) {
       return null;
     }
-    const lane = lanes().find(other => `lane:${other.track.id}` === hovered);
     const { x, y } = interaction.pointer;
+    const lane = lanes().find(other => y >= other.top && y < other.top + other.height);
     return lane ? placement(lane, xTick(viewRef.current, x), Math.round(yStep(lane, y))) : null;
   };
 
@@ -490,7 +496,7 @@ export const Notespec = () => {
     if (key === 'd' && input.shift && state.notes.length > 0) {
       const clip = copyNotes(state.score, state.notes);
       const origin = Math.min(...locateNotes(state.score, state.notes).map(item => item.start));
-      const pasted = pasteNotes(state.score, state.activeTrack, origin, clip);
+      const pasted = pasteNotes(state.score, state.activeTrack, origin, clip, false);
       interaction.startModal(grabNotes(operatorContext, interaction.pointer, { ...state, score: pasted.score, notes: pasted.ids }, state));
       return true;
     }

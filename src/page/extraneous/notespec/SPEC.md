@@ -26,6 +26,9 @@ had to make that the user hasn't reviewed yet.
   sections uses the beat of the earliest time signature in the selection.
 - **Attachment point**: the point of a note that decides which section it belongs to. Fixed to the
   note's start for now.
+- **No same-pitch overlaps**: a track never has two notes of the same pitch sounding at once. A note
+  placed over another of the same pitch takes over the overlapping stretch; what's left of the
+  original stays, as a separate note on each side if the new note lands in its middle.
 - Velocity and other dynamics are left out for now (see Later).
 
 ### Ties
@@ -284,11 +287,23 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 ### Without modes
 
 - In note-placing mode, a click on blank lane space places a note on that lane's track and makes it
-  the active track. The faded preview shows over blank lane space only, not over notes or section
-  lines, and not while G or B runs. A "Place notes" toolbar button shows and toggles the mode.
+  the active track. A click on an existing note places one there too (so a note can be placed over
+  another), and the faded preview shows over notes as well as blank space; not over section lines,
+  and not while G or B runs. A "Place notes" toolbar button shows and toggles the mode.
 - Selected notes always share one track. Shift+click adds within the active track; clicking a note
   on another track starts a new selection there. B selects in the lane the drag starts in.
 - The cursor is placed, or scrubbed by dragging, on the ruler, on blank lane space outside
   note-placing mode, or on the blank area below the lanes. A click on blank space also clears the
   selection (Shift keeps it).
 - Alt+A clears notes and sections alike; A selects all of the active track's notes.
+
+### Same-pitch overlaps
+
+- The rule applies to every edit that puts notes somewhere: placing, moving (G and the arrow keys),
+  pasting and lengthening. The notes being edited take over from the others; the G preview shows the
+  result as it would be kept.
+- Shift+D pastes its copies on top of the originals without applying the rule, and the move that
+  follows applies it, so the originals survive unless the copies are dropped back onto them.
+- Moving sections onto each other doesn't apply it: overlapping sections are already marked red, and
+  their notes are left alone until the sections are moved apart.
+- When a note is split in two this way, the second piece gets a new id and keeps any tie out.
