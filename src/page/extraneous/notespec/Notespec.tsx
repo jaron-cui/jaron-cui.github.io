@@ -241,7 +241,9 @@ export const Notespec = () => {
     const { start, pitch, duration } = placement(lane, tick, step);
     const placed = placeNote(state.score, lane.track.id, start, pitch, duration);
     if (placed.id) {
-      const next = { ...state, score: placed.score, activeTrack: lane.track.id, notes: [placed.id], sections: [] };
+      // A placed note isn't selected, and placing clears the selection, so Alt+scroll goes on setting
+      // the next note's length rather than changing notes already placed.
+      const next = { ...state, score: placed.score, activeTrack: lane.track.id, notes: [], sections: [] };
       commit(next);
       audition(next, [placed.id]);
     }

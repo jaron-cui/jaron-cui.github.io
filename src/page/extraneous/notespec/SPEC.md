@@ -307,3 +307,8 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 - Moving sections onto each other doesn't apply it: overlapping sections are already marked red, and
   their notes are left alone until the sections are moved apart.
 - When a note is split in two this way, the second piece gets a new id and keeps any tie out.
+
+### Placing doesn't select
+
+- A placed note isn't selected, and placing clears the selection. Otherwise Alt+scroll, meant to set
+  the next note's length while entering a melody, would change the note just placed.
