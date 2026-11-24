@@ -133,7 +133,7 @@ Holding Ctrl does not disable snapping.
 
 | Key | Action |
 | --- | --- |
-| Tab / Escape | Note-placing mode on and off / off |
+| Tab / Escape | Note-placing mode on and off / off. Escape also stops playback and clears the selection (notes and sections); while G or B runs it only cancels that |
 | Ctrl+Z / Ctrl+Shift+Z | Undo / redo |
 | Left click, Shift+click | Select, extend selection |
 | A / Alt+A | Select all / none |

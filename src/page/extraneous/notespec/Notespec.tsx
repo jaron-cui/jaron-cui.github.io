@@ -542,8 +542,16 @@ export const Notespec = () => {
       return true;
     }
 
-    if (key === 'Escape' && settingsRef.current.placing) {
-      setSettings({ placing: false });
+    // Escape (when no operator is running, which it would cancel instead): stops playback, leaves
+    // note-placing mode and clears the selection.
+    if (key === 'Escape') {
+      stop();
+      if (settingsRef.current.placing) {
+        setSettings({ placing: false });
+      }
+      if (state.notes.length > 0 || state.sections.length > 0) {
+        select({ ...state, notes: [], sections: [] });
+      }
       invalidateRef.current();
       return true;
     }
@@ -756,7 +764,7 @@ export const Notespec = () => {
   const status = modal?.describe?.() ?? (settings.placing
     ? ['Placing notes: click a lane', 'Tab or Esc: stop placing', 'Alt+scroll: length', 'D / T: dotted / triplet', 'Space: play']
     : state.sections.length > 0
-    ? ['Sections', 'G: move (bounds: resize)', 'S: split at cursor', 'Alt+A: deselect', 'Space: play']
+    ? ['Sections', 'G: move (bounds: resize)', 'S: split at cursor', 'Alt+A or Esc: deselect', 'Space: play']
     : ['Tab: place notes', 'Click a note, section line or bound: select it', 'Drag a lane or the ruler: cursor', 'G: move (then Z: pitch)', 'B: box select', 'S: split at cursor', '↑↓: semitone', '←→: by grid, or move the cursor (Ctrl: bar, Ctrl+Alt: section, Shift: select)', 'Ctrl+J: tie', 'Shift+D: duplicate', 'Alt+scroll: length', 'Space: play']).join('  ·  ');
 
   return (
