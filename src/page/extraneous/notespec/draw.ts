@@ -3,7 +3,7 @@
 import { Drag, Frame, PointerInput, Rect, WheelInput } from './canvas/interaction';
 import { Size } from './canvas/useCanvas';
 import {
-  GLOBAL_LINE_HEIGHT, HEADER_WIDTH, Lane, noteBox, noteRect, RULER_HEIGHT, SCORE_TOP, SECTION_LINE_HEIGHT, stepY, tickX, View, xTick, yStep,
+  GLOBAL_LINE_HEIGHT, Lane, noteBox, noteRect, RULER_HEIGHT, SCORE_TOP, SECTION_LINE_HEIGHT, stepY, tickX, View, xTick, yStep,
 } from './layout';
 import { accidental, Clef, spell, staffLines, tonicName } from './music';
 import {
@@ -42,6 +42,8 @@ export type ScoreActions = {
   pressSection(ref: SectionRef, input: PointerInput): void;
   // A press below the lanes or anywhere else on the score; a drag moves the cursor.
   pressBlank(tick: number, input: PointerInput): Drag | void;
+  // A press on the border between the track names and the score; a drag moves it.
+  pressHeaderEdge(input: PointerInput): Drag | void;
   wheel(input: WheelInput): boolean;
 };
 
@@ -76,7 +78,7 @@ export function drawScore(context: CanvasRenderingContext2D, frame: Frame, size:
   // Lanes scroll under the ruler and the headers, so they're clipped to the score area.
   context.save();
   context.beginPath();
-  context.rect(HEADER_WIDTH, SCORE_TOP, size.width - HEADER_WIDTH, size.height - SCORE_TOP);
+  context.rect(view.header, SCORE_TOP, size.width - view.header, size.height - SCORE_TOP);
   context.clip();
   for (const lane of model.lanes) {
     if (lane.top + lane.height >= SCORE_TOP && lane.top <= size.height) {
@@ -87,12 +89,18 @@ export function drawScore(context: CanvasRenderingContext2D, frame: Frame, size:
 
   context.save();
   context.beginPath();
-  context.rect(0, SCORE_TOP, HEADER_WIDTH, size.height - SCORE_TOP);
+  context.rect(0, SCORE_TOP, view.header, size.height - SCORE_TOP);
   context.clip();
   for (const lane of model.lanes) {
     drawHeader(context, frame, model, lane);
   }
   context.restore();
+
+  // The border between the track names and the score, which can be dragged.
+  const edgeKey = 'header-edge';
+  context.fillStyle = frame.isHovered(edgeKey) ? '#5aa9ff' : COLORS.staff;
+  context.fillRect(view.header - 1, SCORE_TOP, frame.isHovered(edgeKey) ? 2 : 1, size.height - SCORE_TOP);
+  frame.region({ rect: { x: view.header - 4, y: SCORE_TOP, width: 8, height: size.height - SCORE_TOP }, key: edgeKey, cursor: 'col-resize', press: input => actions.pressHeaderEdge(input) });
 
   drawRuler(context, frame, size, model);
   drawGlobalLine(context, frame, size, model);
@@ -111,14 +119,14 @@ export function drawScore(context: CanvasRenderingContext2D, frame: Frame, size:
 }
 
 function visibleRange(size: Size, view: View): [number, number] {
-  return [xTick(view, HEADER_WIDTH), xTick(view, size.width)];
+  return [xTick(view, view.header), xTick(view, size.width)];
 }
 
 // Bar numbers and each global section's tempo, key and time signature. A press places the cursor.
 function drawRuler(context: CanvasRenderingContext2D, frame: Frame, size: Size, { state, view, actions }: ScoreModel) {
   context.fillStyle = COLORS.header;
   context.fillRect(0, 0, size.width, RULER_HEIGHT);
-  frame.region({ rect: { x: HEADER_WIDTH, y: 0, width: size.width - HEADER_WIDTH, height: RULER_HEIGHT }, cursor: 'text', press: input => actions.pressRuler(input) });
+  frame.region({ rect: { x: view.header, y: 0, width: size.width - view.header, height: RULER_HEIGHT }, cursor: 'text', press: input => actions.pressRuler(input) });
   const [from, to] = visibleRange(size, view);
   context.font = FONT;
   context.textBaseline = 'middle';
@@ -135,7 +143,7 @@ function drawRuler(context: CanvasRenderingContext2D, frame: Frame, size: Size, 
     const every = barPixels > 28 ? 1 : Math.ceil(28 / barPixels);
     for (let i = first; i <= last; i++) {
       const x = tickX(view, global.start + i * bar);
-      if (x < HEADER_WIDTH) {
+      if (x < view.header) {
         continue;
       }
       context.fillStyle = COLORS.faint;
@@ -165,7 +173,7 @@ function drawGlobalLine(context: CanvasRenderingContext2D, frame: Frame, size: S
   context.fillText('Sections', 10, y);
   context.save();
   context.beginPath();
-  context.rect(HEADER_WIDTH, RULER_HEIGHT, size.width - HEADER_WIDTH, GLOBAL_LINE_HEIGHT);
+  context.rect(view.header, RULER_HEIGHT, size.width - view.header, GLOBAL_LINE_HEIGHT);
   context.clip();
   const overlaps = overlappingGlobals(state.score);
   for (const global of state.score.globals) {
@@ -187,7 +195,7 @@ function drawGlobalLabels(context: CanvasRenderingContext2D, view: View, globals
   context.font = FONT;
   for (const global of globals) {
     const x = tickX(view, global.start);
-    if (x >= HEADER_WIDTH - 1) {
+    if (x >= view.header - 1) {
       context.fillText(sectionLabel(global.clef, global.key, global.time, global.tempo), x + 22, RULER_HEIGHT - 9);
     }
   }
@@ -230,21 +238,21 @@ function shadeOverlap(context: CanvasRenderingContext2D, view: View, start: numb
   context.fillRect(tickX(view, start), top, length * view.scale, height);
 }
 
-function drawHeader(context: CanvasRenderingContext2D, frame: Frame, { state, actions }: ScoreModel, lane: Lane) {
+function drawHeader(context: CanvasRenderingContext2D, frame: Frame, { state, view, actions }: ScoreModel, lane: Lane) {
   const active = lane.track.id === state.activeTrack;
   context.fillStyle = active ? COLORS.activeHeader : COLORS.header;
-  context.fillRect(0, lane.top, HEADER_WIDTH, lane.height);
+  context.fillRect(0, lane.top, view.header, lane.height);
   context.fillStyle = COLORS.text;
   context.font = active ? `600 ${FONT}` : FONT;
   context.textBaseline = 'top';
-  context.fillText(lane.track.name, 8, lane.top + 6, HEADER_WIDTH - 16);
+  context.fillText(lane.track.name, 8, lane.top + 6, view.header - 16);
   context.fillStyle = COLORS.faint;
   context.font = FONT;
   const flags = [lane.row.muted && 'muted', lane.row.soloed && 'solo'].filter(Boolean).join(', ');
   if (flags) {
     context.fillText(flags, 8, lane.top + 22);
   }
-  frame.region({ rect: { x: 0, y: lane.top, width: HEADER_WIDTH, height: lane.height }, cursor: 'pointer', press: input => actions.pressHeader(lane, input) });
+  frame.region({ rect: { x: 0, y: lane.top, width: view.header, height: lane.height }, cursor: 'pointer', press: input => actions.pressHeader(lane, input) });
 }
 
 function drawLane(context: CanvasRenderingContext2D, frame: Frame, size: Size, model: ScoreModel, lane: Lane) {
@@ -252,9 +260,9 @@ function drawLane(context: CanvasRenderingContext2D, frame: Frame, size: Size, m
   const { score } = state;
   const active = lane.track.id === state.activeTrack;
   context.fillStyle = active ? COLORS.activeLane : COLORS.lane;
-  context.fillRect(HEADER_WIDTH, lane.top, size.width - HEADER_WIDTH, lane.height);
+  context.fillRect(view.header, lane.top, size.width - view.header, lane.height);
   frame.region({
-    rect: { x: HEADER_WIDTH, y: lane.top, width: size.width - HEADER_WIDTH, height: lane.height },
+    rect: { x: view.header, y: lane.top, width: size.width - view.header, height: lane.height },
     // Named so the editor can tell the pointer is over blank lane space, where a note would go.
     key: `lane:${lane.track.id}`,
     cursor: model.placing ? 'crosshair' : undefined,
@@ -294,7 +302,7 @@ function drawGhost(context: CanvasRenderingContext2D, { state, view }: ScoreMode
 function drawStaff(context: CanvasRenderingContext2D, size: Size, view: View, score: Score, lane: Lane, section: TrackSection, overlapping: boolean) {
   const start = sectionStart(score, section);
   const { clef, time } = sectionAttributes(score, section);
-  const x0 = Math.max(HEADER_WIDTH, tickX(view, start));
+  const x0 = Math.max(view.header, tickX(view, start));
   const x1 = Math.min(size.width, tickX(view, start + section.length));
   if (x1 <= x0) {
     return;
@@ -326,7 +334,7 @@ function drawStaff(context: CanvasRenderingContext2D, size: Size, view: View, sc
   context.font = '22px "Segoe UI Symbol", "Noto Music", serif';
   context.textBaseline = 'middle';
   const sx = tickX(view, start);
-  if (sx >= HEADER_WIDTH - 4) {
+  if (sx >= view.header - 4) {
     context.fillText(CLEF_SYMBOLS[clef], sx + 3, (top + bottom) / 2);
   }
 }
@@ -426,7 +434,7 @@ function drawLedgerLines(context: CanvasRenderingContext2D, score: Score, lane: 
 
 function drawTimeLine(context: CanvasRenderingContext2D, size: Size, view: View, tick: number, color: string) {
   const x = Math.round(tickX(view, tick));
-  if (x < HEADER_WIDTH || x > size.width) {
+  if (x < view.header || x > size.width) {
     return;
   }
   context.fillStyle = color;

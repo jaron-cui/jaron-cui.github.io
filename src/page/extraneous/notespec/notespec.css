@@ -99,8 +99,7 @@
 .notespec-side {
   display: flex;
   flex-direction: column;
-  width: 260px;
-  border-left: 1px solid #2a2e39;
+  flex-shrink: 0;
 }
 
 .notespec-status {

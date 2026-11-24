@@ -11,7 +11,10 @@ import { FileHandle, isCancel, pickFileToOpen, saveText } from '../../../lib/psa
 import { keyValueStore } from '../../../lib/psave/store';
 import { FILE_TYPE, parseScore, serializeScore } from './projectFile';
 import { commit as commitHistory, History, redo, startHistory, undo } from './history';
-import { DEFAULT_VIEW, HEADER_WIDTH, Lane, layoutLanes, lanesHeight, PitchLock, placementPitch, SCORE_TOP, View, xTick, yStep } from './layout';
+import {
+  DEFAULT_VIEW, Lane, layoutLanes, lanesHeight, MAX_HEADER_WIDTH, MIN_HEADER_WIDTH, PitchLock, placementPitch, SCORE_TOP, View, xTick, yStep,
+} from './layout';
+import { PaneDivider } from './PaneDivider';
 import { DIVISIONS, lengthLabel, LengthMode, lengthTicks, Snap, snapTime, stepLength } from './lengths';
 import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators';
 import { attributesAt, locateNotes, newScore, Score, trackNotes, trackRows } from './score';
@@ -71,6 +74,9 @@ export const Notespec = () => {
   const savedScoreRef = useRef<Score>(historyRef.current.present.score);
   const clipboardRef = useRef<Clip | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // The side panel's width and the outliner's height in it, both dragged by their borders.
+  const [sideWidth, setSideWidth] = useState(260);
+  const [outlinerHeight, setOutlinerHeight] = useState(320);
 
   const shown = () => previewRef.current ?? historyRef.current.present;
   const committed = () => historyRef.current.present;
@@ -204,7 +210,16 @@ export const Notespec = () => {
       if (!input.shift) {
         select({ ...committed(), notes: [], sections: [] });
       }
-      return input.x > HEADER_WIDTH ? scrub(input.x) : undefined;
+      return input.x > viewRef.current.header ? scrub(input.x) : undefined;
+    },
+    pressHeaderEdge: input => {
+      const from = { x: input.x, header: viewRef.current.header };
+      return {
+        move: move => {
+          viewRef.current.header = Math.max(MIN_HEADER_WIDTH, Math.min(MAX_HEADER_WIDTH, from.header + move.x - from.x));
+          refresh();
+        },
+      };
     },
     wheel: input => wheel(input),
   };
@@ -254,9 +269,9 @@ export const Notespec = () => {
     const delta = input.deltaY || input.deltaX;
     if (input.ctrl) {
       // Zoom time around the pointer.
-      const anchor = xTick(view, Math.max(HEADER_WIDTH, input.x));
+      const anchor = xTick(view, Math.max(view.header, input.x));
       view.scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, view.scale * Math.exp(-delta * 0.0015)));
-      view.start = anchor - (Math.max(HEADER_WIDTH, input.x) - HEADER_WIDTH) / view.scale;
+      view.start = anchor - (Math.max(view.header, input.x) - view.header) / view.scale;
     } else if (input.alt) {
       changeLength(delta < 0 ? 1 : -1);
     } else if (input.shift) {
@@ -753,7 +768,9 @@ export const Notespec = () => {
       </div>
       <div className='notespec-main'>
         <canvas ref={canvasRef} className='notespec-canvas' data-testid='score' />
-        <div className='notespec-side'>
+        <PaneDivider orientation='vertical' value={sideWidth} min={180} max={600} inverted label='Resize the side panel' onChange={setSideWidth} />
+        <div className='notespec-side' style={{ width: sideWidth }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: outlinerHeight, minHeight: 0 }}>
           <Outliner
             score={state.score}
             activeTrack={state.activeTrack}
@@ -765,6 +782,9 @@ export const Notespec = () => {
             onAddFolder={newFolder}
             onMove={(id, drop) => commit({ ...committed(), score: moveItems(committed().score, [id], drop) })}
           />
+          </div>
+          <PaneDivider orientation='horizontal' value={outlinerHeight} min={80} max={1200} inverted={false} label='Resize the outliner' onChange={setOutlinerHeight} />
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           <Properties
             score={state.score}
             section={state.sections.at(-1) ?? null}
@@ -773,6 +793,7 @@ export const Notespec = () => {
             onOverride={(track, id, overrides) => commit({ ...committed(), score: setTrackSection(committed().score, track, id, { overrides }) }, `section:${id}`)}
             onMargins={(track, margins) => commit({ ...committed(), score: setTrack(committed().score, track, { margins }) }, `margins:${track}`)}
           />
+          </div>
         </div>
       </div>
       <div className='notespec-status'>{message ? `${message}  ·  ${status}` : status}</div>

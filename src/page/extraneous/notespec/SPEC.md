@@ -312,3 +312,10 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
 
 - A placed note isn't selected, and placing clears the selection. Otherwise Alt+scroll, meant to set
   the next note's length while entering a melody, would change the note just placed.
+
+### Panels
+
+- The side panel is split: the outliner on top, properties below, each with its own height and a
+  draggable border between them. The border between the score and the side panel, and the one
+  between the track names and the score, can be dragged too. Sizes aren't saved yet; a reload
+  restores the defaults.

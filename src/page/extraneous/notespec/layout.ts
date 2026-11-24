@@ -6,7 +6,9 @@ import { Located, Score, sectionAttributes, Track, TrackRow } from './score';
 export const RULER_HEIGHT = 22;
 export const GLOBAL_LINE_HEIGHT = 16;
 export const SCORE_TOP = RULER_HEIGHT + GLOBAL_LINE_HEIGHT;
-export const HEADER_WIDTH = 132;
+// The track-name column's width, which the user can drag.
+export const MIN_HEADER_WIDTH = 60;
+export const MAX_HEADER_WIDTH = 400;
 // Pixels per staff step (line to space): staff lines are two steps apart.
 export const STEP = 6;
 export const SECTION_LINE_HEIGHT = 12;
@@ -14,17 +16,18 @@ export const LANE_PADDING = 6;
 export const LANE_GAP = 8;
 
 export type View = {
-  // The tick at the left edge of the score area, its pixels per tick, and how far the lanes are
-  // scrolled down.
+  // The tick at the left edge of the score area, its pixels per tick, how far the lanes are
+  // scrolled down, and the width of the track-name column left of the score.
   start: number;
   scale: number;
   scrollY: number;
+  header: number;
 };
 
-export const DEFAULT_VIEW: View = { start: 0, scale: 40 / 960, scrollY: 0 };
+export const DEFAULT_VIEW: View = { start: 0, scale: 40 / 960, scrollY: 0, header: 132 };
 
-export const tickX = (view: View, tick: number) => HEADER_WIDTH + (tick - view.start) * view.scale;
-export const xTick = (view: View, x: number) => view.start + (x - HEADER_WIDTH) / view.scale;
+export const tickX = (view: View, tick: number) => view.header + (tick - view.start) * view.scale;
+export const xTick = (view: View, x: number) => view.start + (x - view.header) / view.scale;
 
 export type Lane = {
   row: TrackRow;
