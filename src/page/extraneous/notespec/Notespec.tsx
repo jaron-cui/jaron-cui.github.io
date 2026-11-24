@@ -140,8 +140,13 @@ export const Notespec = () => {
     auditionRef.current = startSamples(audio, samples);
   };
 
-  const setCursor = (tick: number) => {
+  // Moves the cursor. While playing, playback jumps there too, unless `seek` is false (during a
+  // scrub drag, which seeks once on release).
+  const setCursor = (tick: number, seek = true) => {
     cursorRef.current = Math.max(0, tick);
+    if (seek && playRef.current) {
+      restartPlayback();
+    }
     refresh();
   };
   const snappedCursor = (tick: number) => {
@@ -232,8 +237,11 @@ export const Notespec = () => {
 
   // Places the cursor at a point and follows the pointer until release.
   const scrub = (x: number) => {
-    setCursor(snappedCursor(xTick(viewRef.current, x)));
-    return { move: (move: { x: number }) => setCursor(snappedCursor(xTick(viewRef.current, move.x))) };
+    setCursor(snappedCursor(xTick(viewRef.current, x)), false);
+    return {
+      move: (move: { x: number }) => setCursor(snappedCursor(xTick(viewRef.current, move.x)), false),
+      end: () => setCursor(cursorRef.current),
+    };
   };
 
   // Where a click at a time and staff step of a lane places a note, and how long it is.
@@ -446,6 +454,16 @@ export const Notespec = () => {
       stop();
       return;
     }
+    startPlayback();
+  };
+
+  // Playback from the cursor again, as when the cursor moves while playing.
+  const restartPlayback = () => {
+    stop();
+    startPlayback();
+  };
+
+  const startPlayback = () => {
     const { score } = committed();
     const audio = audioRef.current ?? new AudioContext();
     audioRef.current = audio;

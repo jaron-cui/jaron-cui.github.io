@@ -342,3 +342,9 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
   the cursor was, and the selection becomes the active track's notes starting between the anchor
   and the cursor, so moving back shrinks it. Moving the cursor or selecting any other way starts over.
 - When the keyboard moves the cursor out of view, the view scrolls to show it.
+
+### Seeking
+
+- Moving the cursor while playing restarts playback from the cursor: clicks and arrow keys at once,
+  a scrub drag once on release (not at each pointer move). A cursor past the last note has nothing
+  to play, so playback stops.
