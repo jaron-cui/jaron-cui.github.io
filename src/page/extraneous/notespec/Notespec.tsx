@@ -20,6 +20,7 @@ import { boxSelect, grabNotes, grabSections, OperatorContext } from './operators
 import { attributesAt, locateNotes, newScore, Score, trackNotes, trackRows } from './score';
 import { ItemKind, Outliner } from './Outliner';
 import { Properties } from './Properties';
+import { fadeOut, startSamples, Voice } from './playback';
 import { auditionSamples, renderScore, TempoMap, tempoMap } from './sound';
 import { EditorState, initialState, sameSection, tidy } from './state';
 import './notespec.css';
@@ -67,7 +68,7 @@ export const Notespec = () => {
 
   // Playback: the source playing, when it started (audio clock) and the tick it started from.
   const audioRef = useRef<AudioContext | null>(null);
-  const playRef = useRef<{ source: AudioBufferSourceNode; startedAt: number; from: number; time: TempoMap; frame: number } | null>(null);
+  const playRef = useRef<{ voice: Voice; startedAt: number; from: number; time: TempoMap; frame: number } | null>(null);
 
   // The file the score belongs to, and the score as last saved to it (or opened from it).
   const fileRef = useRef<{ name: string; handle: FileHandle | null } | null>(null);
@@ -121,7 +122,7 @@ export const Notespec = () => {
   };
 
   // Plays notes on their own (a placed note, or notes whose pitch changed), cutting off the last ones.
-  const auditionRef = useRef<AudioBufferSourceNode | null>(null);
+  const auditionRef = useRef<Voice | null>(null);
   const audition = (state: EditorState, ids: string[]) => {
     const audio = audioRef.current ?? new AudioContext();
     audioRef.current = audio;
@@ -130,14 +131,10 @@ export const Notespec = () => {
     if (samples.length === 0) {
       return;
     }
-    auditionRef.current?.stop();
-    const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
-    buffer.copyToChannel(samples, 0);
-    const source = audio.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audio.destination);
-    source.start();
-    auditionRef.current = source;
+    if (auditionRef.current) {
+      fadeOut(audio, auditionRef.current);
+    }
+    auditionRef.current = startSamples(audio, samples);
   };
 
   const setCursor = (tick: number) => {
@@ -391,8 +388,9 @@ export const Notespec = () => {
       return;
     }
     playRef.current = null;
-    playing.source.onended = null;
-    playing.source.stop();
+    if (audioRef.current) {
+      fadeOut(audioRef.current, playing.voice);
+    }
     cancelAnimationFrame(playing.frame);
     refresh();
   };
@@ -411,21 +409,16 @@ export const Notespec = () => {
     if (samples.length === 0) {
       return;
     }
-    const buffer = audio.createBuffer(1, samples.length, audio.sampleRate);
-    buffer.copyToChannel(samples, 0);
-    const source = audio.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audio.destination);
     const startedAt = audio.currentTime + 0.05;
-    source.start(startedAt);
-    source.onended = stop;
+    const voice = startSamples(audio, samples, startedAt);
+    voice.source.onended = stop;
     const follow = () => {
       if (playRef.current) {
         playRef.current.frame = requestAnimationFrame(follow);
         invalidateRef.current();
       }
     };
-    playRef.current = { source, startedAt, from: cursorRef.current, time: tempoMap(score), frame: requestAnimationFrame(follow) };
+    playRef.current = { voice, startedAt, from: cursorRef.current, time: tempoMap(score), frame: requestAnimationFrame(follow) };
     refresh();
   };
 

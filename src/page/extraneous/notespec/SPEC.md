@@ -321,3 +321,9 @@ Choices the code needed that this spec didn't settle. Each stands until reviewed
   draggable border between them. The border between the score and the side panel, and the one
   between the track names and the score, can be dragged too. Sizes aren't saved yet; a reload
   restores the defaults.
+
+### No clicks at start and stop
+
+- Every sound played (playback and auditions) fades in over 10 ms, and stopping one (Stop, or a new
+  audition cutting off the last) fades it out over 15 ms. Starting playback partway through a note,
+  or stopping it, would otherwise click. `playback.ts` does this with a gain per sound.
